@@ -4,8 +4,16 @@ import { NextResponse, NextRequest } from 'next/server';
 const GITHUB_MODELS_URL = 'https://models.github.ai/inference/chat/completions';
 const DEFAULT_MODEL = 'meta-llama-3.1-8b-instruct';
 
+// ★ データベース情報の型
+interface DatabaseInfo {
+  name: string;
+  index: string;
+  fields?: string[];
+  records: any[]; // データ本体
+}
+
 // フォールバック：複数データベース対応
-function generateFallbackResponse(prompt: string, databases: { name: string; records: any[] }[]): string {
+function generateFallbackResponse(prompt: string, databases: DatabaseInfo[]): string {
   const lower = prompt.toLowerCase();
   const totalRecords = databases.reduce((sum, db) => sum + db.records.length, 0);
 
@@ -84,9 +92,9 @@ export async function POST(request: NextRequest) {
     const model = process.env.GITHUB_MODEL || DEFAULT_MODEL;
 
     // システムプロンプト（データベース一覧を含む）
-    const dbList = (databases || []).map((db: { name: string; index: string; fields?: string[]; records: any[] }) => {
-  return `- **${db.name}** (${db.index}): フィールド [${db.fields?.join(', ') || 'なし'}], ${db.records.length}件`;
-}).join('\n');
+    const dbList = (databases || []).map((db: DatabaseInfo) => {
+      return `- **${db.name}** (${db.index}): フィールド [${db.fields?.join(', ') || 'なし'}], ${db.records.length}件`;
+    }).join('\n');
 
     const systemPrompt =
       `あなたは「BIダッシュボードプロジェクト」の` +
@@ -105,7 +113,7 @@ export async function POST(request: NextRequest) {
     // 各データベースのデータをテキスト化（最大30件ずつ）
     let contextText = '';
     if (databases && databases.length > 0) {
-      databases.forEach(db => {
+      (databases as DatabaseInfo[]).forEach(db => {
         const trimmed = db.records.slice(0, 30);
         contextText += `\n### ${db.name}\n`;
         contextText += JSON.stringify(trimmed, null, 2);
