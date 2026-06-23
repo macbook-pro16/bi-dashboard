@@ -228,7 +228,7 @@ function migrateChartTypes(widgets: Widget[]): Widget[] {
           ...w.dataConfig,
           sourceIndex: w.dataConfig?.sourceIndex || '001',
           chartType: w.dataConfig?.chartType || chartTypeMap[w.type as string] || 'bar',
-        } as DataConfig,   // ★ ここで DataConfig 型を明示
+        } as DataConfig,
       };
     }
     if (w.children) return { ...w, children: migrateChartTypes(w.children) };
@@ -259,7 +259,6 @@ function resolveDateFilterField(w: Widget): string {
   return dc?.dateFilterField || dc?.scoreDateField || 'date';
 }
 
-// src/app/dashboard/page.tsx の SelectWithSearch 関数のみ以下に置き換え
 function SelectWithSearch({ options, value, onChange, placeholder }: { options: string[]; value: string; onChange: (v: string) => void; placeholder?: string }) {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
@@ -487,7 +486,7 @@ function SlideshowWidgetContent({
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>;
   availableFields?: string[];
 }) {
-  const dc = widget.dataConfig || {};
+  const dc = widget.dataConfig || ({} as DataConfig);   // ★ 修正点
   const children = widget.children || [];
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -614,7 +613,7 @@ function renderWidgetContent(
   availableFields?: string[],
   handleDiffFilter?: (ids: string[], label: string) => void,
 ) {
-  const dc = w.dataConfig || {};
+  const dc = w.dataConfig || ({} as DataConfig);   // ★ 念のため同様の修正
   const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
   const isNone = srcIdx === 'none';
   const dateFilterField = resolveDateFilterField(w);
@@ -1979,7 +1978,7 @@ function DashboardInner() {
           if (!silent && addToastRef.current) {
             addToastRef.current(`[${c.name}] 取得エラー: ${e.message || '不明なエラー'}`, 'error');
           }
-          return { index: c.index, data: [] }; // 空データを返す
+          return { index: c.index, data: [] };
         }
       })
     );
@@ -2056,7 +2055,6 @@ function DashboardInner() {
     });
   }, [filters.statuses, filters.crossFilters, extractStringValue]);
 
-  // ★ 今日の実績クリック時のフィルター
   const handleDiffFilter = useCallback((ids: string[], label: string) => {
     setCrossFilterValues('id', ids);
     addToastRef.current(`${label} (${ids.length}件) でフィルターしました`, 'info');
@@ -2127,7 +2125,6 @@ function DashboardInner() {
 
   const dateFieldsBySource = useMemo(()=>{ const m:Record<string,string[]>={}; for(const idx of Object.keys(cacheStore)){ const fields = availableFieldsBySource[idx]||[]; const data = cacheStore[idx]||[]; m[idx] = fields.filter(f => data.some(item => /^\d{4}-\d{2}-\d{2}/.test(extractStringValue(item[f])))); } return m; },[cacheStore,availableFieldsBySource, extractStringValue]);
 
-  // ★ 条件ごとのlogicをサポートする evaluateConditions
   const evaluateConditions = useCallback((
     item: DBItem,
     conditions: { field: string; value: string; operator?: string; logic?: 'and' | 'or' }[],
@@ -2140,12 +2137,11 @@ function DashboardInner() {
       if (cond.operator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
       return val === cond.value;
     };
-    // 最初の条件の結果
     let result = check(conditions[0]);
     for (let i = 1; i < conditions.length; i++) {
       const cond = conditions[i];
       const condResult = check(cond);
-      const logic = cond.logic || 'and'; // デフォルトはand
+      const logic = cond.logic || 'and';
       if (logic === 'and') {
         result = result && condResult;
       } else {
@@ -2343,7 +2339,7 @@ function DashboardInner() {
           else if (agg === 'avg') val = values.length ? values.reduce((a,b)=>a+b,0) / values.length : 0;
           else if (agg === 'max') val = Math.max(...values, 0);
           else if (agg === 'min') val = Math.min(...values, 0);
-          else val = filteredByConditions.length; // count
+          else val = filteredByConditions.length;
         }
       } else if (dc.targetValue !== undefined) {
         val = dc.targetValue;
@@ -2444,7 +2440,6 @@ function DashboardInner() {
     return map;
   },[layout, cacheStore, filters.dateRange, evaluateConditions, applyGlobalNonDateFilters, extractStringValue]);
 
-  // ★ 修正後 todayDiffByWidget (added, removed のみ)
   const todayDiffByWidget = useMemo(() => {
     const result: Record<string, { added: DBItem[]; removed: DBItem[] }> = {};
 
@@ -3267,7 +3262,6 @@ function DashboardInner() {
     );
   };
 
-  // プロパティパネル用: クロスフィルター条件レンダラー（個別AND/OR対応）
   const renderFilterConditions = (
     conditions: { field: string; value: string; operator?: string; logic?: 'and' | 'or' }[],
     allFields: string[],
@@ -3330,7 +3324,6 @@ function DashboardInner() {
                 updateConditions(newConds);
               }} className="text-slate-400 hover:text-rose-500 p-1 bg-white rounded-md shadow-sm border border-slate-200 transition-colors shrink-0"><Icons.X className="w-3.5 h-3.5"/></button>
             </div>
-            {/* 条件の結合ロジック (最初の条件以外に表示) */}
             {idx > 0 && (
               <div className="flex items-center gap-2 ml-6">
                 <span className="text-[10px] text-slate-400">結合:</span>
@@ -5422,123 +5415,67 @@ function DashboardInner() {
                                 </label>
                                 {activeEditorWidget.dataConfig?.showTodayValue && (
                                   <>
-                                    {/* 照合フィールド */}
                                     <div>
-                                      <label className="text-xs font-medium text-slate-500 mb-1 block">
-                                        照合フィールド（デフォルト: ページID）
-                                      </label>
+                                      <label className="text-xs font-medium text-slate-500 mb-1 block">照合フィールド（デフォルト: ページID）</label>
                                       <SelectWithSearch
                                         options={['id', ...availableFieldsBySource[activeEditorWidget.dataConfig?.sourceIndex || '001'] || []]}
                                         value={activeEditorWidget.dataConfig?.todayDiffMatchField || 'id'}
                                         onChange={v => {
-                                          updateSelectedDesign('dataConfig', {
-                                            ...activeEditorWidget.dataConfig,
-                                            todayDiffMatchField: v === 'id' ? undefined : v,
-                                          });
+                                          updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayDiffMatchField: v === 'id' ? undefined : v });
                                         }}
                                         placeholder="ページID"
                                       />
                                     </div>
                                     <div className="flex gap-2">
-                                      <div className="flex-1">
-                                        <label className="text-[10px] font-medium text-slate-500 mb-1 block">増加時の色</label>
-                                        <input type="color" value={activeEditorWidget.dataConfig?.colorDelta || '#06b6d4'} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, colorDelta: e.target.value })} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/>
-                                      </div>
-                                      <div className="flex-1">
-                                        <label className="text-[10px] font-medium text-slate-500 mb-1 block">減少時の色</label>
-                                        <input type="color" value={activeEditorWidget.dataConfig?.colorDeltaMinus || '#ef4444'} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, colorDeltaMinus: e.target.value })} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/>
-                                      </div>
+                                      <div className="flex-1"><label className="text-[10px] font-medium text-slate-500 mb-1 block">増加時の色</label><input type="color" value={activeEditorWidget.dataConfig?.colorDelta || '#06b6d4'} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, colorDelta: e.target.value })} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/></div>
+                                      <div className="flex-1"><label className="text-[10px] font-medium text-slate-500 mb-1 block">減少時の色</label><input type="color" value={activeEditorWidget.dataConfig?.colorDeltaMinus || '#ef4444'} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, colorDeltaMinus: e.target.value })} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/></div>
                                     </div>
                                     <div>
-                                      <div className="flex justify-between items-center mb-1">
-                                        <label className="text-xs font-medium text-slate-700">文字サイズ</label>
-                                        <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{activeEditorWidget.dataConfig?.todayFontSize || Math.max(16, activeEditorWidget.fontSize * 0.25)}px</span>
-                                      </div>
+                                      <div className="flex justify-between items-center mb-1"><label className="text-xs font-medium text-slate-700">文字サイズ</label><span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{activeEditorWidget.dataConfig?.todayFontSize || Math.max(16, activeEditorWidget.fontSize * 0.25)}px</span></div>
                                       <input type="range" min="8" max="72" value={activeEditorWidget.dataConfig?.todayFontSize || Math.max(16, activeEditorWidget.fontSize * 0.25)} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayFontSize: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
                                     </div>
-                                    <div>
-                                      <label className="text-xs font-medium text-slate-500 mb-1 block">横位置 (X軸調整)</label>
-                                      <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.todayX || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                    </div>
-                                    <div>
-                                      <label className="text-xs font-medium text-slate-500 mb-1 block">縦位置 (Y軸調整)</label>
-                                      <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.todayY || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                    </div>
+                                    <div><label className="text-xs font-medium text-slate-500 mb-1 block">横位置 (X軸調整)</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.todayX || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
+                                    <div><label className="text-xs font-medium text-slate-500 mb-1 block">縦位置 (Y軸調整)</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.todayY || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
                                   </>
                                 )}
-                                {/* 増加/減少の個別座標調整 */}
                                 {activeEditorWidget.dataConfig?.showTodayValue && (
                                   <div className="space-y-3 pt-3 border-t border-slate-100">
                                     <label className="text-xs font-bold text-slate-700">📐 増加/減少 位置調整</label>
-                                    {/* 増加 X/Y */}
                                     <div className="grid grid-cols-2 gap-3">
-                                      <div>
-                                        <label className="text-[10px] text-slate-500">増加 X</label>
-                                        <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.addedX || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, addedX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                      </div>
-                                      <div>
-                                        <label className="text-[10px] text-slate-500">増加 Y</label>
-                                        <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.addedY || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, addedY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                      </div>
+                                      <div><label className="text-[10px] text-slate-500">増加 X</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.addedX || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, addedX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
+                                      <div><label className="text-[10px] text-slate-500">増加 Y</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.addedY || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, addedY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
                                     </div>
-                                    {/* 減少 X/Y */}
                                     <div className="grid grid-cols-2 gap-3">
-                                      <div>
-                                        <label className="text-[10px] text-slate-500">減少 X</label>
-                                        <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.removedX || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, removedX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                      </div>
-                                      <div>
-                                        <label className="text-[10px] text-slate-500">減少 Y</label>
-                                        <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.removedY || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, removedY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                      </div>
+                                      <div><label className="text-[10px] text-slate-500">減少 X</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.removedX || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, removedX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
+                                      <div><label className="text-[10px] text-slate-500">減少 Y</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.removedY || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, removedY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
                                     </div>
                                   </div>
                                 )}
-                                {/* ポップアップ表示フィールド選択 */}
                                 {activeEditorWidget.dataConfig?.showTodayValue && (
                                   <div className="space-y-2 pt-3 border-t border-slate-100">
                                     <label className="text-xs font-bold text-slate-700">📋 ポップアップ表示フィールド（最大10件）</label>
                                     <p className="text-[10px] text-slate-400">ホバー時に表示するフィールドを選択してください</p>
-                                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(idx => {
+                                    {[0,1,2,3,4,5,6,7,8,9].map(idx => {
                                       const currentFields = activeEditorWidget.dataConfig?.todayPopupFields || [];
                                       const srcIdx = activeEditorWidget.dataConfig?.sourceIndex || '001';
                                       return (
                                         <div key={idx} className="flex items-center gap-2">
-                                          <span className="text-[10px] text-slate-400 w-4">{idx + 1}</span>
+                                          <span className="text-[10px] text-slate-400 w-4">{idx+1}</span>
                                           <div className="flex-1">
                                             <SelectWithSearch
                                               options={availableFieldsBySource[srcIdx] || []}
                                               value={currentFields[idx] || ''}
                                               onChange={v => {
                                                 const updated = [...currentFields];
-                                                if (v) {
-                                                  updated[idx] = v;
-                                                } else {
-                                                  updated.splice(idx, 1);
-                                                }
+                                                if (v) { updated[idx] = v; } else { updated.splice(idx, 1); }
                                                 const filtered = updated.filter(Boolean).slice(0, 10);
-                                                updateSelectedDesign('dataConfig', {
-                                                  ...activeEditorWidget.dataConfig,
-                                                  todayPopupFields: filtered.length > 0 ? filtered : undefined,
-                                                });
+                                                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayPopupFields: filtered.length > 0 ? filtered : undefined });
                                               }}
                                               placeholder="未設定"
                                             />
                                           </div>
                                           {(activeEditorWidget.dataConfig?.todayPopupFields || [])[idx] && (
-                                            <button
-                                              onClick={() => {
-                                                const updated = [...(activeEditorWidget.dataConfig?.todayPopupFields || [])];
-                                                updated.splice(idx, 1);
-                                                updateSelectedDesign('dataConfig', {
-                                                  ...activeEditorWidget.dataConfig,
-                                                  todayPopupFields: updated.length > 0 ? updated : undefined,
-                                                });
-                                              }}
-                                              className="text-slate-400 hover:text-rose-500 p-1"
-                                            >
-                                              <Icons.X className="w-3 h-3" />
-                                            </button>
+                                            <button onClick={() => { const updated = [...(activeEditorWidget.dataConfig?.todayPopupFields || [])]; updated.splice(idx, 1); updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayPopupFields: updated.length > 0 ? updated : undefined }); }} className="text-slate-400 hover:text-rose-500 p-1"><Icons.X className="w-3 h-3"/></button>
                                           )}
                                         </div>
                                       );
@@ -5551,63 +5488,16 @@ function DashboardInner() {
                                 <label className="text-xs font-bold text-slate-700">🎨 条件付き文字色</label>
                                 {(activeEditorWidget.dataConfig?.conditionalTextRules || []).map((rule, idx) => (
                                   <div key={idx} className="flex gap-2 items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                    <select
-                                      value={rule.operator}
-                                      onChange={e => {
-                                        const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])];
-                                        newRules[idx] = { ...newRules[idx], operator: e.target.value as any };
-                                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules });
-                                      }}
-                                      className="text-xs border border-slate-200 rounded px-1 py-1 bg-white outline-none"
-                                    >
-                                      <option value="gt">＞</option>
-                                      <option value="lt">＜</option>
-                                      <option value="gte">≧</option>
-                                      <option value="lte">≦</option>
-                                      <option value="eq">＝</option>
+                                    <select value={rule.operator} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])]; newRules[idx] = { ...newRules[idx], operator: e.target.value as any }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="text-xs border border-slate-200 rounded px-1 py-1 bg-white outline-none">
+                                      <option value="gt">＞</option><option value="lt">＜</option><option value="gte">≧</option><option value="lte">≦</option><option value="eq">＝</option>
                                     </select>
-                                    <input
-                                      type="number"
-                                      value={rule.value}
-                                      onChange={e => {
-                                        const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])];
-                                        newRules[idx] = { ...newRules[idx], value: Number(e.target.value) };
-                                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules });
-                                      }}
-                                      className="w-20 text-xs border border-slate-200 rounded px-2 py-1 bg-white outline-none"
-                                      placeholder="値"
-                                    />
-                                    <input
-                                      type="color"
-                                      value={rule.textColor}
-                                      onChange={e => {
-                                        const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])];
-                                        newRules[idx] = { ...newRules[idx], textColor: e.target.value };
-                                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules });
-                                      }}
-                                      className="w-10 h-7 rounded border p-0.5 bg-white cursor-pointer"
-                                    />
-                                    <button
-                                      onClick={() => {
-                                        const newRules = (activeEditorWidget.dataConfig?.conditionalTextRules || []).filter((_, i) => i !== idx);
-                                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules });
-                                      }}
-                                      className="text-slate-400 hover:text-rose-500 p-1"
-                                    >
-                                      <Icons.X className="w-3 h-3"/>
-                                    </button>
+                                    <input type="number" value={rule.value} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])]; newRules[idx] = { ...newRules[idx], value: Number(e.target.value) }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="w-20 text-xs border border-slate-200 rounded px-2 py-1 bg-white outline-none" placeholder="値"/>
+                                    <input type="color" value={rule.textColor} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])]; newRules[idx] = { ...newRules[idx], textColor: e.target.value }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="w-10 h-7 rounded border p-0.5 bg-white cursor-pointer"/>
+                                    <button onClick={() => { const newRules = (activeEditorWidget.dataConfig?.conditionalTextRules || []).filter((_, i) => i !== idx); updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="text-slate-400 hover:text-rose-500 p-1"><Icons.X className="w-3 h-3"/></button>
                                   </div>
                                 ))}
                                 {(!activeEditorWidget.dataConfig?.conditionalTextRules || activeEditorWidget.dataConfig.conditionalTextRules.length < 10) && (
-                                  <button
-                                    onClick={() => {
-                                      const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || []), { operator: 'gt' as const, value: 0, textColor: '#ef4444' }];
-                                      updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules });
-                                    }}
-                                    className="w-full text-xs py-2 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1"
-                                  >
-                                    <Icons.Plus className="w-3 h-3"/> 条件を追加（最大10）
-                                  </button>
+                                  <button onClick={() => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || []), { operator: 'gt' as const, value: 0, textColor: '#ef4444' }]; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="w-full text-xs py-2 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1"><Icons.Plus className="w-3 h-3"/> 条件を追加（最大10）</button>
                                 )}
                               </div>
 
@@ -5615,63 +5505,16 @@ function DashboardInner() {
                                 <label className="text-xs font-bold text-slate-700">🎨 条件付き背景色</label>
                                 {(activeEditorWidget.dataConfig?.conditionalBgRules || []).map((rule, idx) => (
                                   <div key={idx} className="flex gap-2 items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                    <select
-                                      value={rule.operator}
-                                      onChange={e => {
-                                        const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])];
-                                        newRules[idx] = { ...newRules[idx], operator: e.target.value as any };
-                                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules });
-                                      }}
-                                      className="text-xs border border-slate-200 rounded px-1 py-1 bg-white outline-none"
-                                    >
-                                      <option value="gt">＞</option>
-                                      <option value="lt">＜</option>
-                                      <option value="gte">≧</option>
-                                      <option value="lte">≦</option>
-                                      <option value="eq">＝</option>
+                                    <select value={rule.operator} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])]; newRules[idx] = { ...newRules[idx], operator: e.target.value as any }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="text-xs border border-slate-200 rounded px-1 py-1 bg-white outline-none">
+                                      <option value="gt">＞</option><option value="lt">＜</option><option value="gte">≧</option><option value="lte">≦</option><option value="eq">＝</option>
                                     </select>
-                                    <input
-                                      type="number"
-                                      value={rule.value}
-                                      onChange={e => {
-                                        const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])];
-                                        newRules[idx] = { ...newRules[idx], value: Number(e.target.value) };
-                                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules });
-                                      }}
-                                      className="w-20 text-xs border border-slate-200 rounded px-2 py-1 bg-white outline-none"
-                                      placeholder="値"
-                                    />
-                                    <input
-                                      type="color"
-                                      value={rule.bgColor}
-                                      onChange={e => {
-                                        const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])];
-                                        newRules[idx] = { ...newRules[idx], bgColor: e.target.value };
-                                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules });
-                                      }}
-                                      className="w-10 h-7 rounded border p-0.5 bg-white cursor-pointer"
-                                    />
-                                    <button
-                                      onClick={() => {
-                                        const newRules = (activeEditorWidget.dataConfig?.conditionalBgRules || []).filter((_, i) => i !== idx);
-                                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules });
-                                      }}
-                                      className="text-slate-400 hover:text-rose-500 p-1"
-                                    >
-                                      <Icons.X className="w-3 h-3"/>
-                                    </button>
+                                    <input type="number" value={rule.value} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])]; newRules[idx] = { ...newRules[idx], value: Number(e.target.value) }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="w-20 text-xs border border-slate-200 rounded px-2 py-1 bg-white outline-none" placeholder="値"/>
+                                    <input type="color" value={rule.bgColor} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])]; newRules[idx] = { ...newRules[idx], bgColor: e.target.value }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="w-10 h-7 rounded border p-0.5 bg-white cursor-pointer"/>
+                                    <button onClick={() => { const newRules = (activeEditorWidget.dataConfig?.conditionalBgRules || []).filter((_, i) => i !== idx); updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="text-slate-400 hover:text-rose-500 p-1"><Icons.X className="w-3 h-3"/></button>
                                   </div>
                                 ))}
                                 {(!activeEditorWidget.dataConfig?.conditionalBgRules || activeEditorWidget.dataConfig.conditionalBgRules.length < 10) && (
-                                  <button
-                                    onClick={() => {
-                                      const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || []), { operator: 'gt' as const, value: 0, bgColor: '#fef2f2' }];
-                                      updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules });
-                                    }}
-                                    className="w-full text-xs py-2 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1"
-                                  >
-                                    <Icons.Plus className="w-3 h-3"/> 背景色条件を追加（最大10）
-                                  </button>
+                                  <button onClick={() => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || []), { operator: 'gt' as const, value: 0, bgColor: '#fef2f2' }]; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="w-full text-xs py-2 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1"><Icons.Plus className="w-3 h-3"/> 背景色条件を追加（最大10）</button>
                                 )}
                               </div>
 
@@ -5679,35 +5522,14 @@ function DashboardInner() {
                                 <label className="text-xs font-bold text-slate-700">📈 トレンドアイコン</label>
                                 <div className="flex items-center gap-3">
                                   <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={activeEditorWidget.dataConfig?.showTrendIcon === true}
-                                      onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, showTrendIcon: e.target.checked })}
-                                      className="w-4 h-4 rounded text-indigo-600"
-                                    />
+                                    <input type="checkbox" checked={activeEditorWidget.dataConfig?.showTrendIcon === true} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, showTrendIcon: e.target.checked })} className="w-4 h-4 rounded text-indigo-600"/>
                                     <span className="text-xs text-slate-600">アイコンを表示</span>
                                   </label>
                                 </div>
                                 {activeEditorWidget.dataConfig?.showTrendIcon && (
                                   <div className="flex gap-3">
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                      <input
-                                        type="radio"
-                                        checked={activeEditorWidget.dataConfig?.trendTarget === 'previous'}
-                                        onChange={() => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, trendTarget: 'previous' })}
-                                        className="w-4 h-4 text-indigo-600"
-                                      />
-                                      <span className="text-xs text-slate-600">前期比</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                      <input
-                                        type="radio"
-                                        checked={activeEditorWidget.dataConfig?.trendTarget === 'target'}
-                                        onChange={() => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, trendTarget: 'target' })}
-                                        className="w-4 h-4 text-indigo-600"
-                                      />
-                                      <span className="text-xs text-slate-600">目標比</span>
-                                    </label>
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" checked={activeEditorWidget.dataConfig?.trendTarget === 'previous'} onChange={() => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, trendTarget: 'previous' })} className="w-4 h-4 text-indigo-600"/><span className="text-xs text-slate-600">前期比</span></label>
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" checked={activeEditorWidget.dataConfig?.trendTarget === 'target'} onChange={() => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, trendTarget: 'target' })} className="w-4 h-4 text-indigo-600"/><span className="text-xs text-slate-600">目標比</span></label>
                                   </div>
                                 )}
                               </div>
@@ -5726,74 +5548,25 @@ function DashboardInner() {
                             <div>
                               <label className="text-xs font-medium text-slate-500 mb-1 block">自動再生</label>
                               <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={activeEditorWidget.dataConfig?.slideshowAuto ?? true}
-                                  onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, slideshowAuto: e.target.checked })}
-                                  className="w-4 h-4 rounded text-indigo-600"
-                                />
+                                <input type="checkbox" checked={activeEditorWidget.dataConfig?.slideshowAuto ?? true} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, slideshowAuto: e.target.checked })} className="w-4 h-4 rounded text-indigo-600"/>
                                 <span className="text-xs text-slate-600">自動で切り替える</span>
                               </label>
                             </div>
                             <div>
                               <label className="text-xs font-medium text-slate-500 mb-1 block">切り替え間隔 (ミリ秒)</label>
-                              <input
-                                type="number"
-                                min={1000}
-                                max={60000}
-                                step={1000}
-                                value={activeEditorWidget.dataConfig?.slideshowInterval ?? 5000}
-                                onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, slideshowInterval: Number(e.target.value) })}
-                                className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white outline-none"
-                              />
+                              <input type="number" min={1000} max={60000} step={1000} value={activeEditorWidget.dataConfig?.slideshowInterval ?? 5000} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, slideshowInterval: Number(e.target.value) })} className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white outline-none"/>
                             </div>
                             <div>
                               <label className="text-xs font-medium text-slate-500 mb-1 block">子ウィジェット一覧</label>
                               <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                                {(activeEditorWidget.children || []).map((child: Widget, idx: number) => (
+                                {(activeEditorWidget.children || []).map((child: Widget) => (
                                   <div key={child.id} className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
                                     <span className="text-xs font-medium text-slate-600 flex-1 truncate">{child.title || child.type}</span>
-                                    <button
-                                      onClick={() => {
-                                        const newChildren = (activeEditorWidget.children || []).filter(c => c.id !== child.id);
-                                        editWidgets(layout.map(w => w.id === activeEditorWidget.id ? { ...w, children: newChildren } : w));
-                                      }}
-                                      className="text-slate-400 hover:text-rose-500 p-1"
-                                    >
-                                      <Icons.X className="w-3 h-3" />
-                                    </button>
+                                    <button onClick={() => { const newChildren = (activeEditorWidget.children || []).filter(c => c.id !== child.id); editWidgets(layout.map(w => w.id === activeEditorWidget.id ? { ...w, children: newChildren } : w)); }} className="text-slate-400 hover:text-rose-500 p-1"><Icons.X className="w-3 h-3"/></button>
                                   </div>
                                 ))}
                               </div>
-                              <button
-                                onClick={() => {
-                                  const newChild: Widget = {
-                                    id: `child_${Date.now()}`,
-                                    type: 'scorecard',
-                                    title: '新規スコアカード',
-                                    x: 0, y: 0, w: 400, h: 300,
-                                    shape: 'rounded',
-                                    bgColor: '#ffffff',
-                                    textColor: '#0f172a',
-                                    borderColor: '#e2e8f0',
-                                    borderWidth: 1,
-                                    fontSize: 48,
-                                    textAlign: 'center',
-                                    fontFamily: 'sans',
-                                    hasShadow: true,
-                                    hidden: false,
-                                    locked: false,
-                                    showTitle: true,
-                                    bgAlpha: 1,
-                                    dataConfig: defaultDataConfig('scorecard'),
-                                  };
-                                  const newChildren = [...(activeEditorWidget.children || []), newChild];
-                                  editWidgets(layout.map(w => w.id === activeEditorWidget.id ? { ...w, children: newChildren } : w));
-                                }}
-                                className="mt-2 w-full text-xs py-2 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1"
-                              >
-                                <Icons.Plus className="w-3 h-3" /> 子ウィジェットを追加
-                              </button>
+                              <button onClick={() => { const newChild: Widget = { id: `child_${Date.now()}`, type: 'scorecard', title: '新規スコアカード', x: 0, y: 0, w: 400, h: 300, shape: 'rounded', bgColor: '#ffffff', textColor: '#0f172a', borderColor: '#e2e8f0', borderWidth: 1, fontSize: 48, textAlign: 'center', fontFamily: 'sans', hasShadow: true, hidden: false, locked: false, showTitle: true, bgAlpha: 1, dataConfig: defaultDataConfig('scorecard'), }; const newChildren = [...(activeEditorWidget.children || []), newChild]; editWidgets(layout.map(w => w.id === activeEditorWidget.id ? { ...w, children: newChildren } : w)); }} className="mt-2 w-full text-xs py-2 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1"><Icons.Plus className="w-3 h-3"/> 子ウィジェットを追加</button>
                             </div>
                           </div>
                         </details>
@@ -5814,11 +5587,7 @@ function DashboardInner() {
 
       {/* AIアシスタントボタン等 */}
       {mode !== 'signage' && (
-        <button
-          onClick={() => setShowAiDrawer(prev => !prev)}
-          className={`fixed bottom-8 right-8 z-[200] p-4 bg-indigo-600 text-white rounded-full shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center ${mode === 'edit' ? 'hidden' : ''}`}
-          title="AIアシスタント"
-        >
+        <button onClick={() => setShowAiDrawer(prev => !prev)} className={`fixed bottom-8 right-8 z-[200] p-4 bg-indigo-600 text-white rounded-full shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center ${mode === 'edit' ? 'hidden' : ''}`} title="AIアシスタント">
           <Icons.Sparkles className="w-6 h-6" />
         </button>
       )}
@@ -5829,14 +5598,10 @@ function DashboardInner() {
           <div className="relative w-full max-w-md h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-slide-in-right">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h3 className="text-sm font-bold flex items-center gap-2"><Icons.Sparkles className="w-4 h-4"/> AI アシスタント</h3>
-              <button onClick={() => setShowAiDrawer(false)} className="text-slate-400 hover:text-slate-600"><Icons.X className="w-5 h-5" /></button>
+              <button onClick={() => setShowAiDrawer(false)} className="text-slate-400 hover:text-slate-600"><Icons.X className="w-5 h-5"/></button>
             </div>
             <div className="flex-1 overflow-hidden">
-              <AiChatTab
-                onSend={handleAiSend}
-                onWidgetGenerated={handleWidgetGenerated}
-                onSummaryRequest={handleGenerateSummary}
-              />
+              <AiChatTab onSend={handleAiSend} onWidgetGenerated={handleWidgetGenerated} onSummaryRequest={handleGenerateSummary} />
             </div>
           </div>
         </div>
@@ -5845,73 +5610,10 @@ function DashboardInner() {
       {ctxMenu && (
         <div className="fixed bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl py-2 z-[300] min-w-[200px]" style={{left:ctxMenu.x,top:ctxMenu.y}} onPointerDown={e=>e.stopPropagation()}>
           {[
-            {label:'✏️ タイトル名を変更',action:()=>{
-              const w = findWidgetById(layout, ctxMenu.id);
-              if(w){
-                setTitleEditWidgetId(ctxMenu.id);
-                setTitleEditValue(w.title);
-              }
-            }},
+            {label:'✏️ タイトル名を変更',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setTitleEditWidgetId(ctxMenu.id); setTitleEditValue(w.title); } }},
             null,
-            {label:'📝 スタイルをコピー',action:()=>{
-              const w = findWidgetById(layout, ctxMenu.id);
-              if(w){
-                setStyleClipboard({
-                  shape: w.shape,
-                  bgColor: w.bgColor,
-                  textColor: w.textColor,
-                  borderColor: w.borderColor,
-                  borderWidth: w.borderWidth,
-                  fontSize: w.fontSize,
-                  textAlign: w.textAlign,
-                  hasShadow: w.hasShadow,
-                  bgAlpha: w.bgAlpha,
-                  tableConfig: w.tableConfig ? { ...w.tableConfig } : undefined,
-                  showTodayValue: w.dataConfig?.showTodayValue,
-                  colorDelta: w.dataConfig?.colorDelta,
-                  colorDeltaMinus: w.dataConfig?.colorDeltaMinus,
-                  todayFontSize: w.dataConfig?.todayFontSize,
-                  todayX: w.dataConfig?.todayX,
-                  todayY: w.dataConfig?.todayY,
-                  addedX: w.dataConfig?.addedX,
-                  addedY: w.dataConfig?.addedY,
-                  removedX: w.dataConfig?.removedX,
-                  removedY: w.dataConfig?.removedY,
-                  todayDiffMatchField: w.dataConfig?.todayDiffMatchField,
-                  todayDiffChangeField: w.dataConfig?.todayDiffChangeField,
-                  todayPopupFields: w.dataConfig?.todayPopupFields,
-                });
-                addToastRef.current('スタイルをコピーしました', 'success');
-              }
-            }},
-            {label:'📋 スタイルを貼り付け',action:()=>{
-              if(styleClipboard){
-                const { showTodayValue, colorDelta, colorDeltaMinus, todayFontSize, todayX, todayY, addedX, addedY, removedX, removedY, todayDiffMatchField, todayDiffChangeField, todayPopupFields, ...restStyle } = styleClipboard;
-                editWidgets(updateWidgetById(layout, ctxMenu.id, w => ({
-                  ...w,
-                  ...restStyle,
-                  dataConfig: {
-                    ...w.dataConfig,
-                    showTodayValue: showTodayValue !== undefined ? showTodayValue : w.dataConfig?.showTodayValue,
-                    colorDelta: colorDelta !== undefined ? colorDelta : w.dataConfig?.colorDelta,
-                    colorDeltaMinus: colorDeltaMinus !== undefined ? colorDeltaMinus : w.dataConfig?.colorDeltaMinus,
-                    todayFontSize: todayFontSize !== undefined ? todayFontSize : w.dataConfig?.todayFontSize,
-                    todayX: todayX !== undefined ? todayX : w.dataConfig?.todayX,
-                    todayY: todayY !== undefined ? todayY : w.dataConfig?.todayY,
-                    addedX: addedX !== undefined ? addedX : w.dataConfig?.addedX,
-                    addedY: addedY !== undefined ? addedY : w.dataConfig?.addedY,
-                    removedX: removedX !== undefined ? removedX : w.dataConfig?.removedX,
-                    removedY: removedY !== undefined ? removedY : w.dataConfig?.removedY,
-                    todayDiffMatchField: todayDiffMatchField !== undefined ? todayDiffMatchField : w.dataConfig?.todayDiffMatchField,
-                    todayDiffChangeField: todayDiffChangeField !== undefined ? todayDiffChangeField : w.dataConfig?.todayDiffChangeField,
-                    todayPopupFields: todayPopupFields !== undefined ? todayPopupFields : w.dataConfig?.todayPopupFields,
-                  },
-                })));
-                addToastRef.current('スタイルを貼り付けました', 'success');
-              } else {
-                addToastRef.current('コピーされたスタイルがありません', 'error');
-              }
-            }, disabled: !styleClipboard},
+            {label:'📝 スタイルをコピー',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setStyleClipboard({ shape: w.shape, bgColor: w.bgColor, textColor: w.textColor, borderColor: w.borderColor, borderWidth: w.borderWidth, fontSize: w.fontSize, textAlign: w.textAlign, hasShadow: w.hasShadow, bgAlpha: w.bgAlpha, tableConfig: w.tableConfig ? { ...w.tableConfig } : undefined, showTodayValue: w.dataConfig?.showTodayValue, colorDelta: w.dataConfig?.colorDelta, colorDeltaMinus: w.dataConfig?.colorDeltaMinus, todayFontSize: w.dataConfig?.todayFontSize, todayX: w.dataConfig?.todayX, todayY: w.dataConfig?.todayY, addedX: w.dataConfig?.addedX, addedY: w.dataConfig?.addedY, removedX: w.dataConfig?.removedX, removedY: w.dataConfig?.removedY, todayDiffMatchField: w.dataConfig?.todayDiffMatchField, todayDiffChangeField: w.dataConfig?.todayDiffChangeField, todayPopupFields: w.dataConfig?.todayPopupFields, }); addToastRef.current('スタイルをコピーしました', 'success'); } }},
+            {label:'📋 スタイルを貼り付け',action:()=>{ if(styleClipboard){ const { showTodayValue, colorDelta, colorDeltaMinus, todayFontSize, todayX, todayY, addedX, addedY, removedX, removedY, todayDiffMatchField, todayDiffChangeField, todayPopupFields, ...restStyle } = styleClipboard; editWidgets(updateWidgetById(layout, ctxMenu.id, w => ({ ...w, ...restStyle, dataConfig: { ...w.dataConfig, showTodayValue: showTodayValue !== undefined ? showTodayValue : w.dataConfig?.showTodayValue, colorDelta: colorDelta !== undefined ? colorDelta : w.dataConfig?.colorDelta, colorDeltaMinus: colorDeltaMinus !== undefined ? colorDeltaMinus : w.dataConfig?.colorDeltaMinus, todayFontSize: todayFontSize !== undefined ? todayFontSize : w.dataConfig?.todayFontSize, todayX: todayX !== undefined ? todayX : w.dataConfig?.todayX, todayY: todayY !== undefined ? todayY : w.dataConfig?.todayY, addedX: addedX !== undefined ? addedX : w.dataConfig?.addedX, addedY: addedY !== undefined ? addedY : w.dataConfig?.addedY, removedX: removedX !== undefined ? removedX : w.dataConfig?.removedX, removedY: removedY !== undefined ? removedY : w.dataConfig?.removedY, todayDiffMatchField: todayDiffMatchField !== undefined ? todayDiffMatchField : w.dataConfig?.todayDiffMatchField, todayDiffChangeField: todayDiffChangeField !== undefined ? todayDiffChangeField : w.dataConfig?.todayDiffChangeField, todayPopupFields: todayPopupFields !== undefined ? todayPopupFields : w.dataConfig?.todayPopupFields, }, }))); addToastRef.current('スタイルを貼り付けました', 'success'); } else { addToastRef.current('コピーされたスタイルがありません', 'error'); } }, disabled: !styleClipboard},
             null,
             {label:'複製',action:()=>handleDuplicateWidget(ctxMenu.id)},
             {label:findWidgetById(layout, ctxMenu.id)?.locked?'ロック解除':'ロックをかける',action:()=>handleToggleLockWidget(ctxMenu.id)},
@@ -5921,17 +5623,11 @@ function DashboardInner() {
             {label:'一つ前面へ',action:()=>{const i=layout.findIndex(w=>w.id===ctxMenu.id);if(i<layout.length-1)editWidgets(arrayMove(layout,i,i+1));}},
             {label:'一つ背面へ',action:()=>{const i=layout.findIndex(w=>w.id===ctxMenu.id);if(i>0)editWidgets(arrayMove(layout,i,i-1));}},
             null,
-            {label:'選択項目をスライドショーに変換',action:()=>{
-              handleConvertToSlideshow();
-            }, disabled: !(mode === 'edit' && selectedIds.length >= 2)},
+            {label:'選択項目をスライドショーに変換',action:()=>{ handleConvertToSlideshow(); }, disabled: !(mode === 'edit' && selectedIds.length >= 2)},
             null,
             {label:'コメントを追加',action:()=>{setSelectedIds([ctxMenu.id]);setRightTab('properties');}},
             null,
-            {label:'削除',action:()=>{
-              editWidgets(removeWidgetById(layout, ctxMenu.id));
-              setSelectedIds([]);
-              addToastRef.current('ウィジェットを削除しました（Ctrl+Zで元に戻す）', 'info');
-            },className:'text-rose-600 hover:bg-rose-50'},
+            {label:'削除',action:()=>{ editWidgets(removeWidgetById(layout, ctxMenu.id)); setSelectedIds([]); addToastRef.current('ウィジェットを削除しました（Ctrl+Zで元に戻す）', 'info'); },className:'text-rose-600 hover:bg-rose-50'},
           ].map((item,idx)=>item===null?<div key={`sep-${idx}`} className="border-t border-slate-100 my-2"/>:<button key={item.label} onClick={()=>{if(!item.disabled){item.action();setCtxMenu(null);}}} disabled={item.disabled} className={`w-full text-left px-5 py-2.5 text-sm font-medium hover:bg-slate-50 text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${item.className||''}`}>{item.label}</button>)}
         </div>
       )}
@@ -5953,19 +5649,7 @@ function DashboardInner() {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[400]" onPointerDown={() => setTitleEditWidgetId(null)}>
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4" onPointerDown={e => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-slate-800 mb-3">タイトルを変更</h3>
-            <textarea
-              autoFocus
-              className="w-full border border-slate-200 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 resize-y min-h-[80px]"
-              value={titleEditValue}
-              onChange={e => setTitleEditValue(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleRenameWidget(titleEditWidgetId, titleEditValue);
-                  setTitleEditWidgetId(null);
-                }
-              }}
-            />
+            <textarea autoFocus className="w-full border border-slate-200 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 resize-y min-h-[80px]" value={titleEditValue} onChange={e => setTitleEditValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleRenameWidget(titleEditWidgetId, titleEditValue); setTitleEditWidgetId(null); } }}/>
             <div className="flex justify-end gap-3 mt-4">
               <button onClick={() => setTitleEditWidgetId(null)} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-all">キャンセル</button>
               <button onClick={() => { handleRenameWidget(titleEditWidgetId, titleEditValue); setTitleEditWidgetId(null); }} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all">変更</button>
@@ -5975,16 +5659,7 @@ function DashboardInner() {
       )}
 
       {showShortcuts&&<div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[300]" onPointerDown={()=>setShowShortcuts(false)}><div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4" onPointerDown={e=>e.stopPropagation()}><h2 className="text-xl font-bold mb-6 text-slate-800 flex items-center gap-2"><Icons.Monitor className="w-5 h-5"/> ショートカット</h2><div className="space-y-4">{[
-        { key: 'Ctrl + Z', desc: '元に戻す' },
-        { key: 'Ctrl + Y', desc: 'やり直し' },
-        { key: 'Ctrl + C / V', desc: 'コピー / 貼り付け' },
-        { key: 'Ctrl + G', desc: 'グループ化' },
-        { key: 'Ctrl + Shift + G', desc: 'グループ解除' },
-        { key: 'Delete / BS', desc: '選択アイテムを削除' },
-        { key: 'Space + ドラッグ', desc: 'キャンバスをパン移動' },
-        { key: 'Ctrl + ホイール', desc: 'キャンバスをズーム' },
-        { key: 'Shift + クリック', desc: '複数選択' },
-        { key: '矢印キー', desc: '選択アイテムを移動（Shiftで微調整）' },
+        { key: 'Ctrl + Z', desc: '元に戻す' }, { key: 'Ctrl + Y', desc: 'やり直し' }, { key: 'Ctrl + C / V', desc: 'コピー / 貼り付け' }, { key: 'Ctrl + G', desc: 'グループ化' }, { key: 'Ctrl + Shift + G', desc: 'グループ解除' }, { key: 'Delete / BS', desc: '選択アイテムを削除' }, { key: 'Space + ドラッグ', desc: 'キャンバスをパン移動' }, { key: 'Ctrl + ホイール', desc: 'キャンバスをズーム' }, { key: 'Shift + クリック', desc: '複数選択' }, { key: '矢印キー', desc: '選択アイテムを移動（Shiftで微調整）' },
       ].map(s=><div key={s.key} className="flex justify-between items-center text-sm"><span className="font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md font-mono">{s.key}</span><span className="text-slate-500 font-medium">{s.desc}</span></div>)}</div><button onClick={()=>setShowShortcuts(false)} className="mt-8 w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-sm">閉じる</button></div></div>}
       {showTemplateGallery&&<TemplateGallery onSelect={handleTemplateSelect} onClose={()=>setShowTemplateGallery(false)}/>}
       <AiSummaryModal open={showAiSummary} onClose={()=>setShowAiSummary(false)} summary={aiSummary} />
