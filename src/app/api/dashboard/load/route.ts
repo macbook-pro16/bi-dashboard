@@ -1,4 +1,4 @@
-// app/api/dashboard/load/route.ts
+// src/app/api/dashboard/load/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
@@ -15,11 +15,14 @@ export async function GET() {
       prisma.dashboard.findUnique({ where: { id: 'global' } })
     );
 
-    if (!dashboard) {
+    // ★ 型アサーションで layout プロパティを明示
+    const dashboardData = dashboard as { layout: any } | null;
+
+    if (!dashboardData) {
       return NextResponse.json({ dashboards: [] });
     }
 
-    const layoutData = dashboard.layout as any;
+    const layoutData = dashboardData.layout;
     const pages = layoutData?.pages || [];
     const canvasBgColor = layoutData?.canvasBgColor || '#ffffff';
 
