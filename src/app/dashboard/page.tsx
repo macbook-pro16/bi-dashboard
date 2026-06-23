@@ -807,7 +807,7 @@ function renderWidgetContent(
           textAlign={w.textAlign}
           bgColor={w.bgColor}
           bgAlpha={w.bgAlpha ?? 0}
-                    onTextChange={(newText) => {
+          onTextChange={(newText) => {
             if (mode === 'edit' && editWidgets && layout) {
               editWidgets(layout.map(widget =>
                 widget.id === w.id
