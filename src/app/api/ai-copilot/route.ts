@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
     const model = process.env.GITHUB_MODEL || DEFAULT_MODEL;
 
     // システムプロンプト（データベース一覧を含む）
-    const dbList = (databases || []).map((db: { name: string; index: string; fields?: string[] }) => {
-      return `- **${db.name}** (${db.index}): フィールド [${db.fields?.join(', ') || 'なし'}], ${db.records.length}件`;
-    }).join('\n');
+    const dbList = (databases || []).map((db: { name: string; index: string; fields?: string[]; records: any[] }) => {
+  return `- **${db.name}** (${db.index}): フィールド [${db.fields?.join(', ') || 'なし'}], ${db.records.length}件`;
+}).join('\n');
 
     const systemPrompt =
       `あなたは「BIダッシュボードプロジェクト」の` +
