@@ -486,7 +486,7 @@ function SlideshowWidgetContent({
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>;
   availableFields?: string[];
 }) {
-  const dc = widget.dataConfig || ({} as DataConfig);   // ★ 修正点
+  const dc = widget.dataConfig || ({} as DataConfig);
   const children = widget.children || [];
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -578,17 +578,15 @@ function SlideshowWidgetContent({
         todayDiffMap,
         availableFields,
       )}
-      {mode !== 'edit' && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-30">
-          {children.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentIndex(idx)}
-              className={`w-2.5 h-2.5 rounded-full transition-colors ${idx === currentIndex ? 'bg-indigo-600' : 'bg-slate-300'}`}
-            />
-          ))}
-        </div>
-      )}
+                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+        {children.map((_, idx) => (
+          <button
+            key={idx}
+            onClick={() => setCurrentIndex(idx)}
+            className={`w-2.5 h-2.5 rounded-full transition-colors ${idx === currentIndex ? 'bg-indigo-600' : 'bg-slate-300'}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -613,7 +611,7 @@ function renderWidgetContent(
   availableFields?: string[],
   handleDiffFilter?: (ids: string[], label: string) => void,
 ) {
-  const dc = w.dataConfig || ({} as DataConfig);   // ★ 念のため同様の修正
+  const dc = w.dataConfig || ({} as DataConfig);
   const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
   const isNone = srcIdx === 'none';
   const dateFilterField = resolveDateFilterField(w);
@@ -823,17 +821,17 @@ function renderWidgetContent(
         />
       );
     case 'outline':
-  return (
-    <OutlineWidget
-      outlineConfig={w.outlineConfig}
-      borderColor={w.borderColor}
-      borderWidth={w.borderWidth}
-      shape={w.shape === 'circle' ? 'circle' : w.shape === 'rounded' ? 'rounded' : 'rectangle'}
-      bgAlpha={w.bgAlpha ?? 0}
-      bgColor={w.bgColor}
-      hasShadow={w.hasShadow}
-    />
-  );
+      return (
+        <OutlineWidget
+          outlineConfig={w.outlineConfig}
+          borderColor={w.borderColor}
+          borderWidth={w.borderWidth}
+          shape={w.shape === 'circle' ? 'circle' : w.shape === 'rounded' ? 'rounded' : 'rectangle'}
+          bgAlpha={w.bgAlpha ?? 0}
+          bgColor={w.bgColor}
+          hasShadow={w.hasShadow}
+        />
+      );
     case 'chart': {
       const barSrcIdx = dc.barSourceIndex || srcIdx;
       const lineSrcIdx = dc.lineSourceIndex || barSrcIdx;
@@ -4545,7 +4543,6 @@ function DashboardInner() {
                                         placeholder="フィールドを選択"
                                       />
                                     </div>
-
                                     <div>
                                       <label className="text-xs font-medium text-slate-500 mb-1 block">Y軸 (メジャー・集計値)</label>
                                       <SelectWithSearch
