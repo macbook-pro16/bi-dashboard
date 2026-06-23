@@ -1,0 +1,1 @@
+export const DEFAULT_FILTER_DATE_RANGE = { start: '2026-06-01', end: '2026-06-30' };
