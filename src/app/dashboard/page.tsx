@@ -1291,7 +1291,7 @@ const CanvasWidget = React.memo(function CanvasWidget({
     zIndex:isDragging?999:(isSelected?zIndex+100:zIndex),opacity:isDragging?0.9:(widget.hidden?0.2:1),
     backgroundColor:alertStyle.backgroundColor || (widget.type==='group'?'transparent':rgbaBg),
     color:alertStyle.color||widget.textColor,
-    border: widget.shape!=='text-only' && widget.shape!=='none' ? `${widget.borderWidth}px solid ${alertStyle.borderColor||widget.borderColor}` : 'none',
+    border: widget.shape!=='text-only' ? `${widget.borderWidth}px solid ${alertStyle.borderColor||widget.borderColor}` : 'none',
     borderRadius:br,
     boxShadow:widget.hasShadow&&widget.shape!=='text-only'?'0 4px 12px -2px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.02)':'none',
     fontFamily:widget.fontFamily==='serif'?'serif':(widget.fontFamily==='mono'?'monospace':'Inter, Noto Sans JP, sans-serif'),
