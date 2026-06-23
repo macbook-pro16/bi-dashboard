@@ -828,7 +828,7 @@ function renderWidgetContent(
           shape={w.shape === 'circle' ? 'circle' : w.shape === 'rounded' ? 'rounded' : 'rectangle'}
           bgAlpha={w.bgAlpha ?? 0}
           bgColor={w.bgColor}
-          hasShadow={w.hasShadow}
+           hasShadow={w.hasShadow}
         />
       );
     case 'chart': {
