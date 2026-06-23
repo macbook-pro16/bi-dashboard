@@ -220,13 +220,14 @@ function migrateChartTypes(widgets: Widget[]): Widget[] {
         'chart-donut': 'donut', 'chart-status': 'bar',
       };
       return {
-        ...w,
-        type: 'chart' as WidgetType,
-        dataConfig: {
-          ...w.dataConfig,
-          chartType: w.dataConfig?.chartType || chartTypeMap[w.type as string] || 'bar',
-        },
-      };
+  ...w,
+  type: 'chart' as WidgetType,
+  dataConfig: {
+    ...w.dataConfig,
+    sourceIndex: w.dataConfig?.sourceIndex || '001', // ← 必ず string になるように
+    chartType: w.dataConfig?.chartType || chartTypeMap[w.type as string] || 'bar',
+  },
+};
     }
     if (w.children) return { ...w, children: migrateChartTypes(w.children) };
     return w;
