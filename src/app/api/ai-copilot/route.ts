@@ -88,7 +88,8 @@ export async function POST(request: NextRequest) {
       return `- **${db.name}** (${db.index}): フィールド [${db.fields?.join(', ') || 'なし'}], ${db.records.length}件`;
     }).join('\n');
 
-    const systemMessage = `あなたは「サンオートプロジェクト」の中古車販売・在庫管理BIシステムの専属AIアシスタントです。
+    const systemPrompt = "あなたは「BIダッシュボードプロジェクト」の" +
+  "中古車販売・在庫管理BIシステムの専属AIアシスタントです。";
 ユーザーは複数のNotionデータベースを使っており、それぞれ異なる種類のデータが格納されています。
 各データベースの概要：
 ${dbList}
