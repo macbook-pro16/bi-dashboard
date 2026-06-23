@@ -215,19 +215,21 @@ function migrateChartTypes(widgets: Widget[]): Widget[] {
   return widgets.map(w => {
     const legacyTypes = ['chart-bar', 'chart-line', 'chart-donut', 'chart-status'];
     if (legacyTypes.includes(w.type as string)) {
-      const chartTypeMap: Record<string, string> = {
-        'chart-bar': 'bar', 'chart-line': 'line',
-        'chart-donut': 'donut', 'chart-status': 'bar',
+      const chartTypeMap: Record<string, 'bar' | 'line' | 'donut'> = {
+        'chart-bar': 'bar',
+        'chart-line': 'line',
+        'chart-donut': 'donut',
+        'chart-status': 'bar',
       };
       return {
-  ...w,
-  type: 'chart' as WidgetType,
-  dataConfig: {
-    ...w.dataConfig,
-    sourceIndex: w.dataConfig?.sourceIndex || '001', // ← 必ず string になるように
-    chartType: w.dataConfig?.chartType || chartTypeMap[w.type as string] || 'bar',
-  },
-};
+        ...w,
+        type: 'chart' as WidgetType,
+        dataConfig: {
+          ...w.dataConfig,
+          sourceIndex: w.dataConfig?.sourceIndex || '001',
+          chartType: w.dataConfig?.chartType || chartTypeMap[w.type as string] || 'bar',
+        } as DataConfig,   // ★ ここで DataConfig 型を明示
+      };
     }
     if (w.children) return { ...w, children: migrateChartTypes(w.children) };
     return w;
