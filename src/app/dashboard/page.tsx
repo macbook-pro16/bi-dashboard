@@ -578,7 +578,7 @@ function SlideshowWidgetContent({
         todayDiffMap,
         availableFields,
       )}
-                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-30">
         {children.map((_, idx) => (
           <button
             key={idx}
@@ -796,7 +796,6 @@ function renderWidgetContent(
         <TextWidget
           title={w.title}
           fontSize={w.fontSize}
-          dataConfig={w.dataConfig}
         />
       );
     case 'text-block':
