@@ -20,9 +20,9 @@ export async function POST(request: NextRequest) {
 
     // ユーザーの現在のダッシュボードIDを取得（存在する場合）
     const dashboard = await prisma.dashboard.findUnique({
-      where: { userId: session.user.email },
-      select: { id: true },
-    });
+  where: { id: 'global' },  // グローバル共有ダッシュボードを使用
+  select: { id: true },
+});
 
     // スナップショットを作成
     const snapshot = await prisma.sharedSnapshot.create({
