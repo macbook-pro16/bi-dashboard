@@ -625,13 +625,13 @@ function renderWidgetContent(
         statusOptions={statusOptions}
         onStatusChange={handleStatusChange}
         widget={w}
-        onColumnsReorder={(columns) => {
+                onColumnsReorder={(columns) => {
           if (mode === 'edit' && editWidgets && layout) {
             editWidgets(layout.map(widget =>
-  widget.id === w.id
-    ? { ...widget, textContent: newText, dataConfig: { ...widget.dataConfig, textContent: newText } as DataConfig }
-    : widget
-));
+              widget.id === w.id
+                ? { ...widget, tableConfig: { ...widget.tableConfig, columns } }
+                : widget
+            ));
           }
         }}
       />
