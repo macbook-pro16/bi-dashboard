@@ -798,7 +798,7 @@ function renderWidgetContent(
           fontSize={w.fontSize}
         />
       );
-    case 'text-block':
+        case 'text-block':
       return (
         <TextBlockWidget
           textContent={w.textContent || dc.textContent || ''}
@@ -811,7 +811,7 @@ function renderWidgetContent(
             if (mode === 'edit' && editWidgets && layout) {
               editWidgets(layout.map(widget =>
                 widget.id === w.id
-                  ? { ...widget, textContent: newText, dataConfig: { ...widget.dataConfig, textContent: newText } }
+                  ? { ...widget, textContent: newText, dataConfig: { ...widget.dataConfig, textContent: newText } as DataConfig }
                   : widget
               ));
             }
