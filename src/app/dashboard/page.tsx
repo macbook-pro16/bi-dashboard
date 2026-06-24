@@ -4545,7 +4545,7 @@ function DashboardInner() {
                                     <div>
                                       <label className="text-xs font-medium text-slate-500 mb-1 block">Y軸 (メジャー・集計値)</label>
                                       <SelectWithSearch
-                                        options={[{name: 'count'}, ...allFields]}
+                                        options={['count', ...allFields]}
                                         value={dc.yField || 'count'}
                                         onChange={v => updateSelectedDesign('dataConfig', { ...dc, yField: v })}
                                         placeholder="count または 数値フィールド"
