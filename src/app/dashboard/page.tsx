@@ -5581,12 +5581,10 @@ function DashboardInner() {
         </div>
       )}
 
-      {/* AIアシスタントボタン等 */}
-      {mode !== 'signage' && (
-        <button onClick={() => setShowAiDrawer(prev => !prev)} className={`fixed bottom-8 right-8 z-[200] p-4 bg-indigo-600 text-white rounded-full shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center ${mode === 'edit' ? 'hidden' : ''}`} title="AIアシスタント">
-          <Icons.Sparkles className="w-6 h-6" />
-        </button>
-      )}
+            {/* AIアシスタントボタン等 */}
+      <button onClick={() => setShowAiDrawer(prev => !prev)} className={`fixed bottom-8 right-8 z-[200] p-4 bg-indigo-600 text-white rounded-full shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center ${mode === 'edit' ? 'hidden' : ''}`} title="AIアシスタント">
+        <Icons.Sparkles className="w-6 h-6" />
+      </button>
 
       {showAiDrawer && (
         <div className="fixed inset-0 z-[250] flex justify-end">
