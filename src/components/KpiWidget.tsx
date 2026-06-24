@@ -465,8 +465,12 @@ export default function KpiWidget({
             fontSize: `${fontSize}px`,
             color: appliedTextColor,
             transform: (valueX || valueY) ? `translate(${valueX || 0}px, ${valueY || 0}px)` : 'none',
+            whiteSpace: 'nowrap',
           }}
         >
+          {value >= 0 && value < 10 && Number.isInteger(value) && (
+            <span style={{ visibility: 'hidden', fontSize: `${fontSize}px`, fontWeight: 900 }}>0</span>
+          )}
           {value.toLocaleString()}
         </div>
       )}
