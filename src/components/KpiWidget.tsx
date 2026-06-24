@@ -48,7 +48,6 @@ interface KpiWidgetProps {
 function extractFileUrls(val: any): { url: string; name: string; type?: string }[] {
   if (!val) return [];
 
-  // 新形式: JSON文字列の配列
   if (typeof val === 'string') {
     try {
       const parsed = JSON.parse(val);
@@ -60,12 +59,10 @@ function extractFileUrls(val: any): { url: string; name: string; type?: string }
         }));
       }
     } catch {}
-    // URLそのものの場合
     if (val.startsWith('http')) return [{ url: val, name: '', type: 'external' }];
     return [];
   }
 
-  // Notion APIのファイルプロパティ: { type: "files", files: [...] }
   if (typeof val === 'object' && val.type === 'files' && Array.isArray(val.files)) {
     return val.files
       .map((f: any) => {
@@ -76,7 +73,6 @@ function extractFileUrls(val: any): { url: string; name: string; type?: string }
       .filter(Boolean) as { url: string; name: string; type?: string }[];
   }
 
-  // 配列で直接ファイルオブジェクトが来る場合（古い形式など）
   if (Array.isArray(val) && val.length > 0 && (val[0].type === 'external' || val[0].type === 'file')) {
     return val
       .map((f: any) => {
@@ -94,10 +90,8 @@ function formatRelationValue(val: any): string {
   if (val === null || val === undefined) return '';
   if (typeof val === 'string') return val;
 
-  // ファイルプロパティがある場合は最初の画像URLを返す（表示用）
   const files = extractFileUrls(val);
   if (files.length > 0) {
-    // 画像URLがあれば返す（isImageUrlで判定して画像として表示するため）
     return files[0].url || files[0].name;
   }
 
@@ -123,13 +117,10 @@ function formatRelationValue(val: any): string {
 
 function isImageUrl(str: string): boolean {
   if (!str || typeof str !== 'string') return false;
-  // 拡張子で判定
   if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(str)) return true;
-  // 一般的な画像URLパターン
   if (/\/image\//i.test(str) || /\/img\//i.test(str)) return true;
-  // Notionの署名付きS3 URL
   if (str.includes('amazonaws.com') || str.includes('secure.notion-static.com') || str.includes('prod-files-secure')) {
-    return true; // Notionのファイルは画像の可能性が高い
+    return true;
   }
   return false;
 }
@@ -196,7 +187,6 @@ function Popup({
   );
 }
 
-// ★★★ 遅延取得対応の画像コンポーネント ★★★
 function NotionImage({
   initialUrl,
   pageId,
@@ -382,15 +372,14 @@ export default function KpiWidget({
     mainStyle.backgroundColor = appliedBgColor;
   }
 
+  // ★ 独立した座標（お互いに干渉しない）
   const addedPos = {
     x: addedX ?? valueX ?? 0,
     y: addedY ?? valueY ?? 0,
   };
   const removedPos = {
     x: removedX ?? valueX ?? 0,
-    y: removedY ?? (valueY !== undefined
-      ? valueY + (todayFontSize ? Math.ceil(todayFontSize * 1.2) : 30)
-      : (todayFontSize ? Math.ceil(todayFontSize * 1.2) : 30)),
+    y: removedY ?? valueY ?? 0,
   };
 
   // ★ メイン数値の桁数（最低2桁を保証）
