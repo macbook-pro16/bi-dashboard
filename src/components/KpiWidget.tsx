@@ -465,13 +465,23 @@ export default function KpiWidget({
             fontSize: `${fontSize}px`,
             color: appliedTextColor,
             transform: (valueX || valueY) ? `translate(${valueX || 0}px, ${valueY || 0}px)` : 'none',
-            whiteSpace: 'nowrap',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {value >= 0 && value < 10 && Number.isInteger(value) && (
-            <span style={{ visibility: 'hidden', fontSize: `${fontSize}px`, fontWeight: 900 }}>0</span>
-          )}
-          {value.toLocaleString()}
+          <span
+            style={{
+              fontFeatureSettings: '"tnum"',
+              fontFamily: '"Inter", "Noto Sans JP", sans-serif',
+            }}
+          >
+            {/* 1桁整数の場合、非表示の '0' で2桁幅を確保 */}
+            {value >= 0 && value < 10 && Number.isInteger(value) && (
+              <span style={{ visibility: 'hidden', fontSize: 'inherit', fontWeight: 'inherit' }}>0</span>
+            )}
+            {value.toLocaleString()}
+          </span>
         </div>
       )}
 
@@ -531,6 +541,8 @@ export default function KpiWidget({
                   fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
                   fontWeight: 900,
                   lineHeight: 1,
+                  fontFeatureSettings: '"tnum"',
+                  fontFamily: '"Inter", "Noto Sans JP", sans-serif',
                 }}
               >
                 {todayDiff.added.length >= 0 && todayDiff.added.length < 10 && Number.isInteger(todayDiff.added.length) && (
@@ -562,6 +574,8 @@ export default function KpiWidget({
                   fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
                   fontWeight: 900,
                   lineHeight: 1,
+                  fontFeatureSettings: '"tnum"',
+                  fontFamily: '"Inter", "Noto Sans JP", sans-serif',
                 }}
               >
                 {todayDiff.removed.length >= 0 && todayDiff.removed.length < 10 && Number.isInteger(todayDiff.removed.length) && (
