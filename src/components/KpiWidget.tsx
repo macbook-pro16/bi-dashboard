@@ -196,7 +196,7 @@ function Popup({
   );
 }
 
-// ★★★ 修正C: 遅延取得対応の画像コンポーネント ★★★
+// ★★★ 遅延取得対応の画像コンポーネント ★★★
 function NotionImage({
   initialUrl,
   pageId,
@@ -393,7 +393,7 @@ export default function KpiWidget({
       : (todayFontSize ? Math.ceil(todayFontSize * 1.2) : 30)),
   };
 
-  // ★★★ 修正C: renderFieldValue を fieldName と itemId を受け取るように変更 ★★★
+  // ★★★ renderFieldValue を fieldName と itemId を受け取るように変更 ★★★
   const renderFieldValue = (rawVal: any, fieldName: string, itemId: string) => {
     const files = extractFileUrls(rawVal);
     if (files.length > 0) {
@@ -519,13 +519,24 @@ export default function KpiWidget({
               onMouseLeave={handleTriggerLeave}
             >
               <span
-                className="font-bold leading-none"
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '1.8em',
+                  height: '1.8em',
+                  borderRadius: '50%',
+                  backgroundColor: colorDelta || '#3b82f6',
+                  color: '#ffffff',
                   fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
-                  color: colorDelta || '#06b6d4',
+                  fontWeight: 900,
+                  lineHeight: 1,
                 }}
               >
-                +{todayDiff.added.length}
+                {todayDiff.added.length >= 0 && todayDiff.added.length < 10 && Number.isInteger(todayDiff.added.length) && (
+                  <span style={{ visibility: 'hidden', fontSize: 'inherit', fontWeight: 'inherit' }}>0</span>
+                )}
+                {todayDiff.added.length}
               </span>
             </div>
           )}
@@ -539,20 +550,31 @@ export default function KpiWidget({
               onMouseLeave={handleTriggerLeave}
             >
               <span
-                className="font-bold leading-none"
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '1.8em',
+                  height: '1.8em',
+                  borderRadius: '50%',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
                   fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
-                  color: '#ef4444',
+                  fontWeight: 900,
+                  lineHeight: 1,
                 }}
               >
-                -{todayDiff.removed.length}
+                {todayDiff.removed.length >= 0 && todayDiff.removed.length < 10 && Number.isInteger(todayDiff.removed.length) && (
+                  <span style={{ visibility: 'hidden', fontSize: 'inherit', fontWeight: 'inherit' }}>0</span>
+                )}
+                {todayDiff.removed.length}
               </span>
             </div>
           )}
         </div>
       )}
 
-      {/* ★★★ 修正C: renderFieldValue の呼び出しで fieldName と item.id を渡す ★★★ */}
+      {/* ★★★ renderFieldValue の呼び出しで fieldName と item.id を渡す ★★★ */}
       {hoveredSection === 'added' && anchorRect && (
         <Popup
           anchorRect={anchorRect}
