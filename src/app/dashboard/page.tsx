@@ -743,6 +743,8 @@ function renderWidgetContent(
           titleAlign={dc.titleAlign}
           titleX={dc.titleX}
           titleY={dc.titleY}
+　　　　　　statsLabelFontSize={dc.statsLabelFontSize}
+  　　　　　statsValueFontSize={dc.statsValueFontSize}
         />
       );
     }
@@ -5019,6 +5021,53 @@ function DashboardInner() {
                                       </div>
                                     </div>
                                     <div>
+                                                                          {/* ★ 下部ラベル・数値のサイズ設定 */}
+                                    <div className="space-y-3 pt-4 border-t border-slate-100">
+                                      <label className="text-xs font-bold text-slate-700">📏 下部テキストサイズ</label>
+                                      
+                                      <div>
+                                        <div className="flex justify-between items-center mb-1">
+                                          <label className="text-xs font-medium text-slate-700">ラベルサイズ</label>
+                                          <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                            {activeEditorWidget.dataConfig?.statsLabelFontSize || 10}px
+                                          </span>
+                                        </div>
+                                        <input
+                                          type="range"
+                                          min="8"
+                                          max="24"
+                                          value={activeEditorWidget.dataConfig?.statsLabelFontSize || 10}
+                                          onChange={e => updateSelectedDesign('dataConfig', {
+                                            ...activeEditorWidget.dataConfig,
+                                            statsLabelFontSize: parseInt(e.target.value),
+                                          })}
+                                          className="w-full accent-indigo-500"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <div className="flex justify-between items-center mb-1">
+                                          <label className="text-xs font-medium text-slate-700">数値サイズ</label>
+                                          <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                            {activeEditorWidget.dataConfig?.statsValueFontSize ?? Math.max(14, (activeEditorWidget.fontSize || 48) * 0.25)}px
+                                          </span>
+                                        </div>
+                                        <input
+                                          type="range"
+                                          min="10"
+                                          max="36"
+                                          value={activeEditorWidget.dataConfig?.statsValueFontSize ?? Math.max(14, (activeEditorWidget.fontSize || 48) * 0.25)}
+                                          onChange={e => updateSelectedDesign('dataConfig', {
+                                            ...activeEditorWidget.dataConfig,
+                                            statsValueFontSize: parseInt(e.target.value),
+                                          })}
+                                          className="w-full accent-indigo-500"
+                                        />
+                                      </div>
+                                      <p className="text-[9px] text-slate-400">
+                                        ※ 未設定の場合はメイン数値サイズに連動します
+                                      </p>
+                                    </div>
                                       <label className="text-xs font-medium text-slate-500 mb-1 block">実績値集計方法</label>
                                       <select
                                         value={dc.aggregation ?? 'sum'}
