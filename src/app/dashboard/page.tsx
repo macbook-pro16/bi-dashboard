@@ -5611,6 +5611,8 @@ function DashboardInner() {
   if(w){ 
     setStyleClipboard({ 
       shape: w.shape,               // ← 形状を必ず含める
+      w: w.w,
+      h: w.h,
       bgColor: w.bgColor, 
       textColor: w.textColor, 
       borderColor: w.borderColor, 
