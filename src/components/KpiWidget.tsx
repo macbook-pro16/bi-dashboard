@@ -393,6 +393,12 @@ export default function KpiWidget({
       : (todayFontSize ? Math.ceil(todayFontSize * 1.2) : 30)),
   };
 
+  // ★ メイン数値の桁数（最低2桁を保証）
+  const mainValueDigits = Math.max(2, String(Math.abs(Math.round(value))).length);
+  // ★ 今日の実績の桁数（最低2桁を保証）
+  const addedDigits = Math.max(2, String(todayDiff?.added?.length ?? 0).length);
+  const removedDigits = Math.max(2, String(todayDiff?.removed?.length ?? 0).length);
+
   // ★★★ renderFieldValue を fieldName と itemId を受け取るように変更 ★★★
   const renderFieldValue = (rawVal: any, fieldName: string, itemId: string) => {
     const files = extractFileUrls(rawVal);
@@ -472,14 +478,14 @@ export default function KpiWidget({
         >
           <span
             style={{
+              fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
               fontFeatureSettings: '"tnum"',
-              fontFamily: '"Inter", "Noto Sans JP", sans-serif',
+              display: 'inline-block',
+              width: `${mainValueDigits}ch`,
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
             }}
           >
-            {/* 1桁整数の場合、非表示の '0' で2桁幅を確保 */}
-            {value >= 0 && value < 10 && Number.isInteger(value) && (
-              <span style={{ visibility: 'hidden', fontSize: 'inherit', fontWeight: 'inherit' }}>0</span>
-            )}
             {value.toLocaleString()}
           </span>
         </div>
@@ -541,14 +547,19 @@ export default function KpiWidget({
                   fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
                   fontWeight: 900,
                   lineHeight: 1,
+                  fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
                   fontFeatureSettings: '"tnum"',
-                  fontFamily: '"Inter", "Noto Sans JP", sans-serif',
                 }}
               >
-                {todayDiff.added.length >= 0 && todayDiff.added.length < 10 && Number.isInteger(todayDiff.added.length) && (
-                  <span style={{ visibility: 'hidden', fontSize: 'inherit', fontWeight: 'inherit' }}>0</span>
-                )}
-                {todayDiff.added.length}
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: `${addedDigits}ch`,
+                    textAlign: 'center',
+                  }}
+                >
+                  {todayDiff.added.length}
+                </span>
               </span>
             </div>
           )}
@@ -574,14 +585,19 @@ export default function KpiWidget({
                   fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
                   fontWeight: 900,
                   lineHeight: 1,
+                  fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
                   fontFeatureSettings: '"tnum"',
-                  fontFamily: '"Inter", "Noto Sans JP", sans-serif',
                 }}
               >
-                {todayDiff.removed.length >= 0 && todayDiff.removed.length < 10 && Number.isInteger(todayDiff.removed.length) && (
-                  <span style={{ visibility: 'hidden', fontSize: 'inherit', fontWeight: 'inherit' }}>0</span>
-                )}
-                {todayDiff.removed.length}
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: `${removedDigits}ch`,
+                    textAlign: 'center',
+                  }}
+                >
+                  {todayDiff.removed.length}
+                </span>
               </span>
             </div>
           )}
