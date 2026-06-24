@@ -320,22 +320,6 @@ export default function KpiWidget({
     };
   }, []);
 
-  const handleDiffClick = (section: 'added' | 'removed') => {
-    if (!todayDiff || !onDiffFilter) return;
-    let ids: string[] = [];
-    let label = '';
-    if (section === 'added') {
-      ids = todayDiff.added.map(item => item.id);
-      label = '本日追加';
-    } else if (section === 'removed') {
-      ids = todayDiff.removed.map(item => item.id);
-      label = '本日減少';
-    }
-    if (ids.length > 0) {
-      onDiffFilter(ids, label);
-    }
-  };
-
   let appliedTextColor = textColor;
   if (conditionalTextRules) {
     for (const rule of conditionalTextRules) {
@@ -529,10 +513,6 @@ export default function KpiWidget({
               style={{ transform: `translate(${addedPos.x}px, ${addedPos.y}px)` }}
               onMouseEnter={() => handleTriggerEnter('added')}
               onMouseLeave={handleTriggerLeave}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDiffClick('added');
-              }}
             >
               <span
                 className="font-bold leading-none"
@@ -553,10 +533,6 @@ export default function KpiWidget({
               style={{ transform: `translate(${removedPos.x}px, ${removedPos.y}px)` }}
               onMouseEnter={() => handleTriggerEnter('removed')}
               onMouseLeave={handleTriggerLeave}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDiffClick('removed');
-              }}
             >
               <span
                 className="font-bold leading-none"
