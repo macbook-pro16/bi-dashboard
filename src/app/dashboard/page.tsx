@@ -625,7 +625,7 @@ function renderWidgetContent(
         statusOptions={statusOptions}
         onStatusChange={handleStatusChange}
         widget={w}
-                onColumnsReorder={(columns) => {
+        onColumnsReorder={(columns) => {
           if (mode === 'edit' && editWidgets && layout) {
             editWidgets(layout.map(widget =>
               widget.id === w.id
@@ -743,8 +743,8 @@ function renderWidgetContent(
           titleAlign={dc.titleAlign}
           titleX={dc.titleX}
           titleY={dc.titleY}
-　　　　　　statsLabelFontSize={dc.statsLabelFontSize}
-  　　　　　statsValueFontSize={dc.statsValueFontSize}
+          statsLabelFontSize={dc.statsLabelFontSize}
+          statsValueFontSize={dc.statsValueFontSize}
         />
       );
     }
@@ -800,7 +800,7 @@ function renderWidgetContent(
           fontSize={w.fontSize}
         />
       );
-        case 'text-block':
+    case 'text-block':
       return (
         <TextBlockWidget
           textContent={w.textContent || dc.textContent || ''}
@@ -830,7 +830,7 @@ function renderWidgetContent(
           shape={w.shape === 'circle' ? 'circle' : w.shape === 'rounded' ? 'rounded' : 'rectangle'}
           bgAlpha={w.bgAlpha ?? 0}
           bgColor={w.bgColor}
-           hasShadow={w.hasShadow}
+          hasShadow={w.hasShadow}
         />
       );
     case 'chart': {
@@ -1206,8 +1206,7 @@ const CanvasWidget = React.memo(function CanvasWidget({
   onChangeSize:(id:string,newW:number,newH:number)=>void,
   onMove?:(id:string,dx:number,dy:number)=>void,
   onClickFlowNode?:(status:string)=>void, onRename?:(id:string,title:string)=>void,
-  onContextMenu?:(id:string,x:number,y:number)=>void,
-  onDoubleClick?:(id:string)=>void,
+  onContextMenu?:(id:string,x:number,y:number)=>void, onDoubleClick?:(id:string)=>void,
   computedValue?:number, children?:React.ReactNode, isSignageMode?:boolean,
   selectedCount: number
 }) {
@@ -1835,7 +1834,7 @@ function DashboardInner() {
     setSelectedAnnotationIds([]);
   }, []);
 
-   useEffect(()=>{
+  useEffect(()=>{
     const kd=(e:KeyboardEvent)=>{
       if(e.code==='Space'&&e.target instanceof HTMLElement&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){e.preventDefault();setIsSpacePressed(true);}
       if(e.key==='Escape'){
@@ -3364,6 +3363,8 @@ function DashboardInner() {
     );
   };
 
+  const [excludeInput, setExcludeInput] = useState('');
+
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden text-slate-900 selection:bg-indigo-500/30">
       
@@ -3973,7 +3974,7 @@ function DashboardInner() {
                           </div>
 
                           {(() => {
-                            const dc = (activeEditorWidget.dataConfig || {}) as DataConfig;
+                            const dc = activeEditorWidget.dataConfig || {};
                             const srcIdx = dc.sourceIndex || activeEditorWidget.dataSourceIndex || '001';
                             
                             if (srcIdx === 'none') {
@@ -4193,6 +4194,17 @@ function DashboardInner() {
       })}
     </div>
     <p className="text-[9px] text-slate-400">数値を入力するとその幅で固定されます（空欄で自動調整）</p>
+    <button
+      onClick={() => {
+        const current = activeEditorWidget.tableConfig || {};
+        updateSelectedDesign('_multi', {
+          tableConfig: { ...current, columnWidths: undefined }
+        });
+      }}
+      className="w-full text-xs py-2 border border-rose-200 bg-rose-50 rounded-lg text-rose-500 hover:bg-rose-100 transition-all"
+    >
+      すべての列幅設定を解除
+    </button>
   </div>
 )}
 {activeEditorWidget.type === 'table-details' && (
@@ -4328,6 +4340,48 @@ function DashboardInner() {
             className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
           />
         </div>
+
+        {/* 除外キーワード UI */}
+        <div className="space-y-2 pt-3 border-t border-slate-100">
+          <label className="text-xs font-medium text-slate-500 mb-1 block">除外キーワード</label>
+          <p className="text-[10px] text-slate-400 mb-1">ここで指定した値の行はグループ化から除外されます</p>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {(activeEditorWidget.tableConfig?.excludeKeywords || []).map((keyword, idx) => (
+              <span key={idx} className="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded text-xs text-slate-700">
+                {keyword}
+                <button
+                  onClick={() => {
+                    const newKeywords = (activeEditorWidget.tableConfig?.excludeKeywords || []).filter((_, i) => i !== idx);
+                    updateSelectedDesign('_multi', {
+                      tableConfig: { ...activeEditorWidget.tableConfig, excludeKeywords: newKeywords.length > 0 ? newKeywords : undefined }
+                    });
+                  }}
+                  className="text-slate-400 hover:text-rose-500"
+                >✕</button>
+              </span>
+            ))}
+          </div>
+          <input
+            type="text"
+            placeholder="キーワードを入力して Enter"
+            value={excludeInput}
+            onChange={(e) => setExcludeInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && excludeInput.trim()) {
+                const newKeyword = excludeInput.trim();
+                const currentKeywords = activeEditorWidget.tableConfig?.excludeKeywords || [];
+                if (!currentKeywords.includes(newKeyword)) {
+                  updateSelectedDesign('_multi', {
+                    tableConfig: { ...activeEditorWidget.tableConfig, excludeKeywords: [...currentKeywords, newKeyword] }
+                  });
+                }
+                setExcludeInput('');
+              }
+            }}
+            className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+          />
+        </div>
+
         <button
           onClick={() => {
             const current = activeEditorWidget.tableConfig || {};
@@ -4340,48 +4394,13 @@ function DashboardInner() {
                 showGroupSubtotal: undefined,
                 groupHeaderBgColor: undefined,
                 groupHeaderTextColor: undefined,
+                excludeKeywords: undefined,
+                excludeKeywordField: undefined,
               }
             });
           }}
           className="w-full text-xs py-2 border border-rose-200 bg-rose-50 rounded-lg text-rose-500 hover:bg-rose-100 transition-all"
         >
-        <div>
-  <label className="text-xs font-medium text-slate-500 mb-1 block">除外キーワード</label>
-  <p className="text-[10px] text-slate-400 mb-1">ここで指定した値の行はグループ化から除外されます</p>
-  <div className="flex flex-wrap gap-1 mb-2">
-    {(activeEditorWidget.tableConfig?.excludeKeywords || []).map((keyword, idx) => (
-      <span key={idx} className="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded text-xs text-slate-700">
-        {keyword}
-        <button
-          onClick={() => {
-            const newKeywords = (activeEditorWidget.tableConfig?.excludeKeywords || []).filter((_, i) => i !== idx);
-            updateSelectedDesign('_multi', {
-              tableConfig: { ...activeEditorWidget.tableConfig, excludeKeywords: newKeywords.length > 0 ? newKeywords : undefined }
-            });
-          }}
-          className="text-slate-400 hover:text-rose-500"
-        >✕</button>
-      </span>
-    ))}
-  </div>
-  <input
-    type="text"
-    placeholder="キーワードを入力して Enter"
-    onKeyDown={(e) => {
-      if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-        const newKeyword = e.currentTarget.value.trim();
-        const currentKeywords = activeEditorWidget.tableConfig?.excludeKeywords || [];
-        if (!currentKeywords.includes(newKeyword)) {
-          updateSelectedDesign('_multi', {
-            tableConfig: { ...activeEditorWidget.tableConfig, excludeKeywords: [...currentKeywords, newKeyword] }
-          });
-        }
-        e.currentTarget.value = '';
-      }
-    }}
-    className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
-  />
-</div>
           グループ化を解除
         </button>
       </>
@@ -4525,7 +4544,7 @@ function DashboardInner() {
               }}
               className="flex-1 accent-indigo-500"
             />
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded min-w-[40px] text-center">
+            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded min-w-[40px] text-center flex-shrink-0">
               {activeEditorWidget.tableConfig?.groupHeaderHeight || 48}px
             </span>
           </div>
@@ -4535,7 +4554,7 @@ function DashboardInner() {
           <div className="flex items-center gap-2">
             <input
               type="range"
-              min="10"
+              min="8"
               max="24"
               step="1"
               value={activeEditorWidget.tableConfig?.groupHeaderFontSize || 14}
@@ -4547,7 +4566,7 @@ function DashboardInner() {
               }}
               className="flex-1 accent-indigo-500"
             />
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded min-w-[40px] text-center">
+            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded min-w-[40px] text-center flex-shrink-0">
               {activeEditorWidget.tableConfig?.groupHeaderFontSize || 14}px
             </span>
           </div>
@@ -4854,7 +4873,7 @@ function DashboardInner() {
                                           <option value="count">件数</option>
                                           <option value="none">生の値（最初のレコード）</option>
                                         </select>
-                                       </div>
+                                      </div>
                                       <div>
                                         <label className="text-xs font-medium text-slate-500 mb-1 block">目標値期間フィルター</label>
                                         <select
@@ -5058,53 +5077,6 @@ function DashboardInner() {
                                       </div>
                                     </div>
                                     <div>
-                                                                          {/* ★ 下部ラベル・数値のサイズ設定 */}
-                                    <div className="space-y-3 pt-4 border-t border-slate-100">
-                                      <label className="text-xs font-bold text-slate-700">📏 下部テキストサイズ</label>
-                                      
-                                      <div>
-                                        <div className="flex justify-between items-center mb-1">
-                                          <label className="text-xs font-medium text-slate-700">ラベルサイズ</label>
-                                          <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                            {activeEditorWidget.dataConfig?.statsLabelFontSize || 10}px
-                                          </span>
-                                        </div>
-                                        <input
-                                          type="range"
-                                          min="8"
-                                          max="24"
-                                          value={activeEditorWidget.dataConfig?.statsLabelFontSize || 10}
-                                          onChange={e => updateSelectedDesign('dataConfig', {
-                                            ...activeEditorWidget.dataConfig,
-                                            statsLabelFontSize: parseInt(e.target.value),
-                                          })}
-                                          className="w-full accent-indigo-500"
-                                        />
-                                      </div>
-
-                                      <div>
-                                        <div className="flex justify-between items-center mb-1">
-                                          <label className="text-xs font-medium text-slate-700">数値サイズ</label>
-                                          <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                            {activeEditorWidget.dataConfig?.statsValueFontSize ?? Math.max(14, (activeEditorWidget.fontSize || 48) * 0.25)}px
-                                          </span>
-                                        </div>
-                                        <input
-                                          type="range"
-                                          min="10"
-                                          max="36"
-                                          value={activeEditorWidget.dataConfig?.statsValueFontSize ?? Math.max(14, (activeEditorWidget.fontSize || 48) * 0.25)}
-                                          onChange={e => updateSelectedDesign('dataConfig', {
-                                            ...activeEditorWidget.dataConfig,
-                                            statsValueFontSize: parseInt(e.target.value),
-                                          })}
-                                          className="w-full accent-indigo-500"
-                                        />
-                                      </div>
-                                      <p className="text-[9px] text-slate-400">
-                                        ※ 未設定の場合はメイン数値サイズに連動します
-                                      </p>
-                                    </div>
                                       <label className="text-xs font-medium text-slate-500 mb-1 block">実績値集計方法</label>
                                       <select
                                         value={dc.aggregation ?? 'sum'}
@@ -5117,6 +5089,25 @@ function DashboardInner() {
                                         <option value="min">最小</option>
                                         <option value="count">件数</option>
                                       </select>
+                                    </div>
+                                    {/* 下部テキストサイズ設定 */}
+                                    <div className="space-y-3 pt-4 border-t border-slate-100">
+                                      <label className="text-xs font-bold text-slate-700">📏 下部テキストサイズ</label>
+                                      <div>
+                                        <div className="flex justify-between items-center mb-1">
+                                          <label className="text-xs font-medium text-slate-700">ラベルサイズ</label>
+                                          <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{activeEditorWidget.dataConfig?.statsLabelFontSize || 10}px</span>
+                                        </div>
+                                        <input type="range" min="8" max="24" value={activeEditorWidget.dataConfig?.statsLabelFontSize || 10} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, statsLabelFontSize: parseInt(e.target.value) })} className="w-full accent-indigo-500" />
+                                      </div>
+                                      <div>
+                                        <div className="flex justify-between items-center mb-1">
+                                          <label className="text-xs font-medium text-slate-700">数値サイズ</label>
+                                          <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{activeEditorWidget.dataConfig?.statsValueFontSize ?? Math.max(14, (activeEditorWidget.fontSize || 48) * 0.25)}px</span>
+                                        </div>
+                                        <input type="range" min="10" max="36" value={activeEditorWidget.dataConfig?.statsValueFontSize ?? Math.max(14, (activeEditorWidget.fontSize || 48) * 0.25)} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, statsValueFontSize: parseInt(e.target.value) })} className="w-full accent-indigo-500" />
+                                      </div>
+                                      <p className="text-[9px] text-slate-400">※ 未設定の場合はメイン数値サイズに連動します</p>
                                     </div>
                                   </div>
                                 )}
@@ -5668,7 +5659,7 @@ function DashboardInner() {
         </div>
       )}
 
-            {/* AIアシスタントボタン等 */}
+      {/* AIアシスタントボタン等 */}
       <button onClick={() => setShowAiDrawer(prev => !prev)} className={`fixed bottom-8 right-8 z-[200] p-4 bg-indigo-600 text-white rounded-full shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center ${mode === 'edit' ? 'hidden' : ''}`} title="AIアシスタント">
         <Icons.Sparkles className="w-6 h-6" />
       </button>
@@ -5693,73 +5684,8 @@ function DashboardInner() {
           {[
             {label:'✏️ タイトル名を変更',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setTitleEditWidgetId(ctxMenu.id); setTitleEditValue(w.title); } }},
             null,
-            {label:'📝 スタイルをコピー',action:()=>{ 
-  const w = findWidgetById(layout, ctxMenu.id); 
-  if(w){ 
-    setStyleClipboard({ 
-      shape: w.shape,               // ← 形状を必ず含める
-      w: w.w,
-      h: w.h,
-      bgColor: w.bgColor, 
-      textColor: w.textColor, 
-      borderColor: w.borderColor, 
-      borderWidth: w.borderWidth, 
-      fontSize: w.fontSize, 
-      textAlign: w.textAlign, 
-      hasShadow: w.hasShadow, 
-      bgAlpha: w.bgAlpha, 
-      tableConfig: w.tableConfig ? { ...w.tableConfig } : undefined, 
-      showTodayValue: w.dataConfig?.showTodayValue, 
-      colorDelta: w.dataConfig?.colorDelta, 
-      colorDeltaMinus: w.dataConfig?.colorDeltaMinus, 
-      todayFontSize: w.dataConfig?.todayFontSize, 
-      todayX: w.dataConfig?.todayX, 
-      todayY: w.dataConfig?.todayY, 
-      addedX: w.dataConfig?.addedX, 
-      addedY: w.dataConfig?.addedY, 
-      removedX: w.dataConfig?.removedX, 
-      removedY: w.dataConfig?.removedY, 
-      todayDiffMatchField: w.dataConfig?.todayDiffMatchField, 
-      todayDiffChangeField: w.dataConfig?.todayDiffChangeField, 
-      todayPopupFields: w.dataConfig?.todayPopupFields, 
-    }); 
-    addToastRef.current('スタイルをコピーしました', 'success'); 
-  } 
-}},
-            {label:'📋 スタイルを貼り付け',action:()=>{ 
-  if(styleClipboard){ 
-    const { 
-      showTodayValue, colorDelta, colorDeltaMinus, todayFontSize, 
-      todayX, todayY, addedX, addedY, removedX, removedY, 
-      todayDiffMatchField, todayDiffChangeField, todayPopupFields, 
-      ...restStyle        // ← ここに shape などが含まれている
-    } = styleClipboard; 
-
-    editWidgets(updateWidgetById(layout, ctxMenu.id, w => ({ 
-      ...w, 
-      ...restStyle,        // ← 形状など基本スタイルを上書き
-      dataConfig: { 
-        ...w.dataConfig, 
-        showTodayValue: showTodayValue !== undefined ? showTodayValue : w.dataConfig?.showTodayValue, 
-        colorDelta: colorDelta !== undefined ? colorDelta : w.dataConfig?.colorDelta, 
-        colorDeltaMinus: colorDeltaMinus !== undefined ? colorDeltaMinus : w.dataConfig?.colorDeltaMinus, 
-        todayFontSize: todayFontSize !== undefined ? todayFontSize : w.dataConfig?.todayFontSize, 
-        todayX: todayX !== undefined ? todayX : w.dataConfig?.todayX, 
-        todayY: todayY !== undefined ? todayY : w.dataConfig?.todayY, 
-        addedX: addedX !== undefined ? addedX : w.dataConfig?.addedX, 
-        addedY: addedY !== undefined ? addedY : w.dataConfig?.addedY, 
-        removedX: removedX !== undefined ? removedX : w.dataConfig?.removedX, 
-        removedY: removedY !== undefined ? removedY : w.dataConfig?.removedY, 
-        todayDiffMatchField: todayDiffMatchField !== undefined ? todayDiffMatchField : w.dataConfig?.todayDiffMatchField, 
-        todayDiffChangeField: todayDiffChangeField !== undefined ? todayDiffChangeField : w.dataConfig?.todayDiffChangeField, 
-        todayPopupFields: todayPopupFields !== undefined ? todayPopupFields : w.dataConfig?.todayPopupFields, 
-      }, 
-    }))); 
-    addToastRef.current('スタイルを貼り付けました', 'success'); 
-  } else { 
-    addToastRef.current('コピーされたスタイルがありません', 'error'); 
-  } 
-}, disabled: !styleClipboard},
+            {label:'📝 スタイルをコピー',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setStyleClipboard({ shape: w.shape, w: w.w, h: w.h, bgColor: w.bgColor, textColor: w.textColor, borderColor: w.borderColor, borderWidth: w.borderWidth, fontSize: w.fontSize, textAlign: w.textAlign, hasShadow: w.hasShadow, bgAlpha: w.bgAlpha, tableConfig: w.tableConfig ? { ...w.tableConfig } : undefined, showTodayValue: w.dataConfig?.showTodayValue, colorDelta: w.dataConfig?.colorDelta, colorDeltaMinus: w.dataConfig?.colorDeltaMinus, todayFontSize: w.dataConfig?.todayFontSize, todayX: w.dataConfig?.todayX, todayY: w.dataConfig?.todayY, addedX: w.dataConfig?.addedX, addedY: w.dataConfig?.addedY, removedX: w.dataConfig?.removedX, removedY: w.dataConfig?.removedY, todayDiffMatchField: w.dataConfig?.todayDiffMatchField, todayDiffChangeField: w.dataConfig?.todayDiffChangeField, todayPopupFields: w.dataConfig?.todayPopupFields, }); addToastRef.current('スタイルをコピーしました', 'success'); } }},
+            {label:'📋 スタイルを貼り付け',action:()=>{ if(styleClipboard){ const { showTodayValue, colorDelta, colorDeltaMinus, todayFontSize, todayX, todayY, addedX, addedY, removedX, removedY, todayDiffMatchField, todayDiffChangeField, todayPopupFields, ...restStyle } = styleClipboard; editWidgets(updateWidgetById(layout, ctxMenu.id, w => ({ ...w, ...restStyle, dataConfig: { ...w.dataConfig, showTodayValue: showTodayValue !== undefined ? showTodayValue : w.dataConfig?.showTodayValue, colorDelta: colorDelta !== undefined ? colorDelta : w.dataConfig?.colorDelta, colorDeltaMinus: colorDeltaMinus !== undefined ? colorDeltaMinus : w.dataConfig?.colorDeltaMinus, todayFontSize: todayFontSize !== undefined ? todayFontSize : w.dataConfig?.todayFontSize, todayX: todayX !== undefined ? todayX : w.dataConfig?.todayX, todayY: todayY !== undefined ? todayY : w.dataConfig?.todayY, addedX: addedX !== undefined ? addedX : w.dataConfig?.addedX, addedY: addedY !== undefined ? addedY : w.dataConfig?.addedY, removedX: removedX !== undefined ? removedX : w.dataConfig?.removedX, removedY: removedY !== undefined ? removedY : w.dataConfig?.removedY, todayDiffMatchField: todayDiffMatchField !== undefined ? todayDiffMatchField : w.dataConfig?.todayDiffMatchField, todayDiffChangeField: todayDiffChangeField !== undefined ? todayDiffChangeField : w.dataConfig?.todayDiffChangeField, todayPopupFields: todayPopupFields !== undefined ? todayPopupFields : w.dataConfig?.todayPopupFields, }, }))); addToastRef.current('スタイルを貼り付けました', 'success'); } else { addToastRef.current('コピーされたスタイルがありません', 'error'); } }, disabled: !styleClipboard},
             null,
             {label:'複製',action:()=>handleDuplicateWidget(ctxMenu.id)},
             {label:findWidgetById(layout, ctxMenu.id)?.locked?'ロック解除':'ロックをかける',action:()=>handleToggleLockWidget(ctxMenu.id)},
