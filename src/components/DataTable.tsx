@@ -49,18 +49,20 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
   const groupHeaderFontSize = config?.groupHeaderFontSize || 14;
   const conditionalStyles = config?.groupHeaderConditionalStyles || [];
 
+  // ★ 除外キーワード
+  const excludeKeywords = config?.excludeKeywords || [];
+  const excludeKeywordField = config?.excludeKeywordField || groupBy;
+
   // ★ 修正：複数条件とAND/ORをサポート
   const getGroupHeaderStyle = useCallback((groupKey: string): { bgColor: string; textColor: string } => {
     for (const rule of conditionalStyles) {
       const keyLower = groupKey.toLowerCase();
 
-      // 複数条件（conditions）がある場合
       if (rule.conditions && rule.conditions.length > 0) {
         const logic = rule.logic || 'or';
         let matches = false;
 
         if (logic === 'and') {
-          // AND: すべての条件に一致する必要がある
           matches = rule.conditions.every(cond => {
             const textLower = cond.text.toLowerCase();
             switch (cond.condition) {
@@ -72,7 +74,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
             }
           });
         } else {
-          // OR: いずれかの条件に一致すればOK
           matches = rule.conditions.some(cond => {
             const textLower = cond.text.toLowerCase();
             switch (cond.condition) {
@@ -90,7 +91,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
         }
       }
 
-      // 従来の単一条件（後方互換）
       if (rule.condition && rule.text) {
         let matches = false;
         const textLower = rule.text.toLowerCase();
@@ -107,7 +107,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
       }
     }
 
-    // デフォルト
     return {
       bgColor: config?.groupHeaderBgColor || 'rgba(241, 245, 249, 0.9)',
       textColor: config?.groupHeaderTextColor || '#1e293b'
@@ -182,13 +181,22 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
   const pageSize = config?.pageSize ?? 50;
   const limitedData = sorted.slice(0, pageSize);
 
+  // ★ 除外キーワードフィルタリング（グループ化時のみ適用）
+  const filteredData = useMemo(() => {
+    if (!groupBy || !excludeKeywords.length || !excludeKeywordField) return limitedData;
+    return limitedData.filter(item => {
+      const value = String(item[excludeKeywordField] ?? '');
+      return !excludeKeywords.some(keyword => value.includes(keyword));
+    });
+  }, [limitedData, groupBy, excludeKeywords, excludeKeywordField]);
+
   const groupedData = useMemo(() => {
     if (!groupBy) return null;
 
     const groups: Record<string, DBItem[]> = {};
     const groupKeys: string[] = [];
 
-    limitedData.forEach(item => {
+    filteredData.forEach(item => {
       const key = String(item[groupBy] ?? '（未分類）');
       if (!groups[key]) {
         groups[key] = [];
@@ -200,7 +208,7 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
     groupKeys.sort((a, b) => a.localeCompare(b, 'ja'));
 
     return { groups, groupKeys };
-  }, [limitedData, groupBy]);
+  }, [filteredData, groupBy]);
 
   const getGroupAggregation = useCallback((items: DBItem[]): number => {
     if (groupAggregation === 'count') return items.length;
@@ -496,7 +504,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                   }}
                   onClick={() => toggleGroup(key)}
                 >
-                  {/* 左側：グループ名（最初の列） */}
                   <div
                     className="flex-1 flex items-center gap-2 px-3"
                     style={{
@@ -514,7 +521,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                     </span>
                   </div>
 
-                  {/* 中央：残りの列 */}
                   {displayColumns.slice(1).map((col) => (
                     <div
                       key={col.key}
@@ -529,7 +535,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                     </div>
                   ))}
 
-                  {/* 右端：バッジ（ラベルと数値を分けて色指定） */}
                   <div className="flex items-center gap-2 shrink-0 px-3 ml-auto">
                     <span
                       className="px-2 py-0.5 rounded-full font-bold shadow-sm whitespace-nowrap flex items-center gap-1"
@@ -537,7 +542,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                         backgroundColor: config?.groupHeaderBadgeBgColor || '#eef2ff',
                       }}
                     >
-                      {/* ラベル（例：「件数:」） */}
                       <span
                         style={{
                           color: config?.groupHeaderBadgeLabelColor || config?.groupHeaderBadgeTextColor || '#4f46e5',
@@ -546,7 +550,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                       >
                         {aggLabel}:
                       </span>
-                      {/* 数値（例：「10件」） */}
                       <span
                         style={{
                           color: config?.groupHeaderBadgeValueColor || config?.groupHeaderBadgeTextColor || '#4f46e5',

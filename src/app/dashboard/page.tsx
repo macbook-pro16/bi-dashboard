@@ -4202,7 +4202,7 @@ function DashboardInner() {
       <div className="flex items-center gap-3">
         <input
           type="range"
-          min="20"
+          min="12"
           max="120"
           step="2"
           value={activeEditorWidget.tableConfig?.rowHeight || 0}
@@ -4345,6 +4345,43 @@ function DashboardInner() {
           }}
           className="w-full text-xs py-2 border border-rose-200 bg-rose-50 rounded-lg text-rose-500 hover:bg-rose-100 transition-all"
         >
+        <div>
+  <label className="text-xs font-medium text-slate-500 mb-1 block">除外キーワード</label>
+  <p className="text-[10px] text-slate-400 mb-1">ここで指定した値の行はグループ化から除外されます</p>
+  <div className="flex flex-wrap gap-1 mb-2">
+    {(activeEditorWidget.tableConfig?.excludeKeywords || []).map((keyword, idx) => (
+      <span key={idx} className="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded text-xs text-slate-700">
+        {keyword}
+        <button
+          onClick={() => {
+            const newKeywords = (activeEditorWidget.tableConfig?.excludeKeywords || []).filter((_, i) => i !== idx);
+            updateSelectedDesign('_multi', {
+              tableConfig: { ...activeEditorWidget.tableConfig, excludeKeywords: newKeywords.length > 0 ? newKeywords : undefined }
+            });
+          }}
+          className="text-slate-400 hover:text-rose-500"
+        >✕</button>
+      </span>
+    ))}
+  </div>
+  <input
+    type="text"
+    placeholder="キーワードを入力して Enter"
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+        const newKeyword = e.currentTarget.value.trim();
+        const currentKeywords = activeEditorWidget.tableConfig?.excludeKeywords || [];
+        if (!currentKeywords.includes(newKeyword)) {
+          updateSelectedDesign('_multi', {
+            tableConfig: { ...activeEditorWidget.tableConfig, excludeKeywords: [...currentKeywords, newKeyword] }
+          });
+        }
+        e.currentTarget.value = '';
+      }
+    }}
+    className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
+  />
+</div>
           グループ化を解除
         </button>
       </>
@@ -4476,7 +4513,7 @@ function DashboardInner() {
           <div className="flex items-center gap-2">
             <input
               type="range"
-              min="28"
+              min="20"
               max="80"
               step="2"
               value={activeEditorWidget.tableConfig?.groupHeaderHeight || 48}

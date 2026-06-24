@@ -212,6 +212,8 @@ export interface TableConfig {
   groupHeaderBadgeLabelColor?: string;
   groupHeaderBadgeValueColor?: string;
   rowHeight?: number;
+  excludeKeywords?: string[];
+  excludeKeywordField?: string;
 }
 
 export interface DBItem {
