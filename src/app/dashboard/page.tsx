@@ -1204,7 +1204,9 @@ const CanvasWidget = React.memo(function CanvasWidget({
   onChangeSize:(id:string,newW:number,newH:number)=>void,
   onMove?:(id:string,dx:number,dy:number)=>void,
   onClickFlowNode?:(status:string)=>void, onRename?:(id:string,title:string)=>void,
-  onContextMenu?:(id:string,x:number,y:number)=>void, onDoubleClick?:(id:string)=>void,
+  onContextMenu?:(id:string,x:number,y:number)=>void,
+  onDoubleClick?:(id:string)=>void,
+  computedValue?:number, onDoubleClick?:(id:string)=>void,
   computedValue?:number, children?:React.ReactNode, isSignageMode?:boolean,
   selectedCount: number
 }) {
@@ -3736,7 +3738,7 @@ function DashboardInner() {
                         onResizeEnd={handleResizeEnd} onChangeSize={handleChangeSize} onMove={handleMoveWidget}
                         onClickFlowNode={(s)=>toggleCrossFilter('status',s)}
                         onRename={handleRenameWidget}
-                        onContextMenu={(id,x,y)=>setCtxMenu({id,x,y})}
+                        onContextMenu={mode === 'edit' ? (id,x,y)=>setCtxMenu({id,x,y}) : undefined}
                         onDoubleClick={handleWidgetDoubleClick}
                         computedValue={computedValues[w.id]}
                         selectedCount={selectedIds.length}
