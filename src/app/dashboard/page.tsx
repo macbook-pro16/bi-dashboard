@@ -4795,7 +4795,7 @@ function DashboardInner() {
                                         <label className="text-xs font-medium text-slate-500 mb-1 block">目標値フィールド</label>
                                         <SelectWithSearch
                                           options={availableFieldsBySource[dc.targetSourceIndex || srcIdx] || []}
-                                          value={dc.targetField}
+                                          value={dc.targetField || ''}
                                           onChange={v => updateSelectedDesign('dataConfig', { ...dc, targetField: v })}
                                           placeholder="フィールドを選択"
                                         />
@@ -4814,7 +4814,7 @@ function DashboardInner() {
                                           <option value="count">件数</option>
                                           <option value="none">生の値（最初のレコード）</option>
                                         </select>
-                                      </div>
+                                       </div>
                                       <div>
                                         <label className="text-xs font-medium text-slate-500 mb-1 block">目標値期間フィルター</label>
                                         <select
