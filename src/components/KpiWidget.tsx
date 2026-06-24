@@ -372,14 +372,14 @@ export default function KpiWidget({
     mainStyle.backgroundColor = appliedBgColor;
   }
 
-  // ★ 独立した座標（お互いに干渉しない）
+  // ★ 独立した絶対座標（todayX/todayY を合算済み）
   const addedPos = {
-    x: addedX ?? valueX ?? 0,
-    y: addedY ?? valueY ?? 0,
+    x: (addedX ?? valueX ?? 0) + (todayX || 0),
+    y: (addedY ?? valueY ?? 0) + (todayY || 0),
   };
   const removedPos = {
-    x: removedX ?? valueX ?? 0,
-    y: removedY ?? valueY ?? 0,
+    x: (removedX ?? valueX ?? 0) + (todayX || 0),
+    y: (removedY ?? valueY ?? 0) + (todayY || 0),
   };
 
   // ★ メイン数値の桁数（最低2桁を保証）
@@ -505,95 +505,95 @@ export default function KpiWidget({
         </div>
       )}
 
-      {showTodayValue && todayDiff && (todayDiff.added.length > 0 || todayDiff.removed.length > 0) && (
+      {/* ★ 増加バッジ（完全独立） */}
+      {showTodayValue && todayDiff && todayDiff.added.length > 0 && (
         <div
-          className="absolute whitespace-nowrap pointer-events-auto flex flex-col items-start gap-1"
+          ref={addedRef}
+          className="absolute cursor-pointer"
           style={{
             left: 0,
             top: 0,
-            transform: `translate(${todayX || 0}px, ${todayY || 0}px)`,
+            transform: `translate(${addedPos.x}px, ${addedPos.y}px)`,
             zIndex: 20,
           }}
+          onMouseEnter={() => handleTriggerEnter('added')}
+          onMouseLeave={handleTriggerLeave}
         >
-          {todayDiff.added.length > 0 && (
-            <div
-              ref={addedRef}
-              className="relative cursor-pointer"
-              style={{ transform: `translate(${addedPos.x}px, ${addedPos.y}px)` }}
-              onMouseEnter={() => handleTriggerEnter('added')}
-              onMouseLeave={handleTriggerLeave}
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '1.8em',
+              height: '1.8em',
+              borderRadius: '50%',
+              backgroundColor: colorDelta || '#3b82f6',
+              color: '#ffffff',
+              fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
+              fontWeight: 900,
+              lineHeight: 1,
+              fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
+              fontFeatureSettings: '"tnum"',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                width: `${addedDigits}ch`,
+                textAlign: 'center',
+              }}
             >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '1.8em',
-                  height: '1.8em',
-                  borderRadius: '50%',
-                  backgroundColor: colorDelta || '#3b82f6',
-                  color: '#ffffff',
-                  fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
-                  fontWeight: 900,
-                  lineHeight: 1,
-                  fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
-                  fontFeatureSettings: '"tnum"',
-                }}
-              >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: `${addedDigits}ch`,
-                    textAlign: 'center',
-                  }}
-                >
-                  {todayDiff.added.length}
-                </span>
-              </span>
-            </div>
-          )}
-
-          {todayDiff.removed.length > 0 && (
-            <div
-              ref={removedRef}
-              className="relative cursor-pointer"
-              style={{ transform: `translate(${removedPos.x}px, ${removedPos.y}px)` }}
-              onMouseEnter={() => handleTriggerEnter('removed')}
-              onMouseLeave={handleTriggerLeave}
-            >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '1.8em',
-                  height: '1.8em',
-                  borderRadius: '50%',
-                  backgroundColor: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
-                  fontWeight: 900,
-                  lineHeight: 1,
-                  fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
-                  fontFeatureSettings: '"tnum"',
-                }}
-              >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: `${removedDigits}ch`,
-                    textAlign: 'center',
-                  }}
-                >
-                  {todayDiff.removed.length}
-                </span>
-              </span>
-            </div>
-          )}
+              {todayDiff.added.length}
+            </span>
+          </span>
         </div>
       )}
 
-      {/* ★★★ renderFieldValue の呼び出しで fieldName と item.id を渡す ★★★ */}
+      {/* ★ 減少バッジ（完全独立） */}
+      {showTodayValue && todayDiff && todayDiff.removed.length > 0 && (
+        <div
+          ref={removedRef}
+          className="absolute cursor-pointer"
+          style={{
+            left: 0,
+            top: 0,
+            transform: `translate(${removedPos.x}px, ${removedPos.y}px)`,
+            zIndex: 20,
+          }}
+          onMouseEnter={() => handleTriggerEnter('removed')}
+          onMouseLeave={handleTriggerLeave}
+        >
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '1.8em',
+              height: '1.8em',
+              borderRadius: '50%',
+              backgroundColor: '#ef4444',
+              color: '#ffffff',
+              fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
+              fontWeight: 900,
+              lineHeight: 1,
+              fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
+              fontFeatureSettings: '"tnum"',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                width: `${removedDigits}ch`,
+                textAlign: 'center',
+              }}
+            >
+              {todayDiff.removed.length}
+            </span>
+          </span>
+        </div>
+      )}
+
+      {/* ポップアップ */}
       {hoveredSection === 'added' && anchorRect && (
         <Popup
           anchorRect={anchorRect}
