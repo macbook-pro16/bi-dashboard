@@ -472,7 +472,7 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
         ) : (
           (() => {
             let currentTop = 0;
-            const rows: JSX.Element[] = [];
+            const rows: React.JSX.Element[] = [];
 
             groupedData.groupKeys.forEach((key) => {
               const items = groupedData.groups[key];
