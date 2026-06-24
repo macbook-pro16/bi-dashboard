@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
     const snapshot = await prisma.sharedSnapshot.create({
       data: {
         dashboardId: dashboard?.id || 'unknown',
-        layout: layout as Widget[],
-        annotations: annotations || [],
+                layout: JSON.parse(JSON.stringify(layout)),
+        annotations: JSON.parse(JSON.stringify(annotations || [])),
         expiresAt: null, // 無期限
       },
     });
