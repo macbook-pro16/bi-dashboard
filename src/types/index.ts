@@ -184,6 +184,9 @@ export interface TableConfig {
   showHeader?: boolean;
   showFooter?: boolean;
   groupBy?: string;
+  groupSortField?: string;
+  groupSortOrder?: 'asc' | 'desc';
+  showGroupSubtotal?: boolean;
   groupAggregation?: 'count' | 'sum' | 'avg' | 'max' | 'min';
   groupAggregationField?: string;
   groupExpandAll?: boolean;
