@@ -2,7 +2,7 @@
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-function WidgetFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+function WidgetFallback({ error, resetErrorBoundary }: { error: any; resetErrorBoundary: () => void }) {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2 bg-red-50 border border-red-200 rounded-lg text-center">
       <span className="text-xl">⚠️</span>
