@@ -397,7 +397,7 @@ export default function ChartWidget({
 
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={comboData} margin={{ top: showDataLabels ? 20 : 10, right: 15, left: 0, bottom: isSmall ? 5 : 20 }} isAnimationActive={false}>
+          <ComposedChart data={comboData} margin={{ top: showDataLabels ? 20 : 10, right: 15, left: 0, bottom: isSmall ? 5 : 20 }}>
             <defs>
               <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={barColor} stopOpacity={0.8} />
@@ -445,12 +445,12 @@ export default function ChartWidget({
             <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.3 }} />
             <Legend wrapperStyle={{ fontSize: 10, fontWeight: 500, paddingTop: '8px' }} iconType="circle" />
 
-            <Bar yAxisId="left" dataKey="barValue" name={barLabel} fill="url(#barGradient)" radius={[4, 4, 0, 0]} maxBarSize={40} isAnimationActive={false} />
+            <Bar yAxisId="left" dataKey="barValue" name={barLabel} fill="url(#barGradient)" radius={[4, 4, 0, 0]} maxBarSize={40} />
             {lineField && (
-              <Line yAxisId="left" type="linear" dataKey="lineValue" name={lineLabel} stroke={lineColor} strokeWidth={2.5} dot={{ r: 3, fill: lineColor, stroke: '#fff', strokeWidth: 1.5 }} activeDot={{ r: 5 }} isAnimationActive={false} />
+              <Line yAxisId="left" type="linear" dataKey="lineValue" name={lineLabel} stroke={lineColor} strokeWidth={2.5} dot={{ r: 3, fill: lineColor, stroke: '#fff', strokeWidth: 1.5 }} activeDot={{ r: 5 }} />
             )}
             {dc.comboTargetTotal && (
-              <Line yAxisId="left" type="stepAfter" dataKey="targetLine" name={targetLabel} stroke={targetColor} strokeWidth={targetWidth} strokeDasharray="6 3" dot={false} isAnimationActive={false} />
+              <Line yAxisId="left" type="stepAfter" dataKey="targetLine" name={targetLabel} stroke={targetColor} strokeWidth={targetWidth} strokeDasharray="6 3" dot={false} />
             )}
           </ComposedChart>
         </ResponsiveContainer>
@@ -460,9 +460,9 @@ export default function ChartWidget({
     if (isDonut) {
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }} isAnimationActive={false}>
+          <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
             <Tooltip content={<CustomTooltip />} />
-            <Pie data={singleChartData} cx="50%" cy="50%" innerRadius="60%" outerRadius="85%" paddingAngle={3} dataKey="value" nameKey="name" onClick={handleClick} stroke="none" isAnimationActive={false}>
+            <Pie data={singleChartData} cx="50%" cy="50%" innerRadius="60%" outerRadius="85%" paddingAngle={3} dataKey="value" nameKey="name" onClick={handleClick} stroke="none">
               {singleChartData.map((_, i) => (
                 <Cell key={i} fill={colors[i % colors.length]} />
               ))}
@@ -476,12 +476,12 @@ export default function ChartWidget({
     if (isLine) {
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={singleChartData} margin={{ top: 10, right: 15, left: 0, bottom: isSmall ? 5 : 20 }} isAnimationActive={false}>
+          <LineChart data={singleChartData} margin={{ top: 10, right: 15, left: 0, bottom: isSmall ? 5 : 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
             <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={yAxisFormatter} axisLine={false} tickLine={false} width={55} />
             <Tooltip content={<CustomTooltip />} />
-            <Line type="linear" dataKey="value" stroke={colors[0]} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} isAnimationActive={false} />
+            <Line type="linear" dataKey="value" stroke={colors[0]} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
             {showLegend && <Legend wrapperStyle={{ fontSize: 10 }} />}
           </LineChart>
         </ResponsiveContainer>
@@ -490,12 +490,12 @@ export default function ChartWidget({
 
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={singleChartData} margin={{ top: showDataLabels ? 20 : 10, right: 15, left: 0, bottom: isSmall ? 5 : 20 }} isAnimationActive={false}>
+        <BarChart data={singleChartData} margin={{ top: showDataLabels ? 20 : 10, right: 15, left: 0, bottom: isSmall ? 5 : 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
           <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} angle={-20} textAnchor="end" height={40} />
           <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={yAxisFormatter} axisLine={false} tickLine={false} width={55} />
           <Tooltip content={<CustomTooltip />} />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={60} onClick={handleClick} isAnimationActive={false}>
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={60} onClick={handleClick}>
             {singleChartData.map((_, i) => (
               <Cell key={i} fill={colors[i % colors.length]} />
             ))}
