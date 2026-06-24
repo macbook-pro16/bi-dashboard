@@ -28,6 +28,10 @@ interface GaugeWidgetProps {
   titleAlign?: 'left' | 'center' | 'right';
   titleX?: number;
   titleY?: number;
+  /** 下部ラベル（実績・目標・今日）の文字サイズ（px）*/
+  statsLabelFontSize?: number;
+  /** 下部数値（実績・目標・今日）の文字サイズ（px）*/
+  statsValueFontSize?: number;
 }
 
 const GaugeWidget: React.FC<GaugeWidgetProps> = ({
@@ -54,6 +58,8 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   titleAlign,
   titleX = 0,
   titleY = 0,
+  statsLabelFontSize,
+  statsValueFontSize,
 }) => {
   const safeTotalValue = typeof value === 'number' && !isNaN(value) ? value : 0;
   const safeTarget = typeof target === 'number' && !isNaN(target) && target > 0 ? target : 1;
@@ -166,7 +172,9 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   const baseLabelColor = isDarkMode ? '#94a3b8' : '#64748b';
 
   const percentFontSize = Math.min(Math.max(fontSize * 0.5, 32), 64);
-  const valueFontSize = Math.min(Math.max(fontSize * 0.25, 14), 20);
+  // ★ 下部ラベル・数値のフォントサイズを props から受け取り、未指定の場合は従来の計算式を使用
+  const effectiveLabelFontSize = statsLabelFontSize ?? 10;
+  const effectiveValueFontSize = statsValueFontSize ?? Math.min(Math.max(fontSize * 0.25, 14), 20);
 
   return (
     <div className="group relative w-full h-full flex items-center justify-center p-2 transition-all duration-300" style={{ fontFamily: '"Inter", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif' }}>
@@ -273,8 +281,8 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
 
         <div className="absolute top-[76%] w-full flex items-center justify-center gap-4 px-6 pointer-events-none">
           <div className="flex flex-col items-center flex-1 min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor }}>実績</div>
-            <span className="font-bold leading-none truncate" style={{ fontSize: `${valueFontSize}px`, color: textColor || (isDarkMode ? '#f8fafc' : '#1e293b'), fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor, fontSize: `${effectiveLabelFontSize}px` }}>実績</div>
+            <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: textColor || (isDarkMode ? '#f8fafc' : '#1e293b'), fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
               {Math.floor(animatedValue).toLocaleString()}
             </span>
           </div>
@@ -282,8 +290,8 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
           <div className="w-px h-6 shrink-0" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
 
           <div className="flex flex-col items-center flex-1 min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor }}>目標</div>
-            <span className="font-bold leading-none truncate" style={{ fontSize: `${valueFontSize}px`, color: textColor || (isDarkMode ? '#cbd5e1' : '#475569'), fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor, fontSize: `${effectiveLabelFontSize}px` }}>目標</div>
+            <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: textColor || (isDarkMode ? '#cbd5e1' : '#475569'), fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
               {safeTarget.toLocaleString()}
             </span>
           </div>
@@ -292,8 +300,8 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
             <>
               <div className="w-px h-6 shrink-0" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
               <div className="flex flex-col items-center flex-1 min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor }}>今日</div>
-                <span className="font-bold leading-none truncate" style={{ fontSize: `${valueFontSize}px`, color: colorDelta, fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
+                <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor, fontSize: `${effectiveLabelFontSize}px` }}>今日</div>
+                <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: colorDelta, fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
                   +{valToday.toLocaleString()}
                 </span>
               </div>
