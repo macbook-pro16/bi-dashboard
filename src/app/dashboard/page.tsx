@@ -1832,7 +1832,7 @@ function DashboardInner() {
     setSelectedAnnotationIds([]);
   }, []);
 
-  useEffect(()=>{
+   useEffect(()=>{
     const kd=(e:KeyboardEvent)=>{
       if(e.code==='Space'&&e.target instanceof HTMLElement&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){e.preventDefault();setIsSpacePressed(true);}
       if(e.key==='Escape'){
