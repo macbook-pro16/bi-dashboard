@@ -44,30 +44,47 @@ interface KpiWidgetProps {
   onDiffFilter?: (ids: string[], label: string) => void;
 }
 
-// ★ Notion のファイルプロパティ構造に対応
-function extractFileUrls(val: any): { url: string; name: string }[] {
+// ★ Notion のファイルプロパティ構造に対応（新JSON文字列形式もパース）
+function extractFileUrls(val: any): { url: string; name: string; type?: string }[] {
   if (!val) return [];
+
+  // 新形式: JSON文字列の配列
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed) && parsed[0]?.url) {
+        return parsed.map((f: any) => ({
+          url: f.url,
+          name: f.name || '',
+          type: f.type || 'file',
+        }));
+      }
+    } catch {}
+    // URLそのものの場合
+    if (val.startsWith('http')) return [{ url: val, name: '', type: 'external' }];
+    return [];
+  }
 
   // Notion APIのファイルプロパティ: { type: "files", files: [...] }
   if (typeof val === 'object' && val.type === 'files' && Array.isArray(val.files)) {
     return val.files
       .map((f: any) => {
-        if (f.type === 'external' && f.external?.url) return { url: f.external.url, name: f.name || '' };
-        if (f.type === 'file' && f.file?.url) return { url: f.file.url, name: f.name || '' };
+        if (f.type === 'external' && f.external?.url) return { url: f.external.url, name: f.name || '', type: 'external' };
+        if (f.type === 'file' && f.file?.url) return { url: f.file.url, name: f.name || '', type: 'file' };
         return null;
       })
-      .filter(Boolean) as { url: string; name: string }[];
+      .filter(Boolean) as { url: string; name: string; type?: string }[];
   }
 
   // 配列で直接ファイルオブジェクトが来る場合（古い形式など）
   if (Array.isArray(val) && val.length > 0 && (val[0].type === 'external' || val[0].type === 'file')) {
     return val
       .map((f: any) => {
-        if (f.type === 'external' && f.external?.url) return { url: f.external.url, name: f.name || '' };
-        if (f.type === 'file' && f.file?.url) return { url: f.file.url, name: f.name || '' };
+        if (f.type === 'external' && f.external?.url) return { url: f.external.url, name: f.name || '', type: 'external' };
+        if (f.type === 'file' && f.file?.url) return { url: f.file.url, name: f.name || '', type: 'file' };
         return null;
       })
-      .filter(Boolean) as { url: string; name: string }[];
+      .filter(Boolean) as { url: string; name: string; type?: string }[];
   }
 
   return [];
@@ -176,6 +193,63 @@ function Popup({
       {children}
     </div>,
     document.body
+  );
+}
+
+// ★★★ 修正C: 遅延取得対応の画像コンポーネント ★★★
+function NotionImage({
+  initialUrl,
+  pageId,
+  fieldName,
+  name,
+  isInternal,
+}: {
+  initialUrl: string;
+  pageId?: string;
+  fieldName?: string;
+  name: string;
+  isInternal: boolean;
+}) {
+  const [src, setSrc] = useState(isInternal ? null : initialUrl);
+  const [loading, setLoading] = useState(isInternal);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!isInternal || !pageId || !fieldName) return;
+    fetch(`/api/notion-file?pageId=${encodeURIComponent(pageId)}&field=${encodeURIComponent(fieldName)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.files?.[0]?.url) {
+          setSrc(data.files[0].url);
+        } else {
+          setError(true);
+        }
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [isInternal, pageId, fieldName]);
+
+  if (loading) {
+    return (
+      <div className="w-24 h-24 rounded-xl border border-slate-200 bg-slate-100 animate-pulse flex items-center justify-center">
+        <span className="text-xs text-slate-400">読込中...</span>
+      </div>
+    );
+  }
+  if (error || !src) {
+    return (
+      <span className="text-sm text-slate-400">ファイルを開けません</span>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={name || '画像'}
+      className="w-24 h-24 object-cover rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+      loading="lazy"
+      onClick={() => window.open(src, '_blank')}
+      onError={() => setError(true)}
+    />
   );
 }
 
@@ -335,27 +409,38 @@ export default function KpiWidget({
       : (todayFontSize ? Math.ceil(todayFontSize * 1.2) : 30)),
   };
 
-  const renderFieldValue = (rawVal: any) => {
+  // ★★★ 修正C: renderFieldValue を fieldName と itemId を受け取るように変更 ★★★
+  const renderFieldValue = (rawVal: any, fieldName: string, itemId: string) => {
     const files = extractFileUrls(rawVal);
     if (files.length > 0) {
-      const url = files[0].url;
-      const name = files[0].name;
-      if (isImageUrl(url)) {
-        return (
-          <img
-            src={url}
-            alt={name || '画像'}
-            className="w-24 h-24 object-cover rounded-xl border border-slate-200 shadow-sm"
-            loading="lazy"
-            onError={(e) => {
-              // 画像読み込みエラー時はファイル名を表示
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        );
-      }
-      // 画像URLでなければファイル名を表示
-      return <span className="text-sm font-medium text-indigo-600 underline cursor-pointer" onClick={() => window.open(url, '_blank')}>{name || url}</span>;
+      return (
+        <div className="flex gap-2 flex-wrap">
+          {files.map((f, idx) => {
+            const isInternal = f.type === 'file';
+            if (isImageUrl(f.url) || isInternal) {
+              return (
+                <NotionImage
+                  key={idx}
+                  initialUrl={f.url}
+                  pageId={isInternal ? itemId : undefined}
+                  fieldName={isInternal ? fieldName : undefined}
+                  name={f.name}
+                  isInternal={isInternal}
+                />
+              );
+            }
+            return (
+              <span
+                key={idx}
+                className="text-sm font-medium text-indigo-600 underline cursor-pointer"
+                onClick={() => window.open(f.url, '_blank')}
+              >
+                {f.name || 'ファイルを開く'}
+              </span>
+            );
+          })}
+        </div>
+      );
     }
 
     const strVal = formatRelationValue(rawVal);
@@ -487,6 +572,7 @@ export default function KpiWidget({
         </div>
       )}
 
+      {/* ★★★ 修正C: renderFieldValue の呼び出しで fieldName と item.id を渡す ★★★ */}
       {hoveredSection === 'added' && anchorRect && (
         <Popup
           anchorRect={anchorRect}
@@ -512,7 +598,7 @@ export default function KpiWidget({
                     {todayPopupFields.map(field => (
                       <div key={field} className="flex items-start gap-3">
                         <span className="text-sm font-medium text-slate-400 w-24 shrink-0 pt-0.5">{field}</span>
-                        {renderFieldValue(item[field])}
+                        {renderFieldValue(item[field], field, item.id)}
                       </div>
                     ))}
                   </div>
@@ -560,7 +646,7 @@ export default function KpiWidget({
                     {todayPopupFields.map(field => (
                       <div key={field} className="flex items-start gap-3">
                         <span className="text-sm font-medium text-slate-400 w-24 shrink-0 pt-0.5">{field}</span>
-                        {renderFieldValue(item[field])}
+                        {renderFieldValue(item[field], field, item.id)}
                       </div>
                     ))}
                   </div>

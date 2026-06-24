@@ -61,8 +61,18 @@ function extractNotionValue(prop: any): any {
       return prop.last_edited_by?.name || prop.last_edited_by?.person?.email || prop.last_edited_by?.id || '';
     case 'people':
       return prop.people?.map((p: any) => extractNotionValue(p)).filter(Boolean).join(', ') || '';
-    case 'files':
-      return prop.files?.map((f: any) => f.name || f.file?.url || f.external?.url).join(', ') || '';
+    case 'files': {
+      // ★★★ 修正A: 構造化されたオブジェクト配列をJSON文字列で返す ★★★
+      const fileItems = prop.files?.map((f: any) => ({
+        type: f.type,
+        name: f.name || '',
+        url: f.type === 'external' ? f.external?.url : f.file?.url,
+        expiryTime: f.file?.expiry_time || null,
+      })).filter((f: any) => f.url) || [];
+
+      if (fileItems.length === 0) return '';
+      return JSON.stringify(fileItems);
+    }
     case 'relation': {
       if (Array.isArray(prop.relation)) {
         return prop.relation.map((r: any) => extractNotionValue(r)).filter(Boolean).join(', ') || '';
