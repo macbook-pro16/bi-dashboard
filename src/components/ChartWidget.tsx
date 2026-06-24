@@ -7,7 +7,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LabelList,
   CartesianGrid, ReferenceLine
 } from 'recharts';
-import { Widget, DBItem } from '../types';
+import { Widget, DBItem, DataConfig } from '../types';
 
 interface ChartWidgetProps {
   widget: Widget;
@@ -197,7 +197,7 @@ export default function ChartWidget({
   widget, data, rawData, onBarClick, dateRange, dateFilterField, targetValue, rawDataLine
 }: ChartWidgetProps) {
   const { chartConfig, dataConfig, title, showTitle, textColor } = widget;
-  const dc = dataConfig || {};
+  const dc = (dataConfig || {}) as DataConfig;
 
   // 今日の日付（YYYY-MM-DD）
   const todayStr = formatLocalDate(new Date());
