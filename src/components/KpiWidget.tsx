@@ -44,7 +44,8 @@ interface KpiWidgetProps {
   onDiffFilter?: (ids: string[], label: string) => void;
 }
 
-// ★ Notion のファイルプロパティ構造に対応（新JSON文字列形式もパース）
+// ... すべてのヘルパー関数（extractFileUrls, formatRelationValue, isImageUrl, Popup, NotionImage）は前回同様です（省略なし）
+
 function extractFileUrls(val: any): { url: string; name: string; type?: string }[] {
   if (!val) return [];
 
@@ -372,23 +373,24 @@ export default function KpiWidget({
     mainStyle.backgroundColor = appliedBgColor;
   }
 
-  // ★ 独立した絶対座標（todayX/todayY を合算済み）
+  // ★ デフォルト座標を独立させる（増加/減少が互いに影響しない）
+  const baseY = valueY ?? 0;
+  const defaultAddedY = baseY;
+  const defaultRemovedY = baseY + 40; // 下に40pxの固定オフセット
+
   const addedPos = {
     x: (addedX ?? valueX ?? 0) + (todayX || 0),
-    y: (addedY ?? valueY ?? 0) + (todayY || 0),
+    y: (addedY ?? defaultAddedY) + (todayY || 0),
   };
   const removedPos = {
     x: (removedX ?? valueX ?? 0) + (todayX || 0),
-    y: (removedY ?? valueY ?? 0) + (todayY || 0),
+    y: (removedY ?? defaultRemovedY) + (todayY || 0),
   };
 
-  // ★ メイン数値の桁数（最低2桁を保証）
   const mainValueDigits = Math.max(2, String(Math.abs(Math.round(value))).length);
-  // ★ 今日の実績の桁数（最低2桁を保証）
   const addedDigits = Math.max(2, String(todayDiff?.added?.length ?? 0).length);
   const removedDigits = Math.max(2, String(todayDiff?.removed?.length ?? 0).length);
 
-  // ★★★ renderFieldValue を fieldName と itemId を受け取るように変更 ★★★
   const renderFieldValue = (rawVal: any, fieldName: string, itemId: string) => {
     const files = extractFileUrls(rawVal);
     if (files.length > 0) {
@@ -467,8 +469,8 @@ export default function KpiWidget({
         >
           <span
             style={{
-              fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
-              fontFeatureSettings: '"tnum"',
+              fontFamily: '"Roboto", sans-serif',
+    fontFeatureSettings: '"tnum"',
               display: 'inline-block',
               width: `${mainValueDigits}ch`,
               textAlign: 'center',
@@ -505,7 +507,7 @@ export default function KpiWidget({
         </div>
       )}
 
-      {/* ★ 増加バッジ（完全独立） */}
+      {/* 増加バッジ（独立） */}
       {showTodayValue && todayDiff && todayDiff.added.length > 0 && (
         <div
           ref={addedRef}
@@ -532,8 +534,8 @@ export default function KpiWidget({
               fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
               fontWeight: 900,
               lineHeight: 1,
-              fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
-              fontFeatureSettings: '"tnum"',
+              fontFamily: '"Roboto", sans-serif',
+    fontFeatureSettings: '"tnum"',
             }}
           >
             <span
@@ -549,7 +551,7 @@ export default function KpiWidget({
         </div>
       )}
 
-      {/* ★ 減少バッジ（完全独立） */}
+      {/* 減少バッジ（独立） */}
       {showTodayValue && todayDiff && todayDiff.removed.length > 0 && (
         <div
           ref={removedRef}
@@ -576,8 +578,8 @@ export default function KpiWidget({
               fontSize: todayFontSize ? `${todayFontSize}px` : `${Math.max(16, fontSize * 0.25)}px`,
               fontWeight: 900,
               lineHeight: 1,
-              fontFamily: '"Roboto Mono", "Courier New", "Courier", monospace',
-              fontFeatureSettings: '"tnum"',
+              fontFamily: '"Roboto", sans-serif',
+    fontFeatureSettings: '"tnum"',
             }}
           >
             <span
@@ -593,7 +595,6 @@ export default function KpiWidget({
         </div>
       )}
 
-      {/* ポップアップ */}
       {hoveredSection === 'added' && anchorRect && (
         <Popup
           anchorRect={anchorRect}

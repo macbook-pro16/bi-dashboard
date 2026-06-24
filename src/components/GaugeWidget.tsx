@@ -184,24 +184,24 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
         <div className="font-semibold text-slate-200 border-b border-slate-700 pb-1 mb-1">{label || '進捗詳細'}</div>
         <div className="flex justify-between">
           <span className="text-slate-400">達成率:</span>
-          <span className="font-bold text-indigo-400" style={{ fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>{percent.toFixed(1)}%</span>
+          <span className="font-bold text-indigo-400" style={{ fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>{percent.toFixed(1)}%</span>
         </div>
         <div className="flex justify-between border-t border-slate-700/60 pt-1 mt-0.5">
           <span className="text-slate-400">本日の目安({paceData.currentDay}/{paceData.daysInMonth}日):</span>
-          <span className="font-bold" style={{ fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>{Math.floor(paceData.expectedPace).toLocaleString()}{unit}</span>
+          <span className="font-bold" style={{ fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>{Math.floor(paceData.expectedPace).toLocaleString()}{unit}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-400">最終目標:</span>
-          <span className="font-bold" style={{ fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>{safeTarget.toLocaleString()}{unit}</span>
+          <span className="font-bold" style={{ fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>{safeTarget.toLocaleString()}{unit}</span>
         </div>
         <div className="flex justify-between border-t border-slate-700/60 pt-1 mt-0.5">
           <span className="text-slate-400">昨日までの実績:</span>
-          <span className="font-bold" style={{ fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>{valPrev.toLocaleString()}{unit}</span>
+          <span className="font-bold" style={{ fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>{valPrev.toLocaleString()}{unit}</span>
         </div>
         {valToday > 0 && (
           <div className="flex justify-between">
             <span className="text-slate-400">今日の実績:</span>
-            <span className="font-bold" style={{ color: colorDelta, fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
+            <span className="font-bold" style={{ color: colorDelta, fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>
               +{valToday.toLocaleString()}{unit}
             </span>
           </div>
@@ -272,7 +272,8 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
             style={{ 
               fontSize: `${percentFontSize}px`, color: textColor || activeColor,
               textShadow: isDarkMode ? '0 2px 10px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.05)',
-              fontFamily: '"Futura", "Trebuchet MS", sans-serif'
+              fontFamily: '"Roboto", sans-serif',
+              fontFeatureSettings: '"tnum"'
             }}
           >
             {animatedPercent.toFixed(1)}%
@@ -282,7 +283,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
         <div className="absolute top-[76%] w-full flex items-center justify-center gap-4 px-6 pointer-events-none">
           <div className="flex flex-col items-center flex-1 min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor, fontSize: `${effectiveLabelFontSize}px` }}>実績</div>
-            <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: textColor || (isDarkMode ? '#f8fafc' : '#1e293b'), fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
+            <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: textColor || (isDarkMode ? '#f8fafc' : '#1e293b'), fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>
               {Math.floor(animatedValue).toLocaleString()}
             </span>
           </div>
@@ -291,7 +292,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
 
           <div className="flex flex-col items-center flex-1 min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor, fontSize: `${effectiveLabelFontSize}px` }}>目標</div>
-            <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: textColor || (isDarkMode ? '#cbd5e1' : '#475569'), fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
+            <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: textColor || (isDarkMode ? '#cbd5e1' : '#475569'), fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>
               {safeTarget.toLocaleString()}
             </span>
           </div>
@@ -301,7 +302,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
               <div className="w-px h-6 shrink-0" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
               <div className="flex flex-col items-center flex-1 min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: baseLabelColor, fontSize: `${effectiveLabelFontSize}px` }}>今日</div>
-                <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: colorDelta, fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
+                <span className="font-bold leading-none truncate" style={{ fontSize: `${effectiveValueFontSize}px`, color: colorDelta, fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>
                   +{valToday.toLocaleString()}
                 </span>
               </div>
