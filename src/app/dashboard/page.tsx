@@ -3773,7 +3773,7 @@ function DashboardInner() {
                   <DndContext id="layer-dnd" sensors={layerSensors} collisionDetection={closestCenter} onDragEnd={handleLayerSortEnd}>
                     <SortableContext items={layout.map(w=>w.id)} strategy={verticalListSortingStrategy}>
                       {[...layout].reverse().map(w=>
-                        <LayerRow key={w.id} widget={w} isSelected={selectedIds.includes(w.id)} onSelect={id=>{setSelectedIds([id]); setSelectedAnnotationIds([]);}} onToggleVisible={id=>editWidgets(layout.map(x=>x.id===id?{...x,hidden:!x.hidden}:x))} onToggleLock={id=>editWidgets(layout.map(x=>x.id===id?{...x,locked:!x.locked}:x))} onRename={(id,val)=>editWidgets(layout.map(x=>x.id===id?{...x,title:val}:x))} onContextMenu={(id,x,y)=>setCtxMenu({id,x,y})}/>
+                        <LayerRow key={w.id} widget={w} isSelected={selectedIds.includes(w.id)} onSelect={id=>{setSelectedIds([id]); setSelectedAnnotationIds([]);}} onToggleVisible={id=>editWidgets(layout.map(x=>x.id===id?{...x,hidden:!x.hidden}:x))} onToggleLock={id=>editWidgets(layout.map(x=>x.id===id?{...x,locked:!x.locked}:x))} onRename={(id,val)=>editWidgets(layout.map(x=>x.id===id?{...x,title:val}:x))} onContextMenu={mode === 'edit' ? (id,x,y)=>setCtxMenu({id,x,y}) : undefined}/>
                       )}
                     </SortableContext>
                   </DndContext>
@@ -5601,7 +5601,7 @@ function DashboardInner() {
         </div>
       )}
 
-      {ctxMenu && (
+      {mode === 'edit' && ctxMenu && (
         <div className="fixed bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl py-2 z-[300] min-w-[200px]" style={{left:ctxMenu.x,top:ctxMenu.y}} onPointerDown={e=>e.stopPropagation()}>
           {[
             {label:'✏️ タイトル名を変更',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setTitleEditWidgetId(ctxMenu.id); setTitleEditValue(w.title); } }},
