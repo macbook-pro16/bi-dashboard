@@ -1206,7 +1206,6 @@ const CanvasWidget = React.memo(function CanvasWidget({
   onClickFlowNode?:(status:string)=>void, onRename?:(id:string,title:string)=>void,
   onContextMenu?:(id:string,x:number,y:number)=>void,
   onDoubleClick?:(id:string)=>void,
-  computedValue?:number, onDoubleClick?:(id:string)=>void,
   computedValue?:number, children?:React.ReactNode, isSignageMode?:boolean,
   selectedCount: number
 }) {
@@ -1404,7 +1403,7 @@ const CanvasWidget = React.memo(function CanvasWidget({
 
 function LayerRow({ widget, isSelected, onSelect, onToggleVisible, onToggleLock, onRename, onContextMenu }:{
   widget:Widget; isSelected:boolean; onSelect:(id:string)=>void; onToggleVisible:(id:string)=>void;
-  onToggleLock:(id:string)=>void; onRename:(id:string,val:string)=>void; onContextMenu:(id:string,x:number,y:number)=>void;
+  onToggleLock:(id:string)=>void; onRename:(id:string,val:string)=>void; onContextMenu?:(id:string,x:number,y:number)=>void;
 }){
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: widget.id });
   const [isEditing,setIsEditing]=useState(false); const [title,setTitle]=useState(widget.title);
@@ -1412,7 +1411,7 @@ function LayerRow({ widget, isSelected, onSelect, onToggleVisible, onToggleLock,
   const style={ transform:CSS.Transform.toString(transform), transition };
   return (
     <div ref={setNodeRef} style={style} className={`group flex items-center px-3 py-2.5 gap-3 text-sm font-medium cursor-pointer rounded-lg transition-colors ${isSelected?'bg-indigo-50/50 text-indigo-700':'text-slate-600 hover:bg-slate-50'}`}
-      onClick={()=>onSelect(widget.id)} onContextMenu={e=>{e.preventDefault();onContextMenu(widget.id,e.clientX,e.clientY);}}>
+      onClick={()=>onSelect(widget.id)} onContextMenu={e=>{e.preventDefault(); if (onContextMenu) onContextMenu(widget.id, e.clientX, e.clientY);}}>
       <div {...attributes} {...listeners} className="cursor-grab text-slate-400 hover:text-slate-600">
         <svg width="12" height="12" style={{ width: '12px', height: '12px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
       </div>
