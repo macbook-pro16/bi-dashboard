@@ -1811,7 +1811,7 @@ function DashboardInner() {
 
   const handleWidgetDoubleClick = useCallback((id:string)=>{ if(mode==='edit'){ setSelectedIds([id]); setRightTab('properties'); } },[mode]);
 
-  const handleGroup = useCallback(()=>{ if(mode!=='edit'||selectedIds.length<2)return; const sels=layout.filter(w=>selectedIds.includes(w.id)); const minX=Math.min(...sels.map(w=>w.x)),minY=Math.min(...sels.map(w=>w.y)),maxX=Math.max(...sels.map(w=>w.x+w.w)),maxY=Math.max(...sels.map(w=>w.y+w.h)); const children=sels.map(w=>({...w,x:w.x-minX,y:w.y-minY})); const g:Widget={ id:`group_${Date.now()}`,type:'group',title:'新規グループ',x:minX,y:minY,w:maxX-minX,h:maxY-minY,children,shape:'none',bgColor:'transparent',textColor:'#0f172a',borderColor:'#e2e8f0',borderWidth:0,fontSize:48,textAlign:'center',fontFamily:'sans',hasShadow:false,hidden:false,locked:false,showTitle:true,bgAlpha:1, hideChildrenBorders: false }; editWidgets([...layout.filter(w=>!selectedIds.includes(w.id)),g]); setSelectedIds([g.id]);setRightTab('layers'); },[selectedIds,layout,editWidgets,mode]);
+  const handleGroup = useCallback(()=>{ if(mode!=='edit'||selectedIds.length<2)return; const sels=layout.filter(w=>selectedIds.includes(w.id)); const minX=Math.min(...sels.map(w=>w.x)),minY=Math.min(...sels.map(w=>w.y)),maxX=Math.max(...sels.map(w=>w.x+w.w)),maxY=Math.max(...sels.map(w=>w.y+w.h)); const children=sels.map(w=>({...w,x:w.x-minX,y:w.y-minY})); const g:Widget={ id:`group_${Date.now()}`,type:'group',title:'新規グループ',x:minX,y:minY,w:maxX-minX,h:maxY-minY,children,shape:'rectangle',bgColor:'transparent',textColor:'#0f172a',borderColor:'#e2e8f0',borderWidth:0,fontSize:48,textAlign:'center',fontFamily:'sans',hasShadow:false,hidden:false,locked:false,showTitle:true,bgAlpha:1, hideChildrenBorders: false }; editWidgets([...layout.filter(w=>!selectedIds.includes(w.id)),g]); setSelectedIds([g.id]);setRightTab('layers'); },[selectedIds,layout,editWidgets,mode]);
   const handleUngroup = useCallback(()=>{ if(mode!=='edit')return; const nl=[...layout];const ta:Widget[]=[],tr:string[]=[]; layout.forEach(w=>{if(selectedIds.includes(w.id)&&w.type==='group'&&w.children){w.children.forEach(c=>ta.push({...c,x:c.x+w.x,y:c.y+w.y}));tr.push(w.id);}}); if(!tr.length)return; editWidgets([...nl.filter(w=>!tr.includes(w.id)),...ta]); setSelectedIds(ta.map(a=>a.id)); },[selectedIds,layout,editWidgets,mode]);
 
   const handleConvertToSlideshow = useCallback(()=>{ 
@@ -1820,7 +1820,7 @@ function DashboardInner() {
     const minX=Math.min(...sels.map(w=>w.x)),minY=Math.min(...sels.map(w=>w.y)),maxX=Math.max(...sels.map(w=>w.x+w.w)),maxY=Math.max(...sels.map(w=>w.y+w.h)); 
     const children=sels.map(w=>({...w,x:w.x-minX,y:w.y-minY})); 
     const ss:Widget={ 
-      id:`slideshow_${Date.now()}`,type:'slideshow',title:'スライドショー',x:minX,y:minY,w:maxX-minX,h:maxY-minY,children,shape:'none',bgColor:'transparent',textColor:'#0f172a',borderColor:'#e2e8f0',borderWidth:0,fontSize:48,textAlign:'center',fontFamily:'sans',hasShadow:false,hidden:false,locked:false,showTitle:true,bgAlpha:1,
+      id:`slideshow_${Date.now()}`,type:'slideshow',title:'スライドショー',x:minX,y:minY,w:maxX-minX,h:maxY-minY,children,shape:'rectangle',bgColor:'transparent',textColor:'#0f172a',borderColor:'#e2e8f0',borderWidth:0,fontSize:48,textAlign:'center',fontFamily:'sans',hasShadow:false,hidden:false,locked:false,showTitle:true,bgAlpha:1,
       dataConfig: defaultDataConfig('slideshow') 
     }; 
     editWidgets([...layout.filter(w=>!selectedIds.includes(w.id)),ss]); 
