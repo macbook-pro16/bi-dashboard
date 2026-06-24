@@ -4,11 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  connection_limit  = 5
-  pool_timeout      = 10
-  idle_timeout      = 60   // 1分間アイドルが続いたら接続を閉じる（タイムアウト回避に有効）
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Dashboard {
