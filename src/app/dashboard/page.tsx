@@ -1653,6 +1653,8 @@ function DashboardInner() {
   const { addToast } = useToast();
   const { colors } = useTheme();
 
+  const [excludeInput, setExcludeInput] = useState('');
+
   const [cacheStore, setCacheStore] = useState<CacheStore>({});
   const [loadingAll, setLoadingAll] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: DATABASE_CONFIG.length });
@@ -3362,8 +3364,6 @@ function DashboardInner() {
       </div>
     );
   };
-
-  const [excludeInput, setExcludeInput] = useState('');
 
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden text-slate-900 selection:bg-indigo-500/30">
