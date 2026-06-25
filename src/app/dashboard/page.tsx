@@ -887,7 +887,6 @@ function renderWidgetContent(
         />
       );
     }
-      );
     }
     case 'group':
       if (w.children && w.children.length > 0) {
