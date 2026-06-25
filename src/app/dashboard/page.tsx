@@ -868,7 +868,7 @@ function renderWidgetContent(
       const actual = calcSum(compDc.compareActualItems);
       const target = calcSum(compDc.compareTargetItems);
       
-      return (
+            return (
         <ComparisonWidget
           label={w.title}
           showTitle={w.showTitle !== false}
@@ -886,7 +886,6 @@ function renderWidgetContent(
           targetLabel={compDc.compareTargetLabel || '目標'}
         />
       );
-    }
     }
     case 'group':
       if (w.children && w.children.length > 0) {
