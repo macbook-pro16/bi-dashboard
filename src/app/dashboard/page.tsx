@@ -855,20 +855,20 @@ function renderWidgetContent(
         </div>
       );
     }
-                case 'comparison': {
+                    case 'comparison': {
       const compDc = w.dataConfig || ({} as DataConfig);
       
-      // 計算ヘルパー
+      // ★ 全ページの値を参照するため allWidgetValues を使用
       const calcSum = (items: { widgetId: string; operator: 'plus' | 'minus' }[] | undefined) =>
         (items || []).reduce((sum, item) => {
-          const val = computedValues[item.widgetId] ?? 0;
+          const val = allWidgetValues[item.widgetId] ?? 0;
           return item.operator === 'minus' ? sum - val : sum + val;
         }, 0);
       
       const actual = calcSum(compDc.compareActualItems);
       const target = calcSum(compDc.compareTargetItems);
       
-            return (
+      return (
         <ComparisonWidget
           label={w.title}
           showTitle={w.showTitle !== false}
@@ -2230,9 +2230,13 @@ function DashboardInner() {
     return map;
   }, [layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, extractStringValue]);
 
-  const computedValues = useMemo(()=>{
-    const map:Record<string,number>={};
-    layout.forEach(w=>{
+  computedValues の計算ロジックをコピーして、layout を全ページのものに置き換えます）
+
+tsx
+const allWidgetValues = useMemo(() => {
+  const map: Record<string, number> = {};
+  dashboards.forEach(page => {
+    (page.layout ?? []).forEach(w => {
       const dc = w.dataConfig as DataConfig | undefined;
       if (!dc) return;
       const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
@@ -2256,15 +2260,15 @@ function DashboardInner() {
         }
 
         const crossFiltered = applyGlobalNonDateFilters(baseData);
-        
+
         const conditions = dc.filterConditions || [];
         const logic = dc.conditionLogic || 'and';
-        
+
         const filteredByConditions = crossFiltered.filter(item => {
           const passCross = evaluateConditions(item, conditions, logic);
           const passIndicator = (() => {
             if (!dc.field) return true;
-            const val = extractStringValue(item[dc.field]);
+            const val = extractStringValue(item[dc.field!]);
             if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
             if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
             if (!dc.filterValue) return true;
@@ -2276,8 +2280,8 @@ function DashboardInner() {
         if (dc.field) {
           const agg = dc.aggregation ?? (w.type === 'gauge' ? 'sum' : undefined);
           const values = filteredByConditions.map(item => Number(item[dc.field!]) || 0).filter(v => v !== 0);
-          if (agg === 'sum') val = values.reduce((a,b)=>a+b,0);
-          else if (agg === 'avg') val = values.length ? values.reduce((a,b)=>a+b,0) / values.length : 0;
+          if (agg === 'sum') val = values.reduce((a, b) => a + b, 0);
+          else if (agg === 'avg') val = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
           else if (agg === 'max') val = Math.max(...values, 0);
           else if (agg === 'min') val = Math.min(...values, 0);
           else val = filteredByConditions.length;
@@ -2291,14 +2295,14 @@ function DashboardInner() {
           dateFilter === 'today' ? allSrc.filter(d => d[dateField] === todayStr) :
                                    allSrc;
         const crossFiltered = applyGlobalNonDateFilters(baseData);
-        
+
         const conditions = dc.filterConditions || [];
         const logic = dc.conditionLogic || 'and';
         const filteredByConditions = crossFiltered.filter(item => {
           const passCross = evaluateConditions(item, conditions, logic);
           const passIndicator = (() => {
             if (!dc.field) return true;
-            const val = extractStringValue(item[dc.field]);
+            const val = extractStringValue(item[dc.field!]);
             if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
             if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
             if (!dc.filterValue) return true;
@@ -2325,8 +2329,9 @@ function DashboardInner() {
       }
       if (val !== undefined) map[w.id] = Math.round(val);
     });
-    return map;
-  },[layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, applyGlobalNonDateFilters, extractStringValue]);
+  });
+  return map;
+}, [dashboards, cacheStore, filters, todayStr, evaluateConditions, applyGlobalNonDateFilters, extractStringValue]);
 
   const comparisonValues = useMemo(() => {
     const map: Record<string, { sum: number; target: number }> = {};
@@ -4171,8 +4176,8 @@ function DashboardInner() {
                                 {activeEditorWidget.type === 'comparison' && (
   <div className="space-y-4 pt-4 border-t border-slate-100">
     <label className="text-xs font-bold text-slate-700">🔗 比較設定</label>
-    
-    {/* 実績ラベル */}
+
+    {/* ────────── 実績 ────────── */}
     <div>
       <label className="text-xs font-medium text-slate-500 mb-1 block">実績ラベル</label>
       <input
@@ -4183,60 +4188,91 @@ function DashboardInner() {
       />
     </div>
 
-    {/* 実績値の計算要素（最大20） */}
     <div>
       <div className="flex items-center justify-between mb-1">
         <label className="text-xs font-medium text-slate-500">実績の計算要素</label>
-        <span className="text-[10px] text-slate-400">{(activeEditorWidget.dataConfig?.compareActualItems || []).length}/20</span>
+        <span className="text-[10px] text-slate-400">
+          {(activeEditorWidget.dataConfig?.compareActualItems || []).length}/20
+        </span>
       </div>
+
+      {/* 実績合計のプレビュー */}
+      <div className="text-[11px] font-bold text-indigo-600 mb-1">
+        実績合計: {(() => {
+          const items = activeEditorWidget.dataConfig?.compareActualItems || [];
+          return items.reduce((sum, it) => {
+            const val = allWidgetValues[it.widgetId] ?? 0;
+            return it.operator === 'minus' ? sum - val : sum + val;
+          }, 0).toLocaleString();
+        })()}
+      </div>
+
       <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
         {(activeEditorWidget.dataConfig?.compareActualItems || []).map((item, idx) => (
-          <div key={idx} className="flex items-center gap-1">
-            <select
-              value={item.operator}
-              onChange={e => {
-                const newItems = [...(activeEditorWidget.dataConfig?.compareActualItems || [])];
-                newItems[idx] = { ...newItems[idx], operator: e.target.value as 'plus' | 'minus' };
-                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems });
-              }}
-              className="w-12 text-xs border border-slate-200 rounded px-1 py-1.5 bg-white outline-none shrink-0"
-            >
-              <option value="plus">＋</option>
-              <option value="minus">－</option>
-            </select>
-            <SelectWithSearch
-              options={(() => {
-                const allWidgets = dashboards.flatMap(page => page.layout);
-                return allWidgets
-                  .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
-                  .map(w => `${w.title || w.type} (${w.id})`);
-              })()}
-              value={(() => {
-                const wid = item.widgetId;
-                if (!wid) return '';
-                const allWidgets = dashboards.flatMap(page => page.layout);
-                const w = allWidgets.find(w => w.id === wid);
-                return w ? `${w.title || w.type} (${wid})` : wid;
-              })()}
-              onChange={v => {
-                const match = v.match(/\(([^)]+)\)$/);
-                const newId = match ? match[1] : v;
-                const newItems = [...(activeEditorWidget.dataConfig?.compareActualItems || [])];
-                newItems[idx] = { ...newItems[idx], widgetId: newId };
-                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems });
-              }}
-              placeholder="ウィジェットを選択"
-            />
-            <button
-              onClick={() => {
-                const newItems = (activeEditorWidget.dataConfig?.compareActualItems || []).filter((_, i) => i !== idx);
-                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems.length > 0 ? newItems : undefined });
-              }}
-              className="text-slate-400 hover:text-rose-500 p-1 shrink-0"
-            >✕</button>
+          <div key={idx}>
+            <div className="flex items-center gap-1">
+              {/* 演算子選択 */}
+              <select
+                value={item.operator}
+                onChange={e => {
+                  const newItems = [...(activeEditorWidget.dataConfig?.compareActualItems || [])];
+                  newItems[idx] = { ...newItems[idx], operator: e.target.value as 'plus' | 'minus' };
+                  updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems });
+                }}
+                className="w-12 text-xs border border-slate-200 rounded px-1 py-1.5 bg-white outline-none shrink-0"
+              >
+                <option value="plus">＋</option>
+                <option value="minus">－</option>
+              </select>
+
+              {/* ウィジェット選択（ドロップダウン） */}
+              <SelectWithSearch
+                options={(() => {
+                  const allWidgets = dashboards.flatMap(page => page.layout);
+                  return allWidgets
+                    .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
+                    .map(w => `${w.title || w.type} (${w.id})`);
+                })()}
+                value={(() => {
+                  const wid = item.widgetId;
+                  if (!wid) return '';
+                  const allWidgets = dashboards.flatMap(page => page.layout);
+                  const w = allWidgets.find(w => w.id === wid);
+                  return w ? `${w.title || w.type} (${wid})` : wid;
+                })()}
+                onChange={v => {
+                  const match = v.match(/\(([^)]+)\)$/);
+                  const newId = match ? match[1] : v;
+                  const newItems = [...(activeEditorWidget.dataConfig?.compareActualItems || [])];
+                  newItems[idx] = { ...newItems[idx], widgetId: newId };
+                  updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems });
+                }}
+                placeholder="ウィジェットを選択"
+              />
+
+              {/* 削除ボタン */}
+              <button
+                onClick={() => {
+                  const newItems = (activeEditorWidget.dataConfig?.compareActualItems || []).filter((_, i) => i !== idx);
+                  updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems.length > 0 ? newItems : undefined });
+                }}
+                className="text-slate-400 hover:text-rose-500 p-1 shrink-0"
+              >✕</button>
+            </div>
+
+            {/* 個別ウィジェットの現在値プレビュー */}
+            <div className="text-[9px] text-slate-400 ml-14">
+              {item.widgetId
+                ? (allWidgetValues[item.widgetId] !== undefined
+                    ? `値: ${allWidgetValues[item.widgetId].toLocaleString()}`
+                    : '値なし')
+                : ''}
+            </div>
           </div>
         ))}
       </div>
+
+      {/* 項目追加ボタン */}
       {(activeEditorWidget.dataConfig?.compareActualItems || []).length < 20 && (
         <button
           onClick={() => {
@@ -4253,7 +4289,7 @@ function DashboardInner() {
     {/* 区切り線 */}
     <div className="border-t border-slate-100" />
 
-    {/* 目標ラベル */}
+    {/* ────────── 目標 ────────── */}
     <div>
       <label className="text-xs font-medium text-slate-500 mb-1 block">目標ラベル</label>
       <input
@@ -4264,60 +4300,87 @@ function DashboardInner() {
       />
     </div>
 
-    {/* 目標値の計算要素（最大20） */}
     <div>
       <div className="flex items-center justify-between mb-1">
         <label className="text-xs font-medium text-slate-500">目標の計算要素</label>
-        <span className="text-[10px] text-slate-400">{(activeEditorWidget.dataConfig?.compareTargetItems || []).length}/20</span>
+        <span className="text-[10px] text-slate-400">
+          {(activeEditorWidget.dataConfig?.compareTargetItems || []).length}/20
+        </span>
       </div>
+
+      {/* 目標合計のプレビュー */}
+      <div className="text-[11px] font-bold text-indigo-600 mb-1">
+        目標合計: {(() => {
+          const items = activeEditorWidget.dataConfig?.compareTargetItems || [];
+          return items.reduce((sum, it) => {
+            const val = allWidgetValues[it.widgetId] ?? 0;
+            return it.operator === 'minus' ? sum - val : sum + val;
+          }, 0).toLocaleString();
+        })()}
+      </div>
+
       <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
         {(activeEditorWidget.dataConfig?.compareTargetItems || []).map((item, idx) => (
-          <div key={idx} className="flex items-center gap-1">
-            <select
-              value={item.operator}
-              onChange={e => {
-                const newItems = [...(activeEditorWidget.dataConfig?.compareTargetItems || [])];
-                newItems[idx] = { ...newItems[idx], operator: e.target.value as 'plus' | 'minus' };
-                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems });
-              }}
-              className="w-12 text-xs border border-slate-200 rounded px-1 py-1.5 bg-white outline-none shrink-0"
-            >
-              <option value="plus">＋</option>
-              <option value="minus">－</option>
-            </select>
-            <SelectWithSearch
-              options={(() => {
-                const allWidgets = dashboards.flatMap(page => page.layout);
-                return allWidgets
-                  .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
-                  .map(w => `${w.title || w.type} (${w.id})`);
-              })()}
-              value={(() => {
-                const wid = item.widgetId;
-                if (!wid) return '';
-                const allWidgets = dashboards.flatMap(page => page.layout);
-                const w = allWidgets.find(w => w.id === wid);
-                return w ? `${w.title || w.type} (${wid})` : wid;
-              })()}
-              onChange={v => {
-                const match = v.match(/\(([^)]+)\)$/);
-                const newId = match ? match[1] : v;
-                const newItems = [...(activeEditorWidget.dataConfig?.compareTargetItems || [])];
-                newItems[idx] = { ...newItems[idx], widgetId: newId };
-                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems });
-              }}
-              placeholder="ウィジェットを選択"
-            />
-            <button
-              onClick={() => {
-                const newItems = (activeEditorWidget.dataConfig?.compareTargetItems || []).filter((_, i) => i !== idx);
-                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems.length > 0 ? newItems : undefined });
-              }}
-              className="text-slate-400 hover:text-rose-500 p-1 shrink-0"
-            >✕</button>
+          <div key={idx}>
+            <div className="flex items-center gap-1">
+              <select
+                value={item.operator}
+                onChange={e => {
+                  const newItems = [...(activeEditorWidget.dataConfig?.compareTargetItems || [])];
+                  newItems[idx] = { ...newItems[idx], operator: e.target.value as 'plus' | 'minus' };
+                  updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems });
+                }}
+                className="w-12 text-xs border border-slate-200 rounded px-1 py-1.5 bg-white outline-none shrink-0"
+              >
+                <option value="plus">＋</option>
+                <option value="minus">－</option>
+              </select>
+
+              <SelectWithSearch
+                options={(() => {
+                  const allWidgets = dashboards.flatMap(page => page.layout);
+                  return allWidgets
+                    .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
+                    .map(w => `${w.title || w.type} (${w.id})`);
+                })()}
+                value={(() => {
+                  const wid = item.widgetId;
+                  if (!wid) return '';
+                  const allWidgets = dashboards.flatMap(page => page.layout);
+                  const w = allWidgets.find(w => w.id === wid);
+                  return w ? `${w.title || w.type} (${wid})` : wid;
+                })()}
+                onChange={v => {
+                  const match = v.match(/\(([^)]+)\)$/);
+                  const newId = match ? match[1] : v;
+                  const newItems = [...(activeEditorWidget.dataConfig?.compareTargetItems || [])];
+                  newItems[idx] = { ...newItems[idx], widgetId: newId };
+                  updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems });
+                }}
+                placeholder="ウィジェットを選択"
+              />
+
+              <button
+                onClick={() => {
+                  const newItems = (activeEditorWidget.dataConfig?.compareTargetItems || []).filter((_, i) => i !== idx);
+                  updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems.length > 0 ? newItems : undefined });
+                }}
+                className="text-slate-400 hover:text-rose-500 p-1 shrink-0"
+              >✕</button>
+            </div>
+
+            {/* 個別ウィジェットの現在値プレビュー */}
+            <div className="text-[9px] text-slate-400 ml-14">
+              {item.widgetId
+                ? (allWidgetValues[item.widgetId] !== undefined
+                    ? `値: ${allWidgetValues[item.widgetId].toLocaleString()}`
+                    : '値なし')
+                : ''}
+            </div>
           </div>
         ))}
       </div>
+
       {(activeEditorWidget.dataConfig?.compareTargetItems || []).length < 20 && (
         <button
           onClick={() => {
