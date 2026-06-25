@@ -855,24 +855,26 @@ function renderWidgetContent(
         </div>
       );
     }
-        case 'comparison': {
+            case 'comparison': {
       const compDc = w.dataConfig || ({} as DataConfig);
       
-      // 実績値の計算（数式 or 合計）
+      // 安全な式評価（+ / - のみ対応）
+      const evaluate = (expr: string, vals: Record<string, number>): number => {
+        const tokens = expr.match(/([a-zA-Z_][a-zA-Z0-9_]*)|[+\-]|\d+/g);
+        if (!tokens) return 0;
+        let res = 0, op = '+';
+        for (const t of tokens) {
+          if (t === '+' || t === '-') { op = t; continue; }
+          const v = vals[t] !== undefined ? vals[t] : (Number(t) || 0);
+          res = op === '+' ? res + v : res - v;
+        }
+        return res;
+      };
+      
       let actual = 0;
       if (compDc.compareExpression) {
-        // 式を評価: 例 "w_123 + w_456 - w_789"
-        try {
-          const expr = compDc.compareExpression.replace(/([a-zA-Z_][a-zA-Z0-9_]*)/g, (match) => {
-            const val = computedValues[match];
-            return val !== undefined ? String(val) : '0';
-          });
-          actual = eval(expr);  // 簡単のためeval使用（本番では注意）
-        } catch {
-          actual = 0;
-        }
+        actual = evaluate(compDc.compareExpression, computedValues);
       } else {
-        // 従来の合計
         const ids = compDc.compareWidgetIds || [];
         actual = ids.reduce((acc, wid) => acc + (computedValues[wid] ?? 0), 0);
       }
@@ -3992,7 +3994,6 @@ function DashboardInner() {
                       <div className="text-2xl font-bold text-slate-800">{computedValues[activeEditorWidget.id].toLocaleString()}</div>
                       <div className="text-sm font-medium text-slate-500">{activeEditorWidget.title}</div>
                       <div className="text-[10px] font-mono text-slate-400 mt-1">ID: {activeEditorWidget.id}</div>
-<div className="text-[10px] font-mono text-slate-400 mt-1">ID: {activeEditorWidget.id}</div>
                     </div>
                   )}
                   {isMultiSelected ? (
@@ -4313,7 +4314,35 @@ function DashboardInner() {
           placeholder="ウィジェットを選択"
         />
       </div>
-    )}
+    )}    {/* 利用可能なウィジェット一覧 */}
+    <div className="pt-2 border-t border-slate-100">
+      <label className="text-xs font-medium text-slate-500 mb-1 block">📋 利用可能なウィジェットID</label>
+      <div className="max-h-32 overflow-y-auto border border-slate-200 rounded-lg bg-white p-2 text-[10px] space-y-0.5">
+        {(() => {
+          const allWidgets = dashboards.flatMap(page => page.layout);
+          return allWidgets
+            .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
+            .map(w => (
+              <div key={w.id} className="flex justify-between items-center">
+                <span className="text-slate-600 truncate">{w.title || w.type}</span>
+                <span
+                  className="text-indigo-600 font-mono cursor-pointer hover:underline"
+                  onClick={() => {
+                    const currentExpr = activeEditorWidget.dataConfig?.compareExpression || '';
+                    const newExpr = currentExpr ? `${currentExpr} + ${w.id}` : w.id;
+                    updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareExpression: newExpr });
+                  }}
+                >
+                  {w.id}
+                </span>
+              </div>
+            ));
+        })()}
+        {dashboards.flatMap(page => page.layout).filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type)).length === 0 && (
+          <p className="text-slate-400">対象のウィジェットがありません</p>
+        )}
+      </div>
+    </div>
   </div>
 )}
                                 
