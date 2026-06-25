@@ -7,7 +7,8 @@ export type WidgetType =
   | 'gauge'
   | 'text-block'
   | 'outline'
-  | 'slideshow';
+  | 'slideshow'
+  | 'comparison';
 
 export type ShapeType =
   | 'rectangle' | 'rounded' | 'pill' | 'circle'
@@ -122,6 +123,11 @@ export interface DataConfig {
   comboLineDateField?: string;
 
   todayPopupFields?: string[];
+
+  compareWidgetIds?: string[];      // 合計するスコアカードのIDリスト
+  compareTargetType?: 'fixed' | 'widget'; // 比較対象：固定値 or 別ウィジェット
+  compareTarget?: number;           // 固定目標値
+  compareTargetWidgetId?: string;   // 目標値として参照するウィジェットID
 }
 
 export interface OutlineConfig {

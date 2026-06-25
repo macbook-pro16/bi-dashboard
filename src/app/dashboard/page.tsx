@@ -32,6 +32,7 @@ import DrilldownModal from '../../components/DrilldownModal';
 import GaugeWidget from '../../components/GaugeWidget';
 import TextBlockWidget from '../../components/TextBlockWidget';
 import OutlineWidget from '../../components/OutlineWidget';
+import ComparisonWidget from '../../components/ComparisonWidget';
 import {
   Widget, WidgetType, ShapeType, DBItem, CacheStore,
   GuideLine, DistanceLabel, WidgetComment, AlertRule, DashboardPage, DataConfig, Annotation
@@ -184,6 +185,10 @@ function defaultDataConfig(type: WidgetType): DataConfig {
     base.dateFilter = 'none';
     base.slideshowInterval = 5000;
     base.slideshowAuto = true;
+  } else if (type === 'comparison') {
+    base.compareWidgetIds = [];
+    base.compareTargetType = 'fixed';
+    base.compareTarget = 0;
   }
   return base;
 }
@@ -848,6 +853,27 @@ function renderWidgetContent(
             dateRange={dateRange}
           />
         </div>
+      );
+    }
+    case 'comparison': {
+      const comp = comparisonValues[w.id];
+      if (!comp) return null;
+      return (
+        <ComparisonWidget
+          label={w.title}
+          showTitle={w.showTitle !== false}
+          titleColor={dc.titleColor}
+          titleFontSize={dc.titleFontSize}
+          titleX={dc.titleX || 0}
+          titleY={dc.titleY || 0}
+          fontSize={w.fontSize}
+          textColor={w.textColor}
+          bgColor={w.bgColor}
+          bgAlpha={w.bgAlpha ?? 1}
+          sum={comp.sum}
+          target={comp.target}
+          targetLabel={dc.compareTargetType === 'widget' ? '参照値' : '目標'}
+        />
       );
     }
     case 'group':
@@ -1653,8 +1679,6 @@ function DashboardInner() {
   const { addToast } = useToast();
   const { colors } = useTheme();
 
-  const [excludeInput, setExcludeInput] = useState('');
-
   const [cacheStore, setCacheStore] = useState<CacheStore>({});
   const [loadingAll, setLoadingAll] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: DATABASE_CONFIG.length });
@@ -1715,6 +1739,8 @@ function DashboardInner() {
   useEffect(() => {
     localStorage.setItem('bi-signage-interval', String(signageInterval));
   }, [signageInterval]);
+
+  const [excludeInput, setExcludeInput] = useState('');
 
   const [state, dispatch] = useReducer(dashboardReducer, {
     dashboards: [DEFAULT_PAGE],
@@ -2291,6 +2317,24 @@ function DashboardInner() {
     return map;
   },[layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, applyGlobalNonDateFilters, extractStringValue]);
 
+  const comparisonValues = useMemo(() => {
+    const map: Record<string, { sum: number; target: number }> = {};
+    layout.forEach(w => {
+      if (w.type !== 'comparison') return;
+      const dc = w.dataConfig;
+      if (!dc?.compareWidgetIds?.length) return;
+      const sum = dc.compareWidgetIds.reduce((acc, wid) => acc + (computedValues[wid] ?? 0), 0);
+      let target = 0;
+      if (dc.compareTargetType === 'fixed') {
+        target = dc.compareTarget ?? 0;
+      } else if (dc.compareTargetType === 'widget' && dc.compareTargetWidgetId) {
+        target = computedValues[dc.compareTargetWidgetId] ?? 0;
+      }
+      map[w.id] = { sum, target };
+    });
+    return map;
+  }, [layout, computedValues]);
+
   const computedTargetValues = useMemo(()=>{
     const map:Record<string,number>={};
     layout.forEach(w=>{
@@ -2746,6 +2790,8 @@ function DashboardInner() {
       nw = 300; nh = 200; fontSize = 14;
     } else if (type === 'slideshow') {
       nw = 600; nh = 400; fontSize = 16;
+    } else if (type === 'comparison') {
+      nw = 400; nh = 200; fontSize = 36;
     } else if (shape === 'circle') {
       nw = 400; nh = 400; fontSize = 96;
     } else {
@@ -2754,13 +2800,13 @@ function DashboardInner() {
     const cx = Math.max(0, Math.min(viewCenterX - nw / 2, ARTBOARD_WIDTH - nw));
     const cy = Math.max(0, Math.min(viewCenterY - nh / 2, ARTBOARD_HEIGHT - nh));
     const nwgt:Widget={
-      id:nid, type, title:type==='table-details'?'明細表':(type==='text-block'?'テキストブロック':(type==='outline'?'枠線':(type==='slideshow'?'スライドショー':(type==='chart'?'グラフ':'新規データ')))),
+      id:nid, type, title:type==='table-details'?'明細表':(type==='text-block'?'テキストブロック':(type==='outline'?'枠線':(type==='slideshow'?'スライドショー':(type==='chart'?'グラフ':(type==='comparison'?'比較':'新規データ'))))),
       x:cx, y:cy, w:nw, h:nh,
       shape:type==='table-details'?'rectangle':shape,
-      bgColor:type==='text-block'?'#ffffff':(type==='outline'?'transparent':(type==='slideshow'?'#ffffff':'#ffffff')),
-      textColor:type==='text-block'?'#0f172a':'#0f172a',
-      borderColor:type==='text-block'?'#e2e8f0':(type==='outline'?'#6366f1':'#e2e8f0'),
-      borderWidth:type==='text-block'?1:(type==='outline'?2:1),
+      bgColor:type==='text-block'?'#ffffff':(type==='outline'?'transparent':(type==='slideshow'?'#ffffff':(type==='comparison'?'#f8fafc':'#ffffff'))),
+      textColor:type==='text-block'?'#0f172a':(type==='comparison'?'#1e293b':'#0f172a'),
+      borderColor:type==='text-block'?'#e2e8f0':(type==='outline'?'#6366f1':(type==='comparison'?'#e2e8f0':'#e2e8f0')),
+      borderWidth:type==='text-block'?1:(type==='outline'?2:(type==='comparison'?1:1)),
       fontSize:fontSize,
       textAlign:'center', fontFamily:'sans', hasShadow:type==='outline'?false:true, hidden:false, locked:false,
       showTitle:type!=='text-block' && type!=='outline', bgAlpha:1,
@@ -3464,6 +3510,10 @@ function DashboardInner() {
                       <span className="p-1.5 bg-indigo-50 rounded-lg text-indigo-500 group-hover:bg-indigo-100 transition-colors"><Icons.Play className="w-4 h-4" /></span>
                       スライドショーを追加
                     </button>
+                    <button onClick={()=>addWidget('comparison','rectangle')} className="flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium hover:border-indigo-400 hover:text-indigo-600 hover:shadow-sm transition-all group">
+                      <span className="p-1.5 bg-indigo-50 rounded-lg text-indigo-500 group-hover:bg-indigo-100 transition-colors"><Icons.ChartBar className="w-4 h-4" /></span>
+                      比較を追加
+                    </button>
                   </div>
                 </section>
                 <div className="border-b border-slate-100"/>
@@ -3950,7 +4000,8 @@ function DashboardInner() {
                     activeEditorWidget.type === 'slideshow' ||
                     activeEditorWidget.type === 'chart' ||
                     activeEditorWidget.type.startsWith('kpi-') ||
-                    activeEditorWidget.type === 'group'
+                    activeEditorWidget.type === 'group' ||
+                    activeEditorWidget.type === 'comparison'
                   ) ? (
                     <>
                       <details open className="bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -4103,6 +4154,59 @@ function DashboardInner() {
                                 </div>
                                 {/* ★ クロスフィルター条件（個別AND/OR） */}
                                 {renderFilterConditions(conditions, allFields, (newConds) => updateSelectedDesign('dataConfig', { ...dc, filterConditions: newConds }))}
+
+                                {/* ★★★ 比較ウィジェット用設定 ★★★ */}
+                                {activeEditorWidget.type === 'comparison' && (
+                                  <div className="space-y-3 pt-4 border-t border-slate-100">
+                                    <label className="text-xs font-bold text-slate-700">🔗 比較設定</label>
+                                    <div>
+                                      <label className="text-xs font-medium text-slate-500 mb-1 block">合計するスコアカード（ID）</label>
+                                      <input
+                                        type="text"
+                                        value={(activeEditorWidget.dataConfig?.compareWidgetIds || []).join(',')}
+                                        onChange={e => {
+                                          const ids = e.target.value ? e.target.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                          updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareWidgetIds: ids });
+                                        }}
+                                        placeholder="例: w_123, w_456"
+                                        className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs font-medium text-slate-500 mb-1 block">目標値の種類</label>
+                                      <select
+                                        value={activeEditorWidget.dataConfig?.compareTargetType || 'fixed'}
+                                        onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetType: e.target.value })}
+                                        className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
+                                      >
+                                        <option value="fixed">固定値</option>
+                                        <option value="widget">別のウィジェット</option>
+                                      </select>
+                                    </div>
+                                    {activeEditorWidget.dataConfig?.compareTargetType === 'fixed' ? (
+                                      <div>
+                                        <label className="text-xs font-medium text-slate-500 mb-1 block">目標値</label>
+                                        <input
+                                          type="number"
+                                          value={activeEditorWidget.dataConfig?.compareTarget ?? ''}
+                                          onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTarget: Number(e.target.value) })}
+                                          className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <label className="text-xs font-medium text-slate-500 mb-1 block">目標値ウィジェット（ID）</label>
+                                        <input
+                                          type="text"
+                                          value={activeEditorWidget.dataConfig?.compareTargetWidgetId || ''}
+                                          onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetWidgetId: e.target.value })}
+                                          placeholder="例: w_789"
+                                          className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                                 
                                 {activeEditorWidget.type === 'table-details' && (
                                   <div className="space-y-3 pt-4 border-t border-slate-100">
