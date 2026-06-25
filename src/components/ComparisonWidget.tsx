@@ -14,8 +14,9 @@ interface ComparisonWidgetProps {
   textColor?: string;
   bgColor?: string;
   bgAlpha?: number;
-  sum: number;
+  actual: number;
   target: number;
+  actualLabel?: string;
   targetLabel?: string;
 }
 
@@ -30,14 +31,19 @@ export default function ComparisonWidget({
   textColor = '#1e293b',
   bgColor = '#ffffff',
   bgAlpha = 1,
-  sum,
+  actual,
   target,
+  actualLabel = '実績',
   targetLabel = '目標',
 }: ComparisonWidgetProps) {
-  const diff = sum - target;
+  const diff = actual - target;
   const isEqual = diff === 0;
   const statusColor = isEqual ? '#10b981' : diff > 0 ? '#3b82f6' : '#ef4444';
-  const statusText = isEqual ? 'OK' : diff > 0 ? `+${diff} (総計 > ${targetLabel})` : `${diff} (総計 < ${targetLabel})`;
+  const statusText = isEqual
+    ? 'OK'
+    : diff > 0
+      ? `+${diff} (${actualLabel} > ${targetLabel})`
+      : `${diff} (${actualLabel} < ${targetLabel})`;
 
   const bg = bgColor.startsWith('#')
     ? `rgba(${parseInt(bgColor.slice(1,3),16)},${parseInt(bgColor.slice(3,5),16)},${parseInt(bgColor.slice(5,7),16)},${bgAlpha})`
@@ -62,7 +68,7 @@ export default function ComparisonWidget({
       )}
       <div className="text-center">
         <div className="text-sm text-slate-500 mb-1">
-          合計 {sum.toLocaleString()} vs {targetLabel} {target.toLocaleString()}
+          {actualLabel} {actual.toLocaleString()} vs {targetLabel} {target.toLocaleString()}
         </div>
         <div
           className="font-black leading-none"

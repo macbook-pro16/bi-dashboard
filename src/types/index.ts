@@ -128,6 +128,9 @@ export interface DataConfig {
   compareTargetType?: 'fixed' | 'widget'; // 比較対象：固定値 or 別ウィジェット
   compareTarget?: number;           // 固定目標値
   compareTargetWidgetId?: string;   // 目標値として参照するウィジェットID
+  compareExpression?: string;    // 数式（例: "w_123 + w_456 - w_789"）
+  compareActualLabel?: string;   // 実績ラベル（デフォルト: "実績"）
+  compareTargetLabel?: string;   // 目標ラベル（デフォルト: "目標"）
 }
 
 export interface OutlineConfig {
