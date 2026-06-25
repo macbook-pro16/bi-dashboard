@@ -20,18 +20,37 @@ interface ComparisonWidgetProps {
   targetLabel?: string;
 }
 
+// アイコンコンポーネント
 const EqualIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="5" y1="9" x2="19" y2="9"></line>
     <line x1="5" y1="15" x2="19" y2="15"></line>
   </svg>
 );
 
-const NotEqualIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="5" y1="9" x2="19" y2="9"></line>
-    <line x1="5" y1="15" x2="19" y2="15"></line>
-    <line x1="19" y1="5" x2="5" y2="19"></line>
+const GreaterIcon = () => (
+  <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
+);
+
+const LessIcon = () => (
+  <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6"></polyline>
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+);
+
+const AlertIcon = () => (
+  <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="8" x2="12" y2="12"></line>
+    <line x1="12" y1="16" x2="12.01" y2="16"></line>
   </svg>
 );
 
@@ -53,21 +72,46 @@ export default function ComparisonWidget({
 }: ComparisonWidgetProps) {
   const diff = actual - target;
   const isEqual = diff === 0;
+  const isGreater = diff > 0;
 
   // 背景色の透過対応
   const bg = bgColor.startsWith('#')
     ? `rgba(${parseInt(bgColor.slice(1, 3), 16)}, ${parseInt(bgColor.slice(3, 5), 16)}, ${parseInt(bgColor.slice(5, 7), 16)}, ${bgAlpha})`
     : bgColor;
 
+  // 判定に応じたステータスUIの設定
+  let statusConfig;
+  if (isEqual) {
+    statusConfig = {
+      operatorIcon: <EqualIcon />,
+      iconBg: 'bg-emerald-50',
+      iconColor: 'text-emerald-500',
+      badgeBg: 'bg-emerald-50 border border-emerald-200',
+      badgeColor: 'text-emerald-700',
+      statusIcon: <CheckIcon />,
+      statusText: '一致 (OK)',
+    };
+  } else {
+    statusConfig = {
+      operatorIcon: isGreater ? <GreaterIcon /> : <LessIcon />,
+      iconBg: 'bg-rose-50',
+      iconColor: 'text-rose-500',
+      badgeBg: 'bg-rose-50 border border-rose-200',
+      badgeColor: 'text-rose-700',
+      statusIcon: <AlertIcon />,
+      statusText: `ズレあり (${isGreater ? '+' : ''}${diff.toLocaleString()})`,
+    };
+  }
+
   return (
     <div
       className="w-full h-full flex flex-col p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden"
       style={{ backgroundColor: bg, fontFamily: '"Inter", "Noto Sans JP", sans-serif' }}
     >
-      {/* Header: ウィジェットのタイトル */}
+      {/* ウィジェットタイトル */}
       {showTitle && label && (
         <div
-          className="font-bold whitespace-pre-line leading-tight truncate mb-4 z-10 shrink-0 text-center"
+          className="font-bold whitespace-pre-line leading-tight truncate shrink-0 text-center mb-2"
           style={{
             fontSize: `${titleFontSize}px`,
             color: titleColor,
@@ -78,69 +122,51 @@ export default function ComparisonWidget({
         </div>
       )}
 
-      {/* Main Content: 2つの数値を左右対称にフラットに比較 */}
-      <div className="flex-1 flex items-stretch justify-center relative">
+      {/* メインコンテンツ: 同列比較 */}
+      <div className="flex-1 flex flex-col items-center justify-center w-full gap-6">
         
-        {/* Left Block (actual) */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4 bg-slate-50/80 rounded-l-2xl border border-r-0 border-slate-100">
-          <span className="text-sm font-semibold text-slate-500 mb-2 truncate max-w-full px-2">
-            {actualLabel}
-          </span>
-          <span 
-            className="font-black tracking-tight truncate max-w-full px-2" 
-            style={{ fontSize: `${fontSize}px`, color: textColor }}
-          >
-            {actual.toLocaleString()}
-          </span>
-        </div>
-
-        {/* Center Divider & Icon */}
-        <div className="relative z-10 flex flex-col items-center justify-center w-0">
-          <div className={`absolute flex items-center justify-center w-14 h-14 rounded-full border-4 border-white shadow-md transition-colors duration-300 ${
-            isEqual ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-          }`}>
-            {isEqual ? <EqualIcon /> : <NotEqualIcon />}
+        <div className="flex items-center justify-between w-full px-2 gap-2">
+          
+          {/* A (Actual) */}
+          <div className="flex flex-col items-center min-w-0 flex-1">
+            <span className="text-xs font-semibold text-slate-400 mb-1.5 truncate w-full text-center">
+              {actualLabel}
+            </span>
+            <span 
+              className="font-black tracking-tight truncate w-full text-center" 
+              style={{ fontSize: `${fontSize}px`, color: textColor }}
+            >
+              {actual.toLocaleString()}
+            </span>
           </div>
+
+          {/* 演算子アイコン */}
+          <div className={`flex items-center justify-center w-12 h-12 rounded-full shrink-0 text-2xl ${statusConfig.iconBg} ${statusConfig.iconColor}`}>
+            {statusConfig.operatorIcon}
+          </div>
+
+          {/* B (Target) */}
+          <div className="flex flex-col items-center min-w-0 flex-1">
+            <span className="text-xs font-semibold text-slate-400 mb-1.5 truncate w-full text-center">
+              {targetLabel}
+            </span>
+            <span 
+              className="font-black tracking-tight truncate w-full text-center" 
+              style={{ fontSize: `${fontSize}px`, color: textColor }}
+            >
+              {target.toLocaleString()}
+            </span>
+          </div>
+
         </div>
 
-        {/* Right Block (target) */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4 bg-slate-50/80 rounded-r-2xl border border-l-0 border-slate-100">
-          <span className="text-sm font-semibold text-slate-500 mb-2 truncate max-w-full px-2">
-            {targetLabel}
-          </span>
-          <span 
-            className="font-black tracking-tight truncate max-w-full px-2" 
-            style={{ fontSize: `${fontSize}px`, color: textColor }}
-          >
-            {target.toLocaleString()}
-          </span>
+        {/* 判定バッジ */}
+        <div className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm shadow-sm ${statusConfig.badgeBg} ${statusConfig.badgeColor}`}>
+          {statusConfig.statusIcon}
+          <span>{statusConfig.statusText}</span>
         </div>
 
       </div>
-
-      {/* Footer: 比較結果のステータスと差分サマリー */}
-      <div className={`mt-5 shrink-0 px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center transition-colors duration-300 ${
-        isEqual 
-          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
-          : 'bg-rose-50 text-rose-700 border border-rose-100'
-      }`}>
-        {isEqual ? (
-          <div className="flex items-center gap-2">
-            <span>数値は完全に一致しています</span>
-          </div>
-        ) : (
-          <div className="flex items-center flex-wrap justify-center gap-x-3 gap-y-2">
-            <span>ズレが生じています</span>
-            <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-lg border border-rose-200 shadow-sm text-rose-600">
-              <span className="text-xs text-rose-400 font-medium">差分</span>
-              <span className="font-black">
-                {diff > 0 ? `+${diff.toLocaleString()}` : diff.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
     </div>
   );
 }
