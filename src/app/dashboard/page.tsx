@@ -2230,10 +2230,7 @@ function DashboardInner() {
     return map;
   }, [layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, extractStringValue]);
 
-  computedValues の計算ロジックをコピーして、layout を全ページのものに置き換えます）
-
-tsx
-const allWidgetValues = useMemo(() => {
+  const allWidgetValues = useMemo(() => {
   const map: Record<string, number> = {};
   dashboards.forEach(page => {
     (page.layout ?? []).forEach(w => {
