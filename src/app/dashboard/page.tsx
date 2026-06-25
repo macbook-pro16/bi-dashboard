@@ -3972,6 +3972,7 @@ function DashboardInner() {
                       <div className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-1 flex items-center gap-1"><Icons.ChartBar className="w-4 h-4"/> 現在の値</div>
                       <div className="text-2xl font-bold text-slate-800">{computedValues[activeEditorWidget.id].toLocaleString()}</div>
                       <div className="text-sm font-medium text-slate-500">{activeEditorWidget.title}</div>
+<div className="text-[10px] font-mono text-slate-400 mt-1">ID: {activeEditorWidget.id}</div>
                     </div>
                   )}
                   {isMultiSelected ? (
@@ -4165,56 +4166,84 @@ function DashboardInner() {
 
                                 {/* ★★★ 比較ウィジェット用設定 ★★★ */}
                                 {activeEditorWidget.type === 'comparison' && (
-                                  <div className="space-y-3 pt-4 border-t border-slate-100">
-                                    <label className="text-xs font-bold text-slate-700">🔗 比較設定</label>
-                                    <div>
-                                      <label className="text-xs font-medium text-slate-500 mb-1 block">合計するスコアカード（ID）</label>
-                                      <input
-                                        type="text"
-                                        value={(activeEditorWidget.dataConfig?.compareWidgetIds || []).join(',')}
-                                        onChange={e => {
-                                          const ids = e.target.value ? e.target.value.split(',').map(s => s.trim()).filter(Boolean) : [];
-                                          updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareWidgetIds: ids });
-                                        }}
-                                        placeholder="例: w_123, w_456"
-                                        className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="text-xs font-medium text-slate-500 mb-1 block">目標値の種類</label>
-                                      <select
-                                        value={activeEditorWidget.dataConfig?.compareTargetType || 'fixed'}
-                                        onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetType: e.target.value })}
-                                        className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
-                                      >
-                                        <option value="fixed">固定値</option>
-                                        <option value="widget">別のウィジェット</option>
-                                      </select>
-                                    </div>
-                                    {activeEditorWidget.dataConfig?.compareTargetType === 'fixed' ? (
-                                      <div>
-                                        <label className="text-xs font-medium text-slate-500 mb-1 block">目標値</label>
-                                        <input
-                                          type="number"
-                                          value={activeEditorWidget.dataConfig?.compareTarget ?? ''}
-                                          onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTarget: Number(e.target.value) })}
-                                          className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <div>
-                                        <label className="text-xs font-medium text-slate-500 mb-1 block">目標値ウィジェット（ID）</label>
-                                        <input
-                                          type="text"
-                                          value={activeEditorWidget.dataConfig?.compareTargetWidgetId || ''}
-                                          onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetWidgetId: e.target.value })}
-                                          placeholder="例: w_789"
-                                          className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
+  <div className="space-y-3 pt-4 border-t border-slate-100">
+    <label className="text-xs font-bold text-slate-700">🔗 比較設定</label>
+
+    {/* 合計するスコアカード（複数選択） */}
+    <div>
+      <label className="text-xs font-medium text-slate-500 mb-1 block">合計するスコアカード</label>
+      <div className="max-h-32 overflow-y-auto border border-slate-200 rounded-lg bg-white p-2 space-y-1">
+        {layout
+          .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
+          .map(w => {
+            const checked = (activeEditorWidget.dataConfig?.compareWidgetIds || []).includes(w.id);
+            return (
+              <label key={w.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={e => {
+                    const currentIds = activeEditorWidget.dataConfig?.compareWidgetIds || [];
+                    let newIds: string[];
+                    if (e.target.checked) {
+                      newIds = [...currentIds, w.id];
+                    } else {
+                      newIds = currentIds.filter(id => id !== w.id);
+                    }
+                    updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareWidgetIds: newIds.length > 0 ? newIds : undefined });
+                  }}
+                  className="w-3.5 h-3.5 rounded text-indigo-600"
+                />
+                <span className="text-xs text-slate-700 truncate">{w.title || w.type}</span>
+                <span className="text-[10px] text-slate-400 ml-auto font-mono">{w.id}</span>
+              </label>
+            );
+          })}
+        {layout.filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type)).length === 0 && (
+          <p className="text-xs text-slate-400 p-2">追加できるスコアカードがありません</p>
+        )}
+      </div>
+    </div>
+
+    {/* 目標値の種類 */}
+    <div>
+      <label className="text-xs font-medium text-slate-500 mb-1 block">目標値の種類</label>
+      <select
+        value={activeEditorWidget.dataConfig?.compareTargetType || 'fixed'}
+        onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetType: e.target.value })}
+        className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
+      >
+        <option value="fixed">固定値</option>
+        <option value="widget">別のウィジェット</option>
+      </select>
+    </div>
+
+    {activeEditorWidget.dataConfig?.compareTargetType === 'fixed' ? (
+      <div>
+        <label className="text-xs font-medium text-slate-500 mb-1 block">目標値</label>
+        <input
+          type="number"
+          value={activeEditorWidget.dataConfig?.compareTarget ?? ''}
+          onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTarget: Number(e.target.value) })}
+          className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
+        />
+      </div>
+    ) : (
+      <div>
+        <label className="text-xs font-medium text-slate-500 mb-1 block">目標値ウィジェット</label>
+        <SelectWithSearch
+          options={layout
+            .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
+            .map(w => w.id)}
+          value={activeEditorWidget.dataConfig?.compareTargetWidgetId || ''}
+          onChange={v => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetWidgetId: v || undefined })}
+          placeholder="ウィジェットを選択"
+        />
+        <p className="text-[10px] text-slate-400 mt-1">※ 選択肢はウィジェットIDです。タイトルはドロップダウンに表示されませんが、IDはプロパティパネルで確認できます。</p>
+      </div>
+    )}
+  </div>
+)}
                                 
                                 {activeEditorWidget.type === 'table-details' && (
                                   <div className="space-y-3 pt-4 border-t border-slate-100">
