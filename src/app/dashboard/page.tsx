@@ -2228,107 +2228,108 @@ function DashboardInner() {
       });
     });
     return map;
-  }, [layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, extractStringValue]);
+  }, [layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, applyGlobalNonDateFilters, extractStringValue]);
 
+  // ★★★ ここから追加 ★★★
   const allWidgetValues = useMemo(() => {
-  const map: Record<string, number> = {};
-  dashboards.forEach(page => {
-    (page.layout ?? []).forEach(w => {
-      const dc = w.dataConfig as DataConfig | undefined;
-      if (!dc) return;
-      const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
-      const allSrc = cacheStore[srcIdx] || [];
-      const dateField = resolveDateFilterField(w);
-      let val: number | undefined;
+    const map: Record<string, number> = {};
+    dashboards.forEach(page => {
+      (page.layout ?? []).forEach(w => {
+        const dc = w.dataConfig as DataConfig | undefined;
+        if (!dc) return;
+        const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
+        const allSrc = cacheStore[srcIdx] || [];
+        const dateField = resolveDateFilterField(w);
+        let val: number | undefined;
 
-      if (w.type === 'scorecard' || w.type === 'gauge') {
-        const dateFilter = dc.dateFilter ?? 'range';
-        const { start, end } = filters.dateRange;
+        if (w.type === 'scorecard' || w.type === 'gauge') {
+          const dateFilter = dc.dateFilter ?? 'range';
+          const { start, end } = filters.dateRange;
 
-        let baseData = allSrc;
-        if (dateFilter === 'range') {
-          baseData = allSrc.filter(item => {
-            const d = item[dateField];
-            if (!d) return false;
-            return d >= start && d <= end;
+          let baseData = allSrc;
+          if (dateFilter === 'range') {
+            baseData = allSrc.filter(item => {
+              const d = item[dateField];
+              if (!d) return false;
+              return d >= start && d <= end;
+            });
+          } else if (dateFilter === 'today') {
+            baseData = allSrc.filter(item => item[dateField] === todayStr);
+          }
+
+          const crossFiltered = applyGlobalNonDateFilters(baseData);
+
+          const conditions = dc.filterConditions || [];
+          const logic = dc.conditionLogic || 'and';
+
+          const filteredByConditions = crossFiltered.filter(item => {
+            const passCross = evaluateConditions(item, conditions, logic);
+            const passIndicator = (() => {
+              if (!dc.field) return true;
+              const val = extractStringValue(item[dc.field!]);
+              if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
+              if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+              if (!dc.filterValue) return true;
+              return val === dc.filterValue;
+            })();
+            return passCross && passIndicator;
           });
-        } else if (dateFilter === 'today') {
-          baseData = allSrc.filter(item => item[dateField] === todayStr);
+
+          if (dc.field) {
+            const agg = dc.aggregation ?? (w.type === 'gauge' ? 'sum' : undefined);
+            const values = filteredByConditions.map(item => Number(item[dc.field!]) || 0).filter(v => v !== 0);
+            if (agg === 'sum') val = values.reduce((a, b) => a + b, 0);
+            else if (agg === 'avg') val = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+            else if (agg === 'max') val = Math.max(...values, 0);
+            else if (agg === 'min') val = Math.min(...values, 0);
+            else val = filteredByConditions.length;
+          } else {
+            val = filteredByConditions.length;
+          }
+        } else if (w.type.startsWith('kpi-')) {
+          const dateFilter = dc.dateFilter ?? (w.type === 'kpi-today' ? 'today' : 'range');
+          const baseData =
+            dateFilter === 'none'  ? allSrc :
+            dateFilter === 'today' ? allSrc.filter(d => d[dateField] === todayStr) :
+                                     allSrc;
+          const crossFiltered = applyGlobalNonDateFilters(baseData);
+
+          const conditions = dc.filterConditions || [];
+          const logic = dc.conditionLogic || 'and';
+          const filteredByConditions = crossFiltered.filter(item => {
+            const passCross = evaluateConditions(item, conditions, logic);
+            const passIndicator = (() => {
+              if (!dc.field) return true;
+              const val = extractStringValue(item[dc.field!]);
+              if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
+              if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+              if (!dc.filterValue) return true;
+              return val === dc.filterValue;
+            })();
+            return passCross && passIndicator;
+          });
+
+          const field = dc.field ?? w.kpiField;
+          if (!field || field === 'count') {
+            val = filteredByConditions.length;
+          } else {
+            const sum = filteredByConditions.reduce((acc, item) => acc + (Number(item[field]) || 0), 0);
+            const agg = dc.aggregation ?? w.kpiAggregation ?? 'sum';
+            val = agg === 'avg' ? (filteredByConditions.length ? sum / filteredByConditions.length : 0)
+                : agg === 'max' ? Math.max(...filteredByConditions.map(i => Number(i[field]) || 0))
+                : agg === 'min' ? Math.min(...filteredByConditions.map(i => Number(i[field]) || 0))
+                : sum;
+          }
+        } else if (w.type === 'flow-node') {
+          const field = dc.filterField ?? w.targetField ?? 'status';
+          const value = dc.filterValue ?? w.statusTarget ?? '';
+          val = allSrc.filter(item => extractStringValue(item[field]) === value).length;
         }
-
-        const crossFiltered = applyGlobalNonDateFilters(baseData);
-
-        const conditions = dc.filterConditions || [];
-        const logic = dc.conditionLogic || 'and';
-
-        const filteredByConditions = crossFiltered.filter(item => {
-          const passCross = evaluateConditions(item, conditions, logic);
-          const passIndicator = (() => {
-            if (!dc.field) return true;
-            const val = extractStringValue(item[dc.field!]);
-            if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
-            if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-            if (!dc.filterValue) return true;
-            return val === dc.filterValue;
-          })();
-          return passCross && passIndicator;
-        });
-
-        if (dc.field) {
-          const agg = dc.aggregation ?? (w.type === 'gauge' ? 'sum' : undefined);
-          const values = filteredByConditions.map(item => Number(item[dc.field!]) || 0).filter(v => v !== 0);
-          if (agg === 'sum') val = values.reduce((a, b) => a + b, 0);
-          else if (agg === 'avg') val = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-          else if (agg === 'max') val = Math.max(...values, 0);
-          else if (agg === 'min') val = Math.min(...values, 0);
-          else val = filteredByConditions.length;
-        } else {
-          val = filteredByConditions.length;
-        }
-      } else if (w.type.startsWith('kpi-')) {
-        const dateFilter = dc.dateFilter ?? (w.type === 'kpi-today' ? 'today' : 'range');
-        const baseData =
-          dateFilter === 'none'  ? allSrc :
-          dateFilter === 'today' ? allSrc.filter(d => d[dateField] === todayStr) :
-                                   allSrc;
-        const crossFiltered = applyGlobalNonDateFilters(baseData);
-
-        const conditions = dc.filterConditions || [];
-        const logic = dc.conditionLogic || 'and';
-        const filteredByConditions = crossFiltered.filter(item => {
-          const passCross = evaluateConditions(item, conditions, logic);
-          const passIndicator = (() => {
-            if (!dc.field) return true;
-            const val = extractStringValue(item[dc.field!]);
-            if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
-            if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-            if (!dc.filterValue) return true;
-            return val === dc.filterValue;
-          })();
-          return passCross && passIndicator;
-        });
-
-        const field = dc.field ?? w.kpiField;
-        if (!field || field === 'count') {
-          val = filteredByConditions.length;
-        } else {
-          const sum = filteredByConditions.reduce((acc, item) => acc + (Number(item[field]) || 0), 0);
-          const agg = dc.aggregation ?? w.kpiAggregation ?? 'sum';
-          val = agg === 'avg' ? (filteredByConditions.length ? sum / filteredByConditions.length : 0)
-              : agg === 'max' ? Math.max(...filteredByConditions.map(i => Number(i[field]) || 0))
-              : agg === 'min' ? Math.min(...filteredByConditions.map(i => Number(i[field]) || 0))
-              : sum;
-        }
-      } else if (w.type === 'flow-node') {
-        const field = dc.filterField ?? w.targetField ?? 'status';
-        const value = dc.filterValue ?? w.statusTarget ?? '';
-        val = allSrc.filter(item => extractStringValue(item[field]) === value).length;
-      }
-      if (val !== undefined) map[w.id] = Math.round(val);
+        if (val !== undefined) map[w.id] = Math.round(val);
+      });
     });
-  });
-  return map;
-}, [dashboards, cacheStore, filters, todayStr, evaluateConditions, applyGlobalNonDateFilters, extractStringValue]);
+    return map;
+  }, [dashboards, cacheStore, filters, todayStr, evaluateConditions, applyGlobalNonDateFilters, extractStringValue]);
 
   const comparisonValues = useMemo(() => {
     const map: Record<string, { sum: number; target: number }> = {};
