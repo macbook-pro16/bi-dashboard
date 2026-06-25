@@ -4033,7 +4033,7 @@ function DashboardInner() {
                           </div>
 
                           {(() => {
-                            const dc = activeEditorWidget.dataConfig || {};
+                            const dc = activeEditorWidget.dataConfig || ({} as DataConfig);
                             const srcIdx = dc.sourceIndex || activeEditorWidget.dataSourceIndex || '001';
                             
                             if (srcIdx === 'none') {
