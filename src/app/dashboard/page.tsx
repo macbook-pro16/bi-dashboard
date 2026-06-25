@@ -855,36 +855,18 @@ function renderWidgetContent(
         </div>
       );
     }
-            case 'comparison': {
+                case 'comparison': {
       const compDc = w.dataConfig || ({} as DataConfig);
       
-      // 安全な式評価（+ / - のみ対応）
-      const evaluate = (expr: string, vals: Record<string, number>): number => {
-        const tokens = expr.match(/([a-zA-Z_][a-zA-Z0-9_]*)|[+\-]|\d+/g);
-        if (!tokens) return 0;
-        let res = 0, op = '+';
-        for (const t of tokens) {
-          if (t === '+' || t === '-') { op = t; continue; }
-          const v = vals[t] !== undefined ? vals[t] : (Number(t) || 0);
-          res = op === '+' ? res + v : res - v;
-        }
-        return res;
-      };
+      // 計算ヘルパー
+      const calcSum = (items: { widgetId: string; operator: 'plus' | 'minus' }[] | undefined) =>
+        (items || []).reduce((sum, item) => {
+          const val = computedValues[item.widgetId] ?? 0;
+          return item.operator === 'minus' ? sum - val : sum + val;
+        }, 0);
       
-      let actual = 0;
-      if (compDc.compareExpression) {
-        actual = evaluate(compDc.compareExpression, computedValues);
-      } else {
-        const ids = compDc.compareWidgetIds || [];
-        actual = ids.reduce((acc, wid) => acc + (computedValues[wid] ?? 0), 0);
-      }
-      
-      let target = 0;
-      if (compDc.compareTargetType === 'fixed') {
-        target = compDc.compareTarget ?? 0;
-      } else if (compDc.compareTargetType === 'widget' && compDc.compareTargetWidgetId) {
-        target = computedValues[compDc.compareTargetWidgetId] ?? 0;
-      }
+      const actual = calcSum(compDc.compareActualItems);
+      const target = calcSum(compDc.compareTargetItems);
       
       return (
         <ComparisonWidget
@@ -903,6 +885,8 @@ function renderWidgetContent(
           actualLabel={compDc.compareActualLabel || '実績'}
           targetLabel={compDc.compareTargetLabel || '目標'}
         />
+      );
+    }
       );
     }
     case 'group':
@@ -4187,10 +4171,10 @@ function DashboardInner() {
 
                                 {/* ★★★ 比較ウィジェット用設定 ★★★ */}
                                 {activeEditorWidget.type === 'comparison' && (
-  <div className="space-y-3 pt-4 border-t border-slate-100">
+  <div className="space-y-4 pt-4 border-t border-slate-100">
     <label className="text-xs font-bold text-slate-700">🔗 比較設定</label>
-
-    {/* 実績値の計算方法 */}
+    
+    {/* 実績ラベル */}
     <div>
       <label className="text-xs font-medium text-slate-500 mb-1 block">実績ラベル</label>
       <input
@@ -4198,63 +4182,80 @@ function DashboardInner() {
         value={activeEditorWidget.dataConfig?.compareActualLabel || '実績'}
         onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualLabel: e.target.value })}
         className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
-        placeholder="例: 総在庫数"
       />
     </div>
 
+    {/* 実績値の計算要素（最大20） */}
     <div>
-      <label className="text-xs font-medium text-slate-500 mb-1 block">実績値の計算式</label>
-      <p className="text-[10px] text-slate-400 mb-1">
-        ウィジェットIDを使った数式を入力（例: w_123 + w_456 - w_789）<br />
-        ※ 空欄の場合は、下のチェックボックスで選択したウィジェットの合計が使われます。
-      </p>
-      <textarea
-        value={activeEditorWidget.dataConfig?.compareExpression || ''}
-        onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareExpression: e.target.value })}
-        className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none resize-y min-h-[60px]"
-        placeholder="数式を入力"
-      />
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-xs font-medium text-slate-500">実績の計算要素</label>
+        <span className="text-[10px] text-slate-400">{(activeEditorWidget.dataConfig?.compareActualItems || []).length}/20</span>
+      </div>
+      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+        {(activeEditorWidget.dataConfig?.compareActualItems || []).map((item, idx) => (
+          <div key={idx} className="flex items-center gap-1">
+            <select
+              value={item.operator}
+              onChange={e => {
+                const newItems = [...(activeEditorWidget.dataConfig?.compareActualItems || [])];
+                newItems[idx] = { ...newItems[idx], operator: e.target.value as 'plus' | 'minus' };
+                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems });
+              }}
+              className="w-12 text-xs border border-slate-200 rounded px-1 py-1.5 bg-white outline-none shrink-0"
+            >
+              <option value="plus">＋</option>
+              <option value="minus">－</option>
+            </select>
+            <SelectWithSearch
+              options={(() => {
+                const allWidgets = dashboards.flatMap(page => page.layout);
+                return allWidgets
+                  .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
+                  .map(w => `${w.title || w.type} (${w.id})`);
+              })()}
+              value={(() => {
+                const wid = item.widgetId;
+                if (!wid) return '';
+                const allWidgets = dashboards.flatMap(page => page.layout);
+                const w = allWidgets.find(w => w.id === wid);
+                return w ? `${w.title || w.type} (${wid})` : wid;
+              })()}
+              onChange={v => {
+                const match = v.match(/\(([^)]+)\)$/);
+                const newId = match ? match[1] : v;
+                const newItems = [...(activeEditorWidget.dataConfig?.compareActualItems || [])];
+                newItems[idx] = { ...newItems[idx], widgetId: newId };
+                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems });
+              }}
+              placeholder="ウィジェットを選択"
+            />
+            <button
+              onClick={() => {
+                const newItems = (activeEditorWidget.dataConfig?.compareActualItems || []).filter((_, i) => i !== idx);
+                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems.length > 0 ? newItems : undefined });
+              }}
+              className="text-slate-400 hover:text-rose-500 p-1 shrink-0"
+            >✕</button>
+          </div>
+        ))}
+      </div>
+      {(activeEditorWidget.dataConfig?.compareActualItems || []).length < 20 && (
+        <button
+          onClick={() => {
+            const newItems = [...(activeEditorWidget.dataConfig?.compareActualItems || []), { widgetId: '', operator: 'plus' as const }];
+            updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualItems: newItems });
+          }}
+          className="w-full text-xs py-1.5 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1 mt-1"
+        >
+          <Icons.Plus className="w-3 h-3" /> 実績に項目を追加
+        </button>
+      )}
     </div>
 
-    {/* 数式を使わない場合の合計ウィジェット選択 */}
-    {!activeEditorWidget.dataConfig?.compareExpression && (
-      <div>
-        <label className="text-xs font-medium text-slate-500 mb-1 block">合計するスコアカード</label>
-        <div className="max-h-32 overflow-y-auto border border-slate-200 rounded-lg bg-white p-2 space-y-1">
-          {(() => {
-            const allWidgets = dashboards.flatMap(page => page.layout);
-            const filtered = allWidgets.filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type));
-            return filtered.length === 0 ? (
-              <p className="text-xs text-slate-400 p-2">追加できるスコアカードがありません</p>
-            ) : (
-              filtered.map(w => {
-                const checked = (activeEditorWidget.dataConfig?.compareWidgetIds || []).includes(w.id);
-                return (
-                  <label key={w.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={e => {
-                        const currentIds = activeEditorWidget.dataConfig?.compareWidgetIds || [];
-                        const newIds = e.target.checked
-                          ? [...currentIds, w.id]
-                          : currentIds.filter(id => id !== w.id);
-                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareWidgetIds: newIds.length > 0 ? newIds : undefined });
-                      }}
-                      className="w-3.5 h-3.5 rounded text-indigo-600"
-                    />
-                    <span className="text-xs text-slate-700 truncate">{w.title || w.type}</span>
-                    <span className="text-[10px] text-slate-400 ml-auto font-mono">{w.id}</span>
-                  </label>
-                );
-              })
-            );
-          })()}
-        </div>
-      </div>
-    )}
+    {/* 区切り線 */}
+    <div className="border-t border-slate-100" />
 
-    {/* 目標値の種類 */}
+    {/* 目標ラベル */}
     <div>
       <label className="text-xs font-medium text-slate-500 mb-1 block">目標ラベル</label>
       <input
@@ -4262,86 +4263,74 @@ function DashboardInner() {
         value={activeEditorWidget.dataConfig?.compareTargetLabel || '目標'}
         onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetLabel: e.target.value })}
         className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
-        placeholder="例: 目標在庫数"
       />
     </div>
 
+    {/* 目標値の計算要素（最大20） */}
     <div>
-      <label className="text-xs font-medium text-slate-500 mb-1 block">目標値の種類</label>
-      <select
-        value={activeEditorWidget.dataConfig?.compareTargetType || 'fixed'}
-        onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetType: e.target.value })}
-        className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
-      >
-        <option value="fixed">固定値</option>
-        <option value="widget">別のウィジェット</option>
-      </select>
-    </div>
-
-    {activeEditorWidget.dataConfig?.compareTargetType === 'fixed' ? (
-      <div>
-        <label className="text-xs font-medium text-slate-500 mb-1 block">目標値</label>
-        <input
-          type="number"
-          value={activeEditorWidget.dataConfig?.compareTarget ?? ''}
-          onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTarget: Number(e.target.value) })}
-          className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
-        />
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-xs font-medium text-slate-500">目標の計算要素</label>
+        <span className="text-[10px] text-slate-400">{(activeEditorWidget.dataConfig?.compareTargetItems || []).length}/20</span>
       </div>
-    ) : (
-      <div>
-        <label className="text-xs font-medium text-slate-500 mb-1 block">目標値ウィジェット</label>
-        <SelectWithSearch
-          options={(() => {
-            const allWidgets = dashboards.flatMap(page => page.layout);
-            return allWidgets
-              .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
-              .map(w => `${w.title || w.type} (${w.id})`);
-          })()}
-          value={(() => {
-            const id = activeEditorWidget.dataConfig?.compareTargetWidgetId || '';
-            if (!id) return '';
-            const allWidgets = dashboards.flatMap(page => page.layout);
-            const w = allWidgets.find(w => w.id === id);
-            return w ? `${w.title || w.type} (${id})` : '';
-          })()}
-          onChange={v => {
-            // 選択肢からIDを抽出
-            const match = v.match(/\(([^)]+)\)$/);
-            const id = match ? match[1] : v;
-            updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetWidgetId: id || undefined });
+      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+        {(activeEditorWidget.dataConfig?.compareTargetItems || []).map((item, idx) => (
+          <div key={idx} className="flex items-center gap-1">
+            <select
+              value={item.operator}
+              onChange={e => {
+                const newItems = [...(activeEditorWidget.dataConfig?.compareTargetItems || [])];
+                newItems[idx] = { ...newItems[idx], operator: e.target.value as 'plus' | 'minus' };
+                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems });
+              }}
+              className="w-12 text-xs border border-slate-200 rounded px-1 py-1.5 bg-white outline-none shrink-0"
+            >
+              <option value="plus">＋</option>
+              <option value="minus">－</option>
+            </select>
+            <SelectWithSearch
+              options={(() => {
+                const allWidgets = dashboards.flatMap(page => page.layout);
+                return allWidgets
+                  .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
+                  .map(w => `${w.title || w.type} (${w.id})`);
+              })()}
+              value={(() => {
+                const wid = item.widgetId;
+                if (!wid) return '';
+                const allWidgets = dashboards.flatMap(page => page.layout);
+                const w = allWidgets.find(w => w.id === wid);
+                return w ? `${w.title || w.type} (${wid})` : wid;
+              })()}
+              onChange={v => {
+                const match = v.match(/\(([^)]+)\)$/);
+                const newId = match ? match[1] : v;
+                const newItems = [...(activeEditorWidget.dataConfig?.compareTargetItems || [])];
+                newItems[idx] = { ...newItems[idx], widgetId: newId };
+                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems });
+              }}
+              placeholder="ウィジェットを選択"
+            />
+            <button
+              onClick={() => {
+                const newItems = (activeEditorWidget.dataConfig?.compareTargetItems || []).filter((_, i) => i !== idx);
+                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems.length > 0 ? newItems : undefined });
+              }}
+              className="text-slate-400 hover:text-rose-500 p-1 shrink-0"
+            >✕</button>
+          </div>
+        ))}
+      </div>
+      {(activeEditorWidget.dataConfig?.compareTargetItems || []).length < 20 && (
+        <button
+          onClick={() => {
+            const newItems = [...(activeEditorWidget.dataConfig?.compareTargetItems || []), { widgetId: '', operator: 'plus' as const }];
+            updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetItems: newItems });
           }}
-          placeholder="ウィジェットを選択"
-        />
-      </div>
-    )}    {/* 利用可能なウィジェット一覧 */}
-    <div className="pt-2 border-t border-slate-100">
-      <label className="text-xs font-medium text-slate-500 mb-1 block">📋 利用可能なウィジェットID</label>
-      <div className="max-h-32 overflow-y-auto border border-slate-200 rounded-lg bg-white p-2 text-[10px] space-y-0.5">
-        {(() => {
-          const allWidgets = dashboards.flatMap(page => page.layout);
-          return allWidgets
-            .filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type))
-            .map(w => (
-              <div key={w.id} className="flex justify-between items-center">
-                <span className="text-slate-600 truncate">{w.title || w.type}</span>
-                <span
-                  className="text-indigo-600 font-mono cursor-pointer hover:underline"
-                  onClick={() => {
-                    const currentExpr = activeEditorWidget.dataConfig?.compareExpression || '';
-                    const newExpr = currentExpr ? `${currentExpr} + ${w.id}` : w.id;
-                    updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareExpression: newExpr });
-                  }}
-                >
-                  {w.id}
-                </span>
-              </div>
-            ));
-        })()}
-        {dashboards.flatMap(page => page.layout).filter(w => ['scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered'].includes(w.type)).length === 0 && (
-          <p className="text-slate-400">対象のウィジェットがありません</p>
-        )}
-      </div>
+          className="w-full text-xs py-1.5 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1 mt-1"
+        >
+          <Icons.Plus className="w-3 h-3" /> 目標に項目を追加
+        </button>
+      )}
     </div>
   </div>
 )}

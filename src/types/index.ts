@@ -129,8 +129,11 @@ export interface DataConfig {
   compareTarget?: number;           // 固定目標値
   compareTargetWidgetId?: string;   // 目標値として参照するウィジェットID
   compareExpression?: string;    // 数式（例: "w_123 + w_456 - w_789"）
-  compareActualLabel?: string;   // 実績ラベル（デフォルト: "実績"）
-  compareTargetLabel?: string;   // 目標ラベル（デフォルト: "目標"）
+  // 比較ウィジェット用
+  compareActualItems?: { widgetId: string; operator: 'plus' | 'minus' }[];  // 実績値の計算要素（最大20）
+  compareTargetItems?: { widgetId: string; operator: 'plus' | 'minus' }[];  // 目標値の計算要素（最大20）
+  compareActualLabel?: string;
+  compareTargetLabel?: string;
 }
 
 export interface OutlineConfig {
