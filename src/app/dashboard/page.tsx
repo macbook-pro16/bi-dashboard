@@ -856,8 +856,16 @@ function renderWidgetContent(
       );
     }
     case 'comparison': {
-      const comp = comparisonValues[w.id];
-      if (!comp) return null;
+      // ★ 修正: comparisonValues を使わず、ここで直接計算する
+      const dc = w.dataConfig || ({} as DataConfig);
+      const ids = dc.compareWidgetIds || [];
+      const sum = ids.reduce((acc, wid) => acc + (computedValues[wid] ?? 0), 0);
+      let target = 0;
+      if (dc.compareTargetType === 'fixed') {
+        target = dc.compareTarget ?? 0;
+      } else if (dc.compareTargetType === 'widget' && dc.compareTargetWidgetId) {
+        target = computedValues[dc.compareTargetWidgetId] ?? 0;
+      }
       return (
         <ComparisonWidget
           label={w.title}
@@ -870,8 +878,8 @@ function renderWidgetContent(
           textColor={w.textColor}
           bgColor={w.bgColor}
           bgAlpha={w.bgAlpha ?? 1}
-          sum={comp.sum}
-          target={comp.target}
+          sum={sum}
+          target={target}
           targetLabel={dc.compareTargetType === 'widget' ? '参照値' : '目標'}
         />
       );
