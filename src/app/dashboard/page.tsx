@@ -4025,7 +4025,7 @@ function DashboardInner() {
                           </div>
 
                           {(() => {
-                            const dc = (activeEditorWidget.dataConfig || {}) as DataConfig;
+                            const dc = activeEditorWidget.dataConfig || {};
                             const srcIdx = dc.sourceIndex || activeEditorWidget.dataSourceIndex || '001';
                             
                             if (srcIdx === 'none') {
