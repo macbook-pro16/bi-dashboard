@@ -23,12 +23,11 @@ export async function GET(request: NextRequest) {
       page++;
     } while (page <= totalPages);
 
-    // 各車両の添付メディア数をチェックして has_photo を付与
-    const vehiclesWithPhotoFlag = await Promise.all(
+    // 各車両の添付メディアチェックとカスタムフィールド展開
+    const vehiclesWithFields = await Promise.all(
       allVehicles.map(async (vehicle: any) => {
         let hasPhoto = false;
         try {
-          // この車両に紐づくメディア一覧を取得（1件でもあればOK）
           const mediaRes = await fetch(
             `${wpBase}/wp-json/wp/v2/media?parent=${vehicle.id}&per_page=1`
           );
@@ -36,29 +35,29 @@ export async function GET(request: NextRequest) {
             const mediaData = await mediaRes.json();
             hasPhoto = Array.isArray(mediaData) && mediaData.length > 0;
           }
-        } catch (e) {
-          // エラー時は写真なしとみなす
-        }
+        } catch (e) {}
+
+        // meta オブジェクトを展開（v_manage_id, v_price などが直接利用可能に）
+        const metaFields = vehicle.meta && typeof vehicle.meta === 'object' ? vehicle.meta : {};
 
         return {
           id: String(vehicle.id),
           title: vehicle.title?.rendered || '',
           status: vehicle.status || '',
           date: vehicle.date?.slice(0, 10) || '',
-          ...(vehicle.acf && typeof vehicle.acf === 'object' ? vehicle.acf : {}),
+          ...metaFields,              // ★ これで v_manage_id などがフィールドとして現れる
           has_photo: hasPhoto,
         };
       })
     );
 
-    // 写真なし車両のみ抽出するリクエストの場合
+    // 写真なし車両のみ抽出
     if (postType === 'inventory-without-photo') {
-      const withoutPhoto = vehiclesWithPhotoFlag.filter((v) => !v.has_photo);
+      const withoutPhoto = vehiclesWithFields.filter((v) => !v.has_photo);
       return NextResponse.json({ success: true, data: withoutPhoto });
     }
 
-    // 通常の全在庫車両（has_photo 付き）
-    return NextResponse.json({ success: true, data: vehiclesWithPhotoFlag });
+    return NextResponse.json({ success: true, data: vehiclesWithFields });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message },
