@@ -30,7 +30,7 @@ export interface DataConfig {
   previousValue?: number;
   filterField?: string;
   filterValue?: string;
-  filterOperator?: 'eq' | 'empty' | 'not_empty';
+  filterOperator?: 'eq' | 'neq' | 'empty' | 'not_empty';
   chartType?: 'bar' | 'line' | 'donut';
   xField?: string;
   yField?: string;
