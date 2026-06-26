@@ -17,7 +17,7 @@ export type ShapeType =
 export interface FilterCondition {
   field: string;
   value: string;
-  operator?: 'eq' | 'empty' | 'not_empty';
+  operator?: 'eq' | 'neq' | 'empty' | 'not_empty';
   logic?: 'and' | 'or';
 }
 
