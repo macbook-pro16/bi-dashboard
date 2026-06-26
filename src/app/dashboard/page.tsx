@@ -493,7 +493,6 @@ function SlideshowWidgetContent({
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>;
   availableFields?: string[];
   handleDiffFilter?: (ids: string[], label: string) => void;  // ★ 追加
-  handleDiffFilter?: (ids: string[], label: string) => void;  // ★ 追加
   allWidgetValues?: Record<string, number>;
 }) {
   const dc = widget.dataConfig || ({} as DataConfig);
