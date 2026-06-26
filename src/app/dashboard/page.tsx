@@ -3468,7 +3468,7 @@ return val === dc.filterValue;
 <option value="empty">空欄</option>
 <option value="not_empty">空欄以外</option>
               </select>
-              {(!cond.operator || cond.operator === 'eq') && (
+              {(!cond.operator || cond.operator === 'eq' || cond.operator === 'neq') && (
                 <div className="flex-1 min-w-0">
                   <SelectWithSearch
                     options={cond.field ? (fieldUniqueValuesBySource[activeEditorWidget?.dataConfig?.sourceIndex || '001']?.[cond.field] || []) : []}
@@ -4222,8 +4222,8 @@ return val === dc.filterValue;
 <option value="empty">空欄</option>
 <option value="not_empty">空欄以外</option>
                                         </select>
-                                        {(!dc.filterOperator || dc.filterOperator === 'eq') && (
-                                          <div className="w-2/3">
+                                        {(!dc.filterOperator || dc.filterOperator === 'eq' || dc.filterOperator === 'neq') && (
+  <div className="w-2/3">
                                             <SelectWithSearch
                                               options={uniqueVals}
                                               value={dc.filterValue || ''}
@@ -5343,7 +5343,7 @@ return val === dc.filterValue;
 <option value="empty">空欄</option>
 <option value="not_empty">空欄以外</option>
                                               </select>
-                                              {(!cond.operator || cond.operator === 'eq') && (
+                                              {(!cond.operator || cond.operator === 'eq' || cond.operator === 'neq') && (
                                                 <div className="flex-1 min-w-0">
                                                   <SelectWithSearch
                                                     options={cond.field ? (fieldUniqueValuesBySource[dc.targetSourceIndex || srcIdx]?.[cond.field] || []) : []}
