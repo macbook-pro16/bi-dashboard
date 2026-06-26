@@ -103,6 +103,7 @@ const DATABASE_CONFIG = [
   { index: '004', name: '部品発注一覧' },
   { index: '005', name: '顧客DB' },
   { index: '006', name: '目標数値' },
+  { index: 'wp_stocks', name: '在庫車両 (WP)' },
 ];
 const BRAND_COLOR = '#e16b8c';
 const SCHEMA_VERSION = 4;
@@ -2019,7 +2020,10 @@ function DashboardInner() {
     const results = await Promise.allSettled(
       DATABASE_CONFIG.map(async (c) => {
         try {
-          const res = await fetch(`/api/notion?index=${c.index}`, { credentials: 'include' });
+          const apiPath = c.index.startsWith('wp_')
+  ? `/api/wordpress?type=${c.index.replace('wp_', '')}`
+  : `/api/notion?index=${c.index}`;
+const res = await fetch(apiPath, { credentials: 'include' });
           if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
           const d = await res.json();
           if (!d.success) throw new Error(d.error || 'unknown error');
