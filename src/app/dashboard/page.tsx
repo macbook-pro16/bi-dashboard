@@ -471,7 +471,8 @@ function SlideshowWidgetContent({
   filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange,
   handleChartCrossFilter, filters, toggleCrossFilter, dateRange, editWidgets, layout,
   onChildSelect, todayDiffMap, availableFields,
-  allWidgetValues,  // ★ 追加
+  handleDiffFilter,  // ★ 追加
+  allWidgetValues,
 }: {
   widget: Widget;
   mode: 'view' | 'edit' | 'signage';
@@ -491,7 +492,9 @@ function SlideshowWidgetContent({
   onChildSelect?: (childId: string) => void;
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>;
   availableFields?: string[];
-  allWidgetValues?: Record<string, number>;  // ★ 追加
+  handleDiffFilter?: (ids: string[], label: string) => void;  // ★ 追加
+  handleDiffFilter?: (ids: string[], label: string) => void;  // ★ 追加
+  allWidgetValues?: Record<string, number>;
 }) {
   const dc = widget.dataConfig || ({} as DataConfig);
   const children = widget.children || [];
@@ -553,9 +556,9 @@ function SlideshowWidgetContent({
               layout,
               todayDiffMap,
               availableFields,
-              undefined,       // handleDiffFilter はここでは使わないので undefined
-              allWidgetValues, // ★ 追加
-            )}
+  handleDiffFilter, // ★ props から受け取ったものを渡す
+  allWidgetValues,
+)}
           </div>
         ))}
       </div>
@@ -671,8 +674,9 @@ function renderWidgetContent(
         onChildSelect={undefined}
         todayDiffMap={todayDiffMap}
         availableFields={availableFields}
-        allWidgetValues={allWidgetValues}  // ★ 追加
-      />
+        handleDiffFilter={handleDiffFilter}  // ★ 追加
+      allWidgetValues={allWidgetValues}
+    />
     );
   }
 
