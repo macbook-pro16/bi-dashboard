@@ -2405,24 +2405,6 @@ function DashboardInner() {
     return map;
   },[layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, applyGlobalNonDateFilters]);
 
-  const comparisonValues = useMemo(() => {
-    const map: Record<string, { sum: number; target: number }> = {};
-    layout.forEach(w => {
-      if (w.type !== 'comparison') return;
-      const dc = w.dataConfig;
-      if (!dc?.compareWidgetIds?.length) return;
-      const sum = dc.compareWidgetIds.reduce((acc, wid) => acc + (computedValues[wid] ?? 0), 0);
-      let target = 0;
-      if (dc.compareTargetType === 'fixed') {
-        target = dc.compareTarget ?? 0;
-      } else if (dc.compareTargetType === 'widget' && dc.compareTargetWidgetId) {
-        target = computedValues[dc.compareTargetWidgetId] ?? 0;
-      }
-      map[w.id] = { sum, target };
-    });
-    return map;
-  }, [layout, computedValues]);
-
   const computedPreviousValues = useMemo(()=>{
     const map:Record<string,number>={};
     if (!filters.dateRange.start || !filters.dateRange.end) return map;
