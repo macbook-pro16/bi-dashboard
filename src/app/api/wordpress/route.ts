@@ -2,26 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const postType = searchParams.get('type') || 'inventory'; // ★ stocks → inventory に変更
+  const postType = searchParams.get('type') || 'inventory';
   const wpBase = 'https://s-truck.co.jp';
 
   try {
-    const res = await fetch(
-      `${wpBase}/wp-json/wp/v2/${postType}?per_page=100&_embed`,
-      { headers: { 'Content-Type': 'application/json' } }
-    );
-    if (!res.ok) throw new Error(`WordPress API error: ${res.status}`);
+    let allPosts: any[] = [];
+    let page = 1;
+    let totalPages = 1;
+    const perPage = 100;
 
-    const posts = await res.json();
+    do {
+      const res = await fetch(
+        `${wpBase}/wp-json/wp/v2/${postType}?per_page=${perPage}&page=${page}&_embed`,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      if (!res.ok) break;
 
-    const items = posts.map((post: any) => ({
-  id: String(post.id),
-  title: post.title?.rendered || '',
-  status: post.status || '',
-  date: post.date?.slice(0, 10) || '',
-  // ACFフィールドを展開
-  ...(post.acf || {}),
-}));
+      const totalPagesHeader = res.headers.get('X-WP-TotalPages');
+      if (totalPagesHeader) totalPages = parseInt(totalPagesHeader, 10);
+
+      const pageData = await res.json();
+      allPosts = [...allPosts, ...pageData];
+      page++;
+    } while (page <= totalPages);
+
+    const items = allPosts.map((post: any) => ({
+      id: String(post.id),
+      title: post.title?.rendered || '',
+      status: post.status || '',
+      date: post.date?.slice(0, 10) || '',
+      ...(post.acf || {}),
+    }));
 
     return NextResponse.json({ success: true, data: items });
   } catch (error: any) {
