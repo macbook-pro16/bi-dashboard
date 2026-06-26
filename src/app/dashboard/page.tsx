@@ -104,6 +104,7 @@ const DATABASE_CONFIG = [
   { index: '005', name: '顧客DB' },
   { index: '006', name: '目標数値' },
   { index: 'wp_inventory', name: '在庫車両 (WP)' },
+  { index: 'wp_inventory_without_photo', name: '在庫車両 写真なし (WP)' },
 ];
 const BRAND_COLOR = '#e16b8c';
 const SCHEMA_VERSION = 4;
