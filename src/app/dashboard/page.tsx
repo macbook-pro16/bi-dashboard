@@ -2185,8 +2185,9 @@ function DashboardInner() {
     const check = (cond: { field: string; value: string; operator?: string }) => {
       const val = extractStringValue(item[cond.field]);
       if (cond.operator === 'empty') return !val || val === '' || val === 'undefined';
-      if (cond.operator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-      return val === cond.value;
+if (cond.operator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+if (cond.operator === 'neq') return val !== cond.value;
+return val === cond.value;
     };
     let result = check(conditions[0]);
     for (let i = 1; i < conditions.length; i++) {
@@ -2233,9 +2234,10 @@ function DashboardInner() {
           if (!dc.field) return true;
           const val = extractStringValue(item[dc.field]);
           if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
-          if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-          if (!dc.filterValue) return true;
-          return val === dc.filterValue;
+if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+if (!dc.filterValue) return true;
+if (dc.filterOperator === 'neq') return val !== dc.filterValue;
+return val === dc.filterValue;
         })();
         return passCross && passIndicator;
       });
@@ -2281,9 +2283,10 @@ function DashboardInner() {
               if (!dc.field) return true;
               const val = extractStringValue(item[dc.field!]);
               if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
-              if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-              if (!dc.filterValue) return true;
-              return val === dc.filterValue;
+if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+if (!dc.filterValue) return true;
+if (dc.filterOperator === 'neq') return val !== dc.filterValue;
+return val === dc.filterValue;
             })();
             return passCross && passIndicator;
           });
@@ -2315,9 +2318,10 @@ function DashboardInner() {
               if (!dc.field) return true;
               const val = extractStringValue(item[dc.field!]);
               if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
-              if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-              if (!dc.filterValue) return true;
-              return val === dc.filterValue;
+if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+if (!dc.filterValue) return true;
+if (dc.filterOperator === 'neq') return val !== dc.filterValue;
+return val === dc.filterValue;
             })();
             return passCross && passIndicator;
           });
@@ -2380,9 +2384,10 @@ function DashboardInner() {
             if (!dc.field) return true;
             const val = extractStringValue(item[dc.field!]);
             if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
-            if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-            if (!dc.filterValue) return true;
-            return val === dc.filterValue;
+if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+if (!dc.filterValue) return true;
+if (dc.filterOperator === 'neq') return val !== dc.filterValue;
+return val === dc.filterValue;
           })();
           return passCross && passIndicator;
         });
@@ -2414,9 +2419,10 @@ function DashboardInner() {
             if (!dc.field) return true;
             const val = extractStringValue(item[dc.field!]);
             if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
-            if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-            if (!dc.filterValue) return true;
-            return val === dc.filterValue;
+if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+if (!dc.filterValue) return true;
+if (dc.filterOperator === 'neq') return val !== dc.filterValue;
+return val === dc.filterValue;
           })();
           return passCross && passIndicator;
         });
@@ -2567,9 +2573,10 @@ function DashboardInner() {
           if (!dc.field) return true;
           const val = extractStringValue(item[dc.field]);
           if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
-          if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
-          if (!dc.filterValue) return true;
-          return val === dc.filterValue;
+if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+if (!dc.filterValue) return true;
+if (dc.filterOperator === 'neq') return val !== dc.filterValue;
+return val === dc.filterValue;
         })();
         return passCross && passIndicator;
       });
@@ -3457,8 +3464,9 @@ function DashboardInner() {
                 className="w-16 text-[10px] border border-slate-200 rounded px-1 py-1.5 bg-white outline-none shrink-0"
               >
                 <option value="eq">一致</option>
-                <option value="empty">空欄</option>
-                <option value="not_empty">空欄以外</option>
+<option value="neq">不一致</option>
+<option value="empty">空欄</option>
+<option value="not_empty">空欄以外</option>
               </select>
               {(!cond.operator || cond.operator === 'eq') && (
                 <div className="flex-1 min-w-0">
@@ -4209,9 +4217,10 @@ function DashboardInner() {
                                           onChange={e => updateSelectedDesign('dataConfig', { ...dc, filterOperator: e.target.value as any })}
                                           className="w-1/3 text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white outline-none shrink-0"
                                         >
-                                          <option value="eq">一致</option>
-                                          <option value="empty">空欄</option>
-                                          <option value="not_empty">空欄以外</option>
+                                         <option value="eq">一致</option>
+<option value="neq">不一致</option>
+<option value="empty">空欄</option>
+<option value="not_empty">空欄以外</option>
                                         </select>
                                         {(!dc.filterOperator || dc.filterOperator === 'eq') && (
                                           <div className="w-2/3">
@@ -5330,8 +5339,9 @@ function DashboardInner() {
                                                 className="w-16 text-[10px] border border-slate-200 rounded px-0.5 py-1.5 bg-white outline-none shrink-0"
                                               >
                                                 <option value="eq">一致</option>
-                                                <option value="empty">空欄</option>
-                                                <option value="not_empty">空欄外</option>
+<option value="neq">不一致</option>
+<option value="empty">空欄</option>
+<option value="not_empty">空欄以外</option>
                                               </select>
                                               {(!cond.operator || cond.operator === 'eq') && (
                                                 <div className="flex-1 min-w-0">
