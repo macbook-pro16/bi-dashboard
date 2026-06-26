@@ -15,12 +15,13 @@ export async function GET(request: NextRequest) {
     const posts = await res.json();
 
     const items = posts.map((post: any) => ({
-      id: String(post.id),
-      title: post.title?.rendered || '',
-      status: post.status || '',
-      date: post.date?.slice(0, 10) || '',
-      // カスタムフィールドがあれば取得（要WordPress側の設定）
-    }));
+  id: String(post.id),
+  title: post.title?.rendered || '',
+  status: post.status || '',
+  date: post.date?.slice(0, 10) || '',
+  // ACFフィールドを展開
+  ...(post.acf || {}),
+}));
 
     return NextResponse.json({ success: true, data: items });
   } catch (error: any) {
