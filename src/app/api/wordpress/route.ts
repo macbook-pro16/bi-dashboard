@@ -8,26 +8,54 @@ export async function GET(request: NextRequest) {
   try {
     // ★ 写真なし車両専用の処理（専用WordPressエンドポイントを使用）
     if (postType === 'inventory-without-photo') {
-      const res = await fetch(`${wpBase}/wp-json/custom/v1/inventory-photo-status`);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch photo status: ${res.status}`);
-      }
-      const allVehicles = await res.json(); // 全在庫車両とhas_photoフラグを返す
+  // 全在庫車両を取得（ページネーション）
+  let allVehicles: any[] = [];
+  let page = 1;
+  let totalPages = 1;
+  const perPage = 100;
+  do {
+    const res = await fetch(`${wpBase}/wp-json/wp/v2/inventory?per_page=${perPage}&page=${page}`);
+    if (!res.ok) break;
+    const totalPagesHeader = res.headers.get('X-WP-TotalPages');
+    if (totalPagesHeader) totalPages = parseInt(totalPagesHeader, 10);
+    const pageData = await res.json();
+    allVehicles = [...allVehicles, ...pageData];
+    page++;
+  } while (page <= totalPages);
 
-      // 写真がない車両だけを抽出
-      const vehiclesWithoutPhoto = allVehicles
-        .filter((vehicle: any) => vehicle.has_photo === false)
-        .map((vehicle: any) => ({
-          id: String(vehicle.id),
-          title: vehicle.title || '',
-          status: vehicle.status || '',
-          date: vehicle.date || '',
-          v_manage_id: vehicle.manage_id || '',
-          has_photo: vehicle.has_photo, // 念のため保持
-        }));
+  // 全メディアを取得（一度だけ）
+  let allMedia: { id: number; source_url: string }[] = [];
+  let mediaPage = 1;
+  let mediaTotalPages = 1;
+  do {
+    const mediaRes = await fetch(`${wpBase}/wp-json/wp/v2/media?per_page=100&page=${mediaPage}`);
+    if (!mediaRes.ok) break;
+    const totalHeader = mediaRes.headers.get('X-WP-TotalPages');
+    if (totalHeader) mediaTotalPages = parseInt(totalHeader, 10);
+    const mediaData = await mediaRes.json();
+    allMedia = [...allMedia, ...mediaData.map((m: any) => ({ id: m.id, source_url: m.source_url.toLowerCase() }))];
+    mediaPage++;
+  } while (mediaPage <= mediaTotalPages);
 
-      return NextResponse.json({ success: true, data: vehiclesWithoutPhoto });
-    }
+  // 各車両の管理番号がメディアのファイル名に含まれるかチェック
+  const vehiclesWithoutPhoto = allVehicles
+    .filter(vehicle => {
+      const manageId = vehicle.acf?.v_manage_id?.toString().toLowerCase();
+      if (!manageId) return false; // 管理番号なしはスキップ
+      // メディアのURLに管理番号が含まれていれば「写真あり」
+      const hasPhoto = allMedia.some(m => m.source_url.includes(`/${manageId}_`));
+      return !hasPhoto;
+    })
+    .map(vehicle => ({
+      id: String(vehicle.id),
+      title: vehicle.title?.rendered || '',
+      status: vehicle.status || '',
+      date: vehicle.date?.slice(0, 10) || '',
+      v_manage_id: vehicle.acf?.v_manage_id || '',
+    }));
+
+  return NextResponse.json({ success: true, data: vehiclesWithoutPhoto });
+}
 
     // ★ 通常の投稿タイプ（inventoryなど）の全件取得（既存の処理）
     let allPosts: any[] = [];
