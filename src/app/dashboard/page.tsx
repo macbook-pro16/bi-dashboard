@@ -471,6 +471,7 @@ function SlideshowWidgetContent({
   filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange,
   handleChartCrossFilter, filters, toggleCrossFilter, dateRange, editWidgets, layout,
   onChildSelect, todayDiffMap, availableFields,
+  allWidgetValues,  // ★ 追加
 }: {
   widget: Widget;
   mode: 'view' | 'edit' | 'signage';
@@ -490,6 +491,7 @@ function SlideshowWidgetContent({
   onChildSelect?: (childId: string) => void;
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>;
   availableFields?: string[];
+  allWidgetValues?: Record<string, number>;  // ★ 追加
 }) {
   const dc = widget.dataConfig || ({} as DataConfig);
   const children = widget.children || [];
@@ -551,6 +553,8 @@ function SlideshowWidgetContent({
               layout,
               todayDiffMap,
               availableFields,
+              undefined,       // handleDiffFilter はここでは使わないので undefined
+              allWidgetValues, // ★ 追加
             )}
           </div>
         ))}
@@ -582,6 +586,8 @@ function SlideshowWidgetContent({
         layout,
         todayDiffMap,
         availableFields,
+        handleDiffFilter,   // handleDiffFilter は props から渡す
+        allWidgetValues,    // ★ 追加
       )}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-30">
         {children.map((_, idx) => (
@@ -615,6 +621,7 @@ function renderWidgetContent(
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>,
   availableFields?: string[],
   handleDiffFilter?: (ids: string[], label: string) => void,
+  allWidgetValues?: Record<string, number>,  // ★ 追加
 ) {
   const dc = w.dataConfig || ({} as DataConfig);
   const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
@@ -664,6 +671,7 @@ function renderWidgetContent(
         onChildSelect={undefined}
         todayDiffMap={todayDiffMap}
         availableFields={availableFields}
+        allWidgetValues={allWidgetValues}  // ★ 追加
       />
     );
   }
@@ -855,13 +863,13 @@ function renderWidgetContent(
         </div>
       );
     }
-                    case 'comparison': {
+    case 'comparison': {
       const compDc = w.dataConfig || ({} as DataConfig);
       
       // ★ 全ページの値を参照するため allWidgetValues を使用
       const calcSum = (items: { widgetId: string; operator: 'plus' | 'minus' }[] | undefined) =>
         (items || []).reduce((sum, item) => {
-          const val = allWidgetValues[item.widgetId] ?? 0;
+          const val = allWidgetValues?.[item.widgetId] ?? 0;
           return item.operator === 'minus' ? sum - val : sum + val;
         }, 0);
       
@@ -948,6 +956,7 @@ function renderWidgetContent(
                     todayDiffMap,
                     availableFields,
                     handleDiffFilter,
+                    allWidgetValues,  // ★ 追加
                   )}
                 </WidgetErrorBoundary>
               </div>
@@ -990,6 +999,7 @@ function SignageView({
   todayDiffMap,
   availableFields,
   handleDiffFilter,
+  allWidgetValues,  // ★ 追加
 }: any) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -1213,7 +1223,7 @@ function SignageView({
             isSelected={false} onSelect={()=>{}} onSelectToggle={()=>{}} onResizeEnd={()=>{}} onChangeSize={()=>{}}
             computedValue={computedValues[w.id]} selectedCount={0}
           >
-            {renderWidgetContent(w, computedValues, computedTargetValues, computedPreviousValues, filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange, handleChartCrossFilter, filters, toggleCrossFilter, filters.dateRange, 'signage', undefined, undefined, todayDiffMap, availableFields, handleDiffFilter)}
+            {renderWidgetContent(w, computedValues, computedTargetValues, computedPreviousValues, filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange, handleChartCrossFilter, filters, toggleCrossFilter, filters.dateRange, 'signage', undefined, undefined, todayDiffMap, availableFields, handleDiffFilter, allWidgetValues)}
           </CanvasWidget>
         ))}
       </div>
@@ -2230,7 +2240,7 @@ function DashboardInner() {
     return map;
   }, [layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, applyGlobalNonDateFilters, extractStringValue]);
 
-  // ★★★ ここから追加 ★★★
+  // ★★★ allWidgetValues の定義 ★★★
   const allWidgetValues = useMemo(() => {
     const map: Record<string, number> = {};
     dashboards.forEach(page => {
@@ -3236,6 +3246,7 @@ function DashboardInner() {
       todayDiffMap={todayDiffByWidget}
       availableFields={availableFieldsBySource['001'] || []}
       handleDiffFilter={handleDiffFilter}
+      allWidgetValues={allWidgetValues}
     />
   );
 
@@ -3795,7 +3806,7 @@ function DashboardInner() {
             ) : (
               <DndContext id="canvas-dnd" sensors={canvasSensors} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
                 {layout.map((w, idx) => {
-                  const content = renderWidgetContent(w, computedValues, computedTargetValues, computedPreviousValues, filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange, handleChartCrossFilter, filters, toggleCrossFilter, filters.dateRange, mode, editWidgets, layout, todayDiffByWidget, availableFieldsBySource['001'] || [], handleDiffFilter);
+                  const content = renderWidgetContent(w, computedValues, computedTargetValues, computedPreviousValues, filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange, handleChartCrossFilter, filters, toggleCrossFilter, filters.dateRange, mode, editWidgets, layout, todayDiffByWidget, availableFieldsBySource['001'] || [], handleDiffFilter, allWidgetValues);
                   const flashClass = editModeFlash ? 'ring-1 ring-slate-300 transition-all duration-300' : '';
                   return (
                     <div key={w.id} className={flashClass}>
