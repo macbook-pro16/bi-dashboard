@@ -709,14 +709,60 @@ const handleScorecardClick = () => {
   }
 };
 
-return (
-  <div onClick={handleScorecardClick} style={{ cursor: 'pointer' }}>
-    <KpiWidget
-      value={val ?? 0}
-      ...
-    />
-  </div>
-);
+      // ★ 写真なし車両のデータをクリックでモーダル表示
+      const handleScorecardClick = () => {
+        if (mode !== 'view' && mode !== 'signage') return;
+        // 「在庫車両 写真なし (WP)」のデータを取得
+        const wpData = widgetFilteredData['wp_inventory_without_photo'] || [];
+        if (wpData.length > 0) {
+          setDrilldown({
+            field: 'タイトル',
+            value: '写真なし車両一覧',
+            widgetTitle: w.title,
+            data: wpData,
+          });
+        }
+      };
+
+      return (
+        <div onClick={handleScorecardClick} style={{ cursor: 'pointer' }}>
+          <KpiWidget
+            value={val ?? 0}
+            hideValue={isNone}
+            fontSize={w.fontSize}
+            label={w.title}
+            showTitle={w.showTitle !== false}
+            textAlign={w.textAlign}
+            textColor={w.textColor}
+            conditionalTextRules={dc.conditionalTextRules}
+            conditionalBgRules={dc.conditionalBgRules}
+            showTrendIcon={dc.showTrendIcon}
+            trendTarget={dc.trendTarget}
+            targetValue={dc.targetValue ?? w.targetValue}
+            previousValue={computedPreviousValues[w.id]}
+            showTodayValue={dc.showTodayValue}
+            colorDelta={dc.colorDelta}
+            colorDeltaMinus={dc.colorDeltaMinus}
+            titleFontSize={dc.titleFontSize}
+            titleColor={dc.titleColor}
+            titleAlign={dc.titleAlign}
+            titleX={dc.titleX}
+            titleY={dc.titleY}
+            valueX={dc.valueX}
+            valueY={dc.valueY}
+            todayFontSize={dc.todayFontSize}
+            todayX={dc.todayX}
+            todayY={dc.todayY}
+            addedX={dc.addedX}
+            addedY={dc.addedY}
+            removedX={dc.removedX}
+            removedY={dc.removedY}
+            todayDiff={dc.showTodayValue ? todayDiffMap?.[w.id] : undefined}
+            todayPopupFields={dc.todayPopupFields}
+            onDiffFilter={handleDiffFilter}
+          />
+        </div>
+      );
     }
     case 'gauge': {
       const actualValue = computedValues[w.id] ?? 0;
@@ -6126,7 +6172,7 @@ return val === dc.filterValue;
       ].map(s=><div key={s.key} className="flex justify-between items-center text-sm"><span className="font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md font-mono">{s.key}</span><span className="text-slate-500 font-medium">{s.desc}</span></div>)}</div><button onClick={()=>setShowShortcuts(false)} className="mt-8 w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-sm">閉じる</button></div></div>}
       {showTemplateGallery&&<TemplateGallery onSelect={handleTemplateSelect} onClose={()=>setShowTemplateGallery(false)}/>}
       <AiSummaryModal open={showAiSummary} onClose={()=>setShowAiSummary(false)} summary={aiSummary} />
-      {drilldown && <DrilldownModal open={!!drilldown} onClose={()=>setDrilldown(null)} title={drilldown.widgetTitle} data={activeFilteredData} filterField={drilldown.field} filterValue={drilldown.value} />}
+      {drilldown && <DrilldownModal open={!!drilldown} onClose={()=>setDrilldown(null)} title={drilldown.widgetTitle} data={drilldown.data ?? activeFilteredData} filterField={drilldown.field} filterValue={drilldown.value} />}
     </div>
   );
 }
