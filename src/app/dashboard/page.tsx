@@ -705,7 +705,7 @@ function renderWidgetContent(
       };
 
       return (
-        <div onClick={handleScorecardClick} style={{ cursor: 'pointer' }}>
+        <div onClick={handleScorecardClick} style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <KpiWidget
             value={val ?? 0}
             hideValue={isNone}
