@@ -710,7 +710,6 @@ const handleScorecardClick = () => {
 };
 
       // ★ 写真なし車両のデータをクリックでモーダル表示
-      const handleScorecardClick = () => {
         if (mode !== 'view' && mode !== 'signage') return;
         // 「在庫車両 写真なし (WP)」のデータを取得
         const wpData = widgetFilteredData['wp_inventory_without_photo'] || [];
