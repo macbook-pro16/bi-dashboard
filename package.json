@@ -2,7 +2,7 @@
   "name": "bi-pro",
   "version": "0.1.0",
   "private": true,
-    "scripts": {
+  "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -20,6 +20,7 @@
     "dotenv": "^17.4.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
+    "lucide-react": "^1.21.0",
     "mathjs": "^15.2.0",
     "next": "16.2.7",
     "next-auth": "^4.24.14",
