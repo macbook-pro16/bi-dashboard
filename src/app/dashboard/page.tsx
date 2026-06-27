@@ -685,7 +685,7 @@ function renderWidgetContent(
   const ds = filteredDataByIndex[srcIdx] || [];
 
   switch (w.type) {
-    case 'scorecard': {
+        case 'scorecard': {
       const val = computedValues[w.id];
       if (val === undefined && !isNone) {
         return (
@@ -694,32 +694,13 @@ function renderWidgetContent(
           </div>
         );
       }
-      // ★ 写真なし車両のデータをクリックでモーダル表示
-const handleScorecardClick = () => {
-  if (mode !== 'view' && mode !== 'signage') return;
-  // 「在庫車両 写真なし (WP)」データを取得
-  const wpData = filteredDataByIndex['wp_inventory_without_photo'] || [];
-  if (wpData.length > 0) {
-    setDrilldown({
-      field: 'タイトル',
-      value: '写真なし車両一覧',
-      widgetTitle: w.title,
-      data: wpData, // ここでカスタムデータを渡す
-    });
-  }
-};
 
-      // ★ 写真なし車両のデータをクリックでモーダル表示
+      // ★ クリックで写真なし車両一覧をモーダル表示
+      const handleScorecardClick = () => {
         if (mode !== 'view' && mode !== 'signage') return;
-        // 「在庫車両 写真なし (WP)」のデータを取得
-        const wpData = widgetFilteredData['wp_inventory_without_photo'] || [];
+        const wpData = filteredDataByIndex['wp_inventory_without_photo'] || [];
         if (wpData.length > 0) {
-          setDrilldown({
-            field: 'タイトル',
-            value: '写真なし車両一覧',
-            widgetTitle: w.title,
-            data: wpData,
-          });
+          handleChartCrossFilter('写真なし車両', String(wpData.length), w.title, wpData);
         }
       };
 
@@ -3079,10 +3060,10 @@ return val === dc.filterValue;
   },[dashboards,activePageIndex,canvasBgColor]);
 
   const statusOptions=useMemo(()=>[...new Set(activeFilteredData.map(d=>d.status))],[activeFilteredData]);
-  const handleChartCrossFilter=useCallback((field:string,value:string,widgetTitle?:string)=>{
-    toggleCrossFilter(field,value);
-    setDrilldown({field,value,widgetTitle:widgetTitle||field});
-  },[toggleCrossFilter]);
+  const handleChartCrossFilter=useCallback((field:string,value:string,widgetTitle?:string,data?:any[])=>{
+  toggleCrossFilter(field,value);
+  setDrilldown({field,value,widgetTitle:widgetTitle||field, data}); // ★ データを追加
+},[toggleCrossFilter]);
 
   const handleStatusChange = useCallback(async (itemId: string, newStatus: string, item: DBItem) => {
     const targetIndex = Object.keys(cacheStore).find(idx => cacheStore[idx]?.some(d => d.id === itemId));
