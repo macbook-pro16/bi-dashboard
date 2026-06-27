@@ -1,5 +1,5 @@
 // src/utils/dashboardUtils.ts
-import { Widget, WidgetType, DataConfig, DBItem, FilterCondition } from '../types';
+import { Widget, WidgetType, DataConfig, DBItem, FilterCondition, DashboardPage } from '../types';
 import { DEFAULT_FILTER_DATE_RANGE } from '../constants';
 
 export const BRAND_COLOR = '#e16b8c';
