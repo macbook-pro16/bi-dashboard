@@ -6,12 +6,11 @@ export async function GET(request: NextRequest) {
   const wpBase = 'https://s-truck.co.jp';
 
   try {
-    // 必ず動作する専用エンドポイントから全データを取得
-    const res = await fetch(`${wpBase}/wp-json/bi/v1/inventory`);
-    if (!res.ok) throw new Error('BI API error');
+    // ★ 常に bi-data.php から全データを取得（WordPress内部ルーティング不要）
+    const res = await fetch(`${wpBase}/bi-data.php`);
+    if (!res.ok) throw new Error('Failed to fetch bi-data');
     const allVehicles: any[] = await res.json();
 
-    // allVehicles には v_manage_id, v_price, has_photo などすべてが含まれる
     if (postType === 'inventory-without-photo') {
       const withoutPhoto = allVehicles.filter((v: any) => !v.has_photo);
       return NextResponse.json({ success: true, data: withoutPhoto });
