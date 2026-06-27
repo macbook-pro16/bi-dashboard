@@ -626,6 +626,7 @@ function renderWidgetContent(
   availableFields?: string[],
   handleDiffFilter?: (ids: string[], label: string) => void,
   allWidgetValues?: Record<string, number>,  // ★ 追加
+  onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[]) => void,
 ) {
   const dc = w.dataConfig || ({} as DataConfig);
   const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
@@ -693,43 +694,29 @@ function renderWidgetContent(
           </div>
         );
       }
-      return (
-        <KpiWidget
-          value={val ?? 0}
-          hideValue={isNone}
-          fontSize={w.fontSize}
-          label={w.title}
-          showTitle={w.showTitle !== false}
-          textAlign={w.textAlign}
-          textColor={w.textColor}
-          conditionalTextRules={dc.conditionalTextRules}
-          conditionalBgRules={dc.conditionalBgRules}
-          showTrendIcon={dc.showTrendIcon}
-          trendTarget={dc.trendTarget}
-          targetValue={dc.targetValue ?? w.targetValue}
-          previousValue={computedPreviousValues[w.id]}
-          showTodayValue={dc.showTodayValue}
-          colorDelta={dc.colorDelta}
-          colorDeltaMinus={dc.colorDeltaMinus}
-          titleFontSize={dc.titleFontSize}
-          titleColor={dc.titleColor}
-          titleAlign={dc.titleAlign}
-          titleX={dc.titleX}
-          titleY={dc.titleY}
-          valueX={dc.valueX}
-          valueY={dc.valueY}
-          todayFontSize={dc.todayFontSize}
-          todayX={dc.todayX}
-          todayY={dc.todayY}
-          addedX={dc.addedX}
-          addedY={dc.addedY}
-          removedX={dc.removedX}
-          removedY={dc.removedY}
-          todayDiff={dc.showTodayValue ? todayDiffMap?.[w.id] : undefined}
-          todayPopupFields={dc.todayPopupFields}
-          onDiffFilter={handleDiffFilter}
-        />
-      );
+      // ★ 写真なし車両のデータをクリックでモーダル表示
+const handleScorecardClick = () => {
+  if (mode !== 'view' && mode !== 'signage') return;
+  // 「在庫車両 写真なし (WP)」データを取得
+  const wpData = filteredDataByIndex['wp_inventory_without_photo'] || [];
+  if (wpData.length > 0) {
+    setDrilldown({
+      field: 'タイトル',
+      value: '写真なし車両一覧',
+      widgetTitle: w.title,
+      data: wpData, // ここでカスタムデータを渡す
+    });
+  }
+};
+
+return (
+  <div onClick={handleScorecardClick} style={{ cursor: 'pointer' }}>
+    <KpiWidget
+      value={val ?? 0}
+      ...
+    />
+  </div>
+);
     }
     case 'gauge': {
       const actualValue = computedValues[w.id] ?? 0;
@@ -1228,20 +1215,20 @@ function SignageView({
             isSelected={false} onSelect={()=>{}} onSelectToggle={()=>{}} onResizeEnd={()=>{}} onChangeSize={()=>{}}
             computedValue={computedValues[w.id]} selectedCount={0}
           >
-            {renderWidgetContent(w, computedValues, computedTargetValues, computedPreviousValues, filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange, handleChartCrossFilter, filters, toggleCrossFilter, filters.dateRange, 'signage', undefined, undefined, todayDiffMap, availableFields, handleDiffFilter, allWidgetValues)}
+            {renderWidgetContent(w, computedValues, computedTargetValues, computedPreviousValues, filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange, handleChartCrossFilter, filters, toggleCrossFilter, filters.dateRange, 'signage', undefined, undefined, todayDiffMap, availableFields, handleDiffFilter, allWidgetValues, setDrilldown)}
           </CanvasWidget>
         ))}
       </div>
       {drilldown && (
-        <DrilldownModal
-          open={!!drilldown}
-          onClose={() => setDrilldown(null)}
-          title={drilldown.widgetTitle}
-          data={filteredDataByIndex['001'] || []}
-          filterField={drilldown.field}
-          filterValue={drilldown.value}
-        />
-      )}
+  <DrilldownModal
+    open={!!drilldown}
+    onClose={() => setDrilldown(null)}
+    title={drilldown.widgetTitle}
+    data={drilldown.data ?? activeFilteredData} // ★ カスタムデータがあればそれを渡す
+    filterField={drilldown.field}
+    filterValue={drilldown.value}
+  />
+)}
     </div>
   );
 }
@@ -1733,7 +1720,12 @@ function DashboardInner() {
   const [refreshInterval, setRefreshInterval] = useState(300000);
   const [aiSummary, setAiSummary] = useState('');
   const [showAiSummary, setShowAiSummary] = useState(false);
-  const [drilldown, setDrilldown] = useState<{ field: string; value: string; widgetTitle: string } | null>(null);
+  const [drilldown, setDrilldown] = useState<{
+  field: string;
+  value: string;
+  widgetTitle: string;
+  data?: any[]; // ★ WordPressデータを直接渡せるようにする
+} | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showAiDrawer, setShowAiDrawer] = useState(false);
   const [canvasBgColor, setCanvasBgColor] = useState('#ffffff');
