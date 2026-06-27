@@ -12,7 +12,6 @@ import { DEFAULT_FILTER_DATE_RANGE } from '../../constants';
 import { useFilter } from '../../contexts/FilterContext';
 import Icons from '../Icons';
 import DrilldownModal from '../DrilldownModal';
-import CanvasWidget from './CanvasWidget';
 import { renderWidgetContent } from './renderWidgetContent';
 
 interface SignageViewProps {
@@ -41,6 +40,7 @@ interface SignageViewProps {
   availableFields?: string[];
   handleDiffFilter?: (ids: string[], label: string) => void;
   allWidgetValues?: Record<string, number>;
+  CanvasWidgetComponent: React.ComponentType<any>;  // ★ これを追加
 }
 
 export default function SignageView({
@@ -69,6 +69,7 @@ export default function SignageView({
   availableFields,
   handleDiffFilter,
   allWidgetValues,
+  CanvasWidgetComponent,
 }: SignageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -350,21 +351,21 @@ export default function SignageView({
           })}
         </svg>
         {layout.map((w: Widget, idx: number) => (
-          <CanvasWidget
-            key={w.id}
-            widget={w}
-            isEditMode={false}
-            isSignageMode={true}
-            zoom={scale}
-            zIndex={idx}
-            isSelected={false}
-            onSelect={() => {}}
-            onSelectToggle={() => {}}
-            onResizeEnd={() => {}}
-            onChangeSize={() => {}}
-            computedValue={computedValues[w.id]}
-            selectedCount={0}
-          >
+          <CanvasWidgetComponent
+  key={w.id}
+  widget={w}
+  isEditMode={false}
+  isSignageMode={true}
+  zoom={scale}
+  zIndex={idx}
+  isSelected={false}
+  onSelect={() => {}}
+  onSelectToggle={() => {}}
+  onResizeEnd={() => {}}
+  onChangeSize={() => {}}
+  computedValue={computedValues[w.id]}
+  selectedCount={0}
+>
             {renderWidgetContent(
               w,
               computedValues,
@@ -387,7 +388,7 @@ export default function SignageView({
               allWidgetValues,
               setDrilldown,
             )}
-          </CanvasWidget>
+         </CanvasWidgetComponent>
         ))}
       </div>
       {drilldown && (

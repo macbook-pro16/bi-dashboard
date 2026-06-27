@@ -2293,34 +2293,35 @@ function DashboardInner() {
   }
 
   if(mode==='signage') return (
-    <SignageView
-      layout={layout}
-      computedValues={computedValues}
-      computedTargetValues={computedTargetValues}
-      computedPreviousValues={computedPreviousValues}
-      filteredDataByIndex={filteredDataByIndex}
-      statusOptions={statusOptions}
-      onExit={() => setMode('view')}
-      handleStatusChange={handleStatusChange}
-      filters={filters}
-      widgetFilteredData={widgetFilteredData}
-      handleChartCrossFilter={handleChartCrossFilter}
-      toggleCrossFilter={toggleCrossFilter}
-      pagesCount={eligiblePageCount}
-      onNextPage={handleSignageNextPage}
-      onPrevPage={handleSignagePrevPage}
-      currentPageDisplayIndex={currentPageDisplayIndex}
-      annotations={annotations}
-      canvasBgColor={canvasBgColor}
-      drilldown={drilldown}
-      setDrilldown={setDrilldown}
-      signageInterval={signageInterval}
-      todayDiffMap={todayDiffByWidget}
-      availableFields={availableFieldsBySource['001'] || []}
-      handleDiffFilter={handleDiffFilter}
-      allWidgetValues={allWidgetValues}
-    />
-  );
+  <SignageView
+    layout={layout}
+    computedValues={computedValues}
+    computedTargetValues={computedTargetValues}
+    computedPreviousValues={computedPreviousValues}
+    filteredDataByIndex={filteredDataByIndex}
+    statusOptions={statusOptions}
+    onExit={() => setMode('view')}
+    handleStatusChange={handleStatusChange}
+    filters={filters}
+    widgetFilteredData={widgetFilteredData}
+    handleChartCrossFilter={handleChartCrossFilter}
+    toggleCrossFilter={toggleCrossFilter}
+    pagesCount={eligiblePageCount}
+    onNextPage={handleSignageNextPage}
+    onPrevPage={handleSignagePrevPage}
+    currentPageDisplayIndex={currentPageDisplayIndex}
+    annotations={annotations}
+    canvasBgColor={canvasBgColor}
+    drilldown={drilldown}
+    setDrilldown={setDrilldown}
+    signageInterval={signageInterval}
+    todayDiffMap={todayDiffByWidget}
+    availableFields={availableFieldsBySource['001'] || []}
+    handleDiffFilter={handleDiffFilter}
+    allWidgetValues={allWidgetValues}
+    CanvasWidgetComponent={CanvasWidget}  // ★ これを追加
+  />
+);
 
   function getOrthogonalPath(x1: number, y1: number, x2: number, y2: number): string {
     const dx = x2 - x1;
