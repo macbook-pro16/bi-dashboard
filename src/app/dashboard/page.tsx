@@ -1247,13 +1247,13 @@ function SignageView({
       </div>
       {drilldown && (
   <DrilldownModal
-    open={!!drilldown}
-    onClose={() => setDrilldown(null)}
-    title={drilldown.widgetTitle}
-    data={drilldown.data ?? activeFilteredData} // ★ カスタムデータがあればそれを渡す
-    filterField={drilldown.field}
-    filterValue={drilldown.value}
-  />
+  open={!!drilldown}
+  onClose={() => setDrilldown(null)}
+  title={drilldown.widgetTitle}
+  data={drilldown.data ?? filteredDataByIndex['001']}  // ★ これに変更（SignageView 内では filteredDataByIndex が使える）
+  filterField={drilldown.field}
+  filterValue={drilldown.value}
+/>
 )}
     </div>
   );
