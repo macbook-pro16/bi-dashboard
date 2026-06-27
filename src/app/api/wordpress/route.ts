@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const wpBase = 'https://s-truck.co.jp';
 
   try {
-    // ★ 常に bi-data.php から全データを取得（WordPress内部ルーティング不要）
+    // bi-data.php から全データを取得（WordPress REST API 不使用）
     const res = await fetch(`${wpBase}/bi-data.php`);
     if (!res.ok) throw new Error('Failed to fetch bi-data');
     const allVehicles: any[] = await res.json();
