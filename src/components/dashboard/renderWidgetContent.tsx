@@ -9,7 +9,7 @@ import {
   WidgetType,
   ShapeType,
 } from '../../types';
-import { resolveDateFilterField } from '../../utils/dashboardUtils';
+import { resolveDateFilterField, extractStringValue, evaluateConditions } from '../../utils/dashboardUtils';
 import Icons from '../Icons';
 import TableWidget from '../TableWidget';
 import KpiWidget from '../KpiWidget';
@@ -267,7 +267,7 @@ export function renderWidgetContent(
   const ds = filteredDataByIndex[srcIdx] || [];
 
   switch (w.type) {
-    case 'scorecard': {
+        case 'scorecard': {
       const val = computedValues[w.id];
       if (val === undefined && !isNone) {
         return (
@@ -277,6 +277,7 @@ export function renderWidgetContent(
         );
       }
 
+      // ★ 既存の特殊ケース（写真なし車両）用のクリックハンドラ（外側のdiv用）
       const handleScorecardClick = () => {
         if (mode !== 'view' && mode !== 'signage') return;
         const wpData = filteredDataByIndex['wp_inventory_without_photo'] || [];
@@ -285,18 +286,80 @@ export function renderWidgetContent(
         }
       };
 
+      // ★ 新規：メイン数値クリック時のドリルダウンハンドラ
+      const handleMainValueClick = () => {
+        if (mode !== 'view' && mode !== 'signage') return;
+        if (!onDrilldown) return;
+
+        // データソースとフィルター条件を取得
+        const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
+        const allSrc = filteredDataByIndex[srcIdx] || [];
+        const dateField = resolveDateFilterField(w);
+        const dateFilter = dc.dateFilter ?? 'range';
+        const { start, end } = dateRange;
+
+        // 日付フィルタリング
+        let baseData = allSrc;
+        if (dateFilter === 'range') {
+          baseData = allSrc.filter((item) => {
+            const d = item[dateField];
+            if (!d) return false;
+            return d >= start && d <= end;
+          });
+        } else if (dateFilter === 'today') {
+          const todayStr = new Date().toISOString().split('T')[0];
+          baseData = allSrc.filter((item) => item[dateField] === todayStr);
+        }
+
+        // グローバルフィルター（ステータス・クロスフィルター）を適用
+        const applyGlobalFilters = (data: DBItem[]) => {
+          return data.filter((item) => {
+            if (filters.statuses && filters.statuses.length > 0) {
+              if (!filters.statuses.includes(item.status)) return false;
+            }
+                    if (filters.crossFilters) {
+          for (const [field, values] of Object.entries(filters.crossFilters)) {
+            const valuesArray = values as string[];  // ★ キャスト
+            if (valuesArray && valuesArray.length > 0) {
+              const val = extractStringValue(item[field]);
+              if (!valuesArray.includes(val)) return false;
+            }
+          }
+        }
+            return true;
+          });
+        };
+        const crossFiltered = applyGlobalFilters(baseData);
+
+        // クロスフィルター条件（ウィジェット固有）を適用
+        const conditions = dc.filterConditions || [];
+        const logic = dc.conditionLogic || 'and';
+        const filteredByConditions = crossFiltered.filter((item) => {
+          const passCross = evaluateConditions(item, conditions, logic);
+          // 指標フィールドのフィルター（dc.field と dc.filterValue）
+          const passIndicator = (() => {
+            if (!dc.field) return true;
+            const val = extractStringValue(item[dc.field]);
+            if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
+            if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+            if (!dc.filterValue) return true;
+            if (dc.filterOperator === 'neq') return val !== dc.filterValue;
+            return val === dc.filterValue;
+          })();
+          return passCross && passIndicator;
+        });
+
+        // ドリルダウンモーダルを開く
+        onDrilldown(
+          'スコアカード詳細',
+          `${w.title} (${filteredByConditions.length}件)`,
+          w.title,
+          filteredByConditions
+        );
+      };
+
       return (
-        <div
-          onClick={handleScorecardClick}
-          style={{
-            cursor: 'pointer',
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
+        <div onClick={handleScorecardClick} style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <KpiWidget
             value={val ?? 0}
             hideValue={isNone}
@@ -331,6 +394,7 @@ export function renderWidgetContent(
             todayDiff={dc.showTodayValue ? todayDiffMap?.[w.id] : undefined}
             todayPopupFields={dc.todayPopupFields}
             onDiffFilter={handleDiffFilter}
+            onClick={handleMainValueClick}  // ★ 追加
           />
         </div>
       );

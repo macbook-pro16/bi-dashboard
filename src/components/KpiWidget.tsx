@@ -42,6 +42,7 @@ interface KpiWidgetProps {
   };
   todayPopupFields?: string[];
   onDiffFilter?: (ids: string[], label: string) => void;
+  onClick?: () => void;
 }
 
 // ... すべてのヘルパー関数（extractFileUrls, formatRelationValue, isImageUrl, Popup, NotionImage）は前回同様です（省略なし）
@@ -252,6 +253,7 @@ export default function KpiWidget({
   valueX, valueY, todayFontSize, todayX, todayY,
   addedX, addedY, removedX, removedY,
   todayDiff, todayPopupFields, onDiffFilter,
+  onClick,  // ★ 追加
 }: KpiWidgetProps) {
   const [hoveredSection, setHoveredSection] = useState<'added' | 'removed' | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
@@ -465,7 +467,9 @@ export default function KpiWidget({
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
+            cursor: onClick ? 'pointer' : 'default',  // ★ 追加
           }}
+          onClick={onClick}  // ★ 追加
         >
           <span
             style={{
