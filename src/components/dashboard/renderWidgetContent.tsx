@@ -347,15 +347,12 @@ export function renderWidgetContent(
           ? dc.drilldownFields
           : undefined;
 
-        // ★★★ 画像取得ロジック（デバッグコード付き） ★★★
+                // ★★★ 画像取得ロジック（修正版） ★★★
         const wpData = filteredDataByIndex['wp_inventory'] || [];
         let images: string[] = [];
 
         const manageIdCandidates = ['v_manage_id', '管理番号', 'manage_id', 'vehicle_id'];
         let manageId: string | null = null;
-
-        // ★ デバッグ1: フィルタリング結果の最初のアイテムを確認
-        console.log('=== DEBUG: filteredByConditions[0] ===', filteredByConditions[0]);
 
         if (filteredByConditions.length > 0) {
           const firstItem = filteredByConditions[0];
@@ -375,49 +372,33 @@ export function renderWidgetContent(
           }
         }
 
-        // ★ デバッグ2: 抽出した管理番号を確認
-        console.log('=== DEBUG: manageId ===', manageId);
+        // ★ デバッグ：wpData の最初の3件と、v_manage_id の一覧を表示
+        console.log('=== DEBUG: wpData sample (first 3) ===', wpData.slice(0, 3));
+        console.log('=== DEBUG: wpData v_manage_id list ===', wpData.map((item: any) => item['v_manage_id']));
+        console.log('=== DEBUG: searching for manageId ===', manageId);
 
+        // ★ manageId が null でない場合のみ検索
         if (manageId) {
-          // ★ 管理番号から英字を除去（数字だけの比較用）
-          const numericManageId = manageId.replace(/[^0-9]/g, '');
-
           const matchedWp = wpData.find((item: any) => {
-            // 候補フィールドで完全一致を試す
             for (const candidate of manageIdCandidates) {
               if (String(item[candidate]) === manageId) {
                 return true;
               }
             }
-            // 数字だけの比較（英字を除去して比較）
-            for (const candidate of manageIdCandidates) {
-              if (String(item[candidate]).replace(/[^0-9]/g, '') === numericManageId) {
-                return true;
-              }
-            }
-            // フォールバック：部分一致
-            const stringifiedItem = JSON.stringify(item);
-            if (stringifiedItem.includes(manageId as string) || stringifiedItem.includes(numericManageId)) {
-              return true;
-            }
             return false;
           });
-
-          // ★ デバッグ3: マッチしたWPデータを確認
           console.log('=== DEBUG: matchedWp ===', matchedWp);
-
           if (matchedWp && Array.isArray(matchedWp.images)) {
             images = matchedWp.images;
           }
         }
 
-        // ★ フォールバック：一致しなかった場合、wpData の最初の画像を使用（警告付き）
+        // ★ フォールバック：一致するWPデータがない場合は、wpDataの最初の画像を使用
         if (images.length === 0 && wpData.length > 0 && Array.isArray(wpData[0].images)) {
           images = wpData[0].images;
-          console.warn('⚠️ 管理番号に一致するWPデータがありません。フォールバックとして最初の車両の画像を使用します。');
+          console.warn('⚠️ フォールバック：最初の車両の画像を使用します');
         }
 
-        // ★ デバッグ4: 最終的な images を確認
         console.log('=== DEBUG: images (before onDrilldown) ===', images);
 
         onDrilldown(
