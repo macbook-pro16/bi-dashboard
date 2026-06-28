@@ -349,9 +349,9 @@ export function renderWidgetContent(
           return passCross && passIndicator;
         });
 
-        // ★ ドリルダウン表示カラム：todayPopupFields があればそれを使う
-const drilldownColumns = dc.todayPopupFields && dc.todayPopupFields.length > 0
-  ? dc.todayPopupFields
+        // ★ ドリルダウン表示カラム：drilldownFields があればそれを使う
+const drilldownColumns = dc.drilldownFields && dc.drilldownFields.length > 0
+  ? dc.drilldownFields
   : undefined;  // 未指定の場合は DrilldownModal が全フィールドを表示
 
 onDrilldown(

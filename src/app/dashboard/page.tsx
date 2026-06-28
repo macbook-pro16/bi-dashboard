@@ -4230,6 +4230,54 @@ function DashboardInner() {
                                   </div>
                                 )}
                               </div>
+                                                              {/* ★ ドリルダウン表示フィールド（独立） */}
+                                {activeEditorWidget.type === 'scorecard' && (
+                                  <div className="space-y-2 pt-3 border-t border-slate-100">
+                                    <label className="text-xs font-bold text-slate-700">🔍 ドリルダウン表示フィールド（最大10件）</label>
+                                    <p className="text-[10px] text-slate-400">メイン数値クリック時に表示するフィールド（未設定の場合は全フィールド）</p>
+                                    {[0,1,2,3,4,5,6,7,8,9].map(idx => {
+                                      const currentFields = activeEditorWidget.dataConfig?.drilldownFields || [];
+                                      const srcIdx = activeEditorWidget.dataConfig?.sourceIndex || '001';
+                                      const allFields = availableFieldsBySource[srcIdx] || [];
+                                      return (
+                                        <div key={idx} className="flex items-center gap-2">
+                                          <span className="text-[10px] text-slate-400 w-4">{idx+1}</span>
+                                          <div className="flex-1">
+                                            <SelectWithSearch
+                                              options={allFields}
+                                              value={currentFields[idx] || ''}
+                                              onChange={v => {
+                                                const updated = [...currentFields];
+                                                if (v) { updated[idx] = v; } else { updated.splice(idx, 1); }
+                                                const filtered = updated.filter(Boolean).slice(0, 10);
+                                                updateSelectedDesign('dataConfig', { 
+                                                  ...activeEditorWidget.dataConfig, 
+                                                  drilldownFields: filtered.length > 0 ? filtered : undefined 
+                                                });
+                                              }}
+                                              placeholder="未設定"
+                                            />
+                                          </div>
+                                          {(activeEditorWidget.dataConfig?.drilldownFields || [])[idx] && (
+                                            <button 
+                                              onClick={() => { 
+                                                const updated = [...(activeEditorWidget.dataConfig?.drilldownFields || [])]; 
+                                                updated.splice(idx, 1); 
+                                                updateSelectedDesign('dataConfig', { 
+                                                  ...activeEditorWidget.dataConfig, 
+                                                  drilldownFields: updated.length > 0 ? updated : undefined 
+                                                }); 
+                                              }} 
+                                              className="text-slate-400 hover:text-rose-500 p-1"
+                                            >
+                                              <Icons.X className="w-3 h-3"/>
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
 
                               <div className="space-y-3 pt-4 border-t border-slate-100">
                                 <label className="text-xs font-bold text-slate-700">🎨 条件付き文字色</label>

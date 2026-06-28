@@ -122,7 +122,8 @@ export interface DataConfig {
   comboDateField?: string;
   comboLineDateField?: string;
 
-  todayPopupFields?: string[];
+    todayPopupFields?: string[];
+  drilldownFields?: string[];  // ★ 追加：ドリルダウン表示フィールド（独立）
 
   compareWidgetIds?: string[];      // 合計するスコアカードのIDリスト
   compareTargetType?: 'fixed' | 'widget'; // 比較対象：固定値 or 別ウィジェット

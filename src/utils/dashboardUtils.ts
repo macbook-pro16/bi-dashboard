@@ -38,6 +38,7 @@ export function defaultDataConfig(type: WidgetType): DataConfig {
     base.conditionalTextRules = [];
     base.conditionalBgRules = [];
     base.showTodayValue = false;
+    base.drilldownFields = [];
   } else if (type === 'table-details') {
     base.scoreDateField = 'date';
     base.dateFilterField = 'date';
