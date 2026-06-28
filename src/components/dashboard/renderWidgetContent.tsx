@@ -286,7 +286,7 @@ export function renderWidgetContent(
       };
 
       // ★ 新規：メイン数値クリック時のドリルダウンハンドラ（画像対応版）
-            const handleMainValueClick = () => {
+                  const handleMainValueClick = () => {
         if (mode !== 'view' && mode !== 'signage') return;
         if (!onDrilldown) return;
 
@@ -313,15 +313,15 @@ export function renderWidgetContent(
             if (filters.statuses && filters.statuses.length > 0) {
               if (!filters.statuses.includes(item.status)) return false;
             }
-                    if (filters.crossFilters) {
-          for (const [field, values] of Object.entries(filters.crossFilters)) {
-            const valuesArray = values as string[];
-            if (valuesArray && valuesArray.length > 0) {
-              const val = extractStringValue(item[field]);
-              if (!valuesArray.includes(val)) return false;
+            if (filters.crossFilters) {
+              for (const [field, values] of Object.entries(filters.crossFilters)) {
+                const valuesArray = values as string[];
+                if (valuesArray && valuesArray.length > 0) {
+                  const val = extractStringValue(item[field]);
+                  if (!valuesArray.includes(val)) return false;
+                }
+              }
             }
-          }
-        }
             return true;
           });
         };
@@ -347,12 +347,15 @@ export function renderWidgetContent(
           ? dc.drilldownFields
           : undefined;
 
-        // ★★★ 画像取得ロジック（強化版） ★★★
+        // ★★★ 画像取得ロジック（デバッグコード付き） ★★★
         const wpData = filteredDataByIndex['wp_inventory'] || [];
         let images: string[] = [];
 
         const manageIdCandidates = ['v_manage_id', '管理番号', 'manage_id', 'vehicle_id'];
         let manageId: string | null = null;
+
+        // ★ デバッグ1: フィルタリング結果の最初のアイテムを確認
+        console.log('=== DEBUG: filteredByConditions[0] ===', filteredByConditions[0]);
 
         if (filteredByConditions.length > 0) {
           const firstItem = filteredByConditions[0];
@@ -372,6 +375,9 @@ export function renderWidgetContent(
           }
         }
 
+        // ★ デバッグ2: 抽出した管理番号を確認
+        console.log('=== DEBUG: manageId ===', manageId);
+
         if (manageId) {
           const matchedWp = wpData.find((item: any) => {
             for (const candidate of manageIdCandidates) {
@@ -381,10 +387,15 @@ export function renderWidgetContent(
             }
             return false;
           });
+          // ★ デバッグ3: マッチしたWPデータを確認
+          console.log('=== DEBUG: matchedWp ===', matchedWp);
           if (matchedWp && Array.isArray(matchedWp.images)) {
             images = matchedWp.images;
           }
         }
+
+        // ★ デバッグ4: 最終的な images を確認
+        console.log('=== DEBUG: images (before onDrilldown) ===', images);
 
         onDrilldown(
           undefined as any,

@@ -75,6 +75,9 @@ export default function DrilldownModal({
 
   if (!open) return null;
 
+  // ★ デバッグ：DrilldownModal が受け取った images を確認
+  console.log('=== DEBUG: DrilldownModal received images ===', images);
+
   const filtered = data.filter(item => {
     let matches = true;
     if (filterField && filterValue) {
@@ -171,10 +174,15 @@ export default function DrilldownModal({
           </button>
         </div>
 
-        {/* 画像ギャラリー（横スクロール） */}
+        {/* ★ デバッグ：画像数の表示 */}
+        <div className="text-xs text-slate-400 mb-2">
+          画像数: {images.length} 枚
+        </div>
+
+        {/* 画像ギャラリー */}
         {images.length > 0 && (
           <div className="mb-4">
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300">
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {images.slice(0, 9).map((url, idx) => (
                 <div
                   key={idx}
@@ -186,7 +194,10 @@ export default function DrilldownModal({
                     alt={`画像 ${idx + 1}`}
                     className="w-full h-full object-cover"
                     loading="lazy"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    onError={(e) => {
+                      console.error('画像読み込みエラー:', url);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
                 </div>
               ))}
@@ -259,7 +270,10 @@ export default function DrilldownModal({
               src={images[selectedImage]}
               alt={`画像 ${selectedImage + 1}`}
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              onError={(e) => {
+                console.error('Lightbox画像読み込みエラー:', images[selectedImage]);
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
             />
             <button
               className="absolute top-4 right-4 text-white text-3xl hover:text-slate-300 transition-colors"
