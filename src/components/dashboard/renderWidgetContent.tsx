@@ -347,7 +347,7 @@ export function renderWidgetContent(
           ? dc.drilldownFields
           : undefined;
 
-        // ★★★ 画像取得ロジック（デバッグコード付き） ★★★
+                // ★★★ 画像取得ロジック（修正版：データ欠落に対応） ★★★
         const wpData = filteredDataByIndex['wp_inventory'] || [];
         let images: string[] = [];
 
@@ -379,11 +379,18 @@ export function renderWidgetContent(
         console.log('=== DEBUG: manageId ===', manageId);
 
         if (manageId) {
+          // ★ 修正点1: 管理番号が完全一致しなくても、wpData 内のいずれかのフィールドに含まれているかチェック
           const matchedWp = wpData.find((item: any) => {
+            // まずは候補フィールドで完全一致を試す
             for (const candidate of manageIdCandidates) {
               if (String(item[candidate]) === manageId) {
                 return true;
               }
+            }
+            // ★ 修正点2: それでも見つからない場合は、全フィールドを文字列検索
+            const stringifiedItem = JSON.stringify(item);
+            if (stringifiedItem.includes(manageId as string)) {
+              return true;
             }
             return false;
           });
@@ -391,6 +398,12 @@ export function renderWidgetContent(
           console.log('=== DEBUG: matchedWp ===', matchedWp);
           if (matchedWp && Array.isArray(matchedWp.images)) {
             images = matchedWp.images;
+          } else {
+            // ★ 修正点3: マッチしなかった場合のフォールバック（wp_inventory の最初のデータから images を取得）
+            console.warn('⚠️ 管理番号に一致するWPデータがありません。フォールバックとして最初の車両の画像を使用します。');
+            if (wpData.length > 0 && Array.isArray(wpData[0].images)) {
+              images = wpData[0].images;
+            }
           }
         }
 
