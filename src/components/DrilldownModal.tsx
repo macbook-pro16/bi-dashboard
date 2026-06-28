@@ -179,14 +179,14 @@ export default function DrilldownModal({
           画像数: {images.length} 枚
         </div>
 
-        {/* 画像ギャラリー */}
+                {/* 画像ギャラリー（グリッド表示） */}
         {images.length > 0 && (
           <div className="mb-4">
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 gap-2">
               {images.slice(0, 9).map((url, idx) => (
                 <div
                   key={idx}
-                  className="flex-shrink-0 w-28 h-28 rounded-xl overflow-hidden shadow-md border-2 border-slate-200 cursor-pointer hover:shadow-lg hover:border-indigo-400 transition-all duration-200"
+                  className="aspect-square rounded-lg overflow-hidden shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all duration-200"
                   onClick={() => setSelectedImage(idx)}
                 >
                   <img

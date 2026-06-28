@@ -401,12 +401,6 @@ export function renderWidgetContent(
           }
         }
 
-        // ★ フォールバック：一致するWPデータがない場合は、wpDataの最初の画像を使用
-        if (images.length === 0 && wpData.length > 0 && Array.isArray(wpData[0].images)) {
-          images = wpData[0].images;
-          console.warn('⚠️ フォールバック：最初の車両の画像を使用します');
-        }
-
         console.log('=== DEBUG: images (before onDrilldown) ===', images);
 
         onDrilldown(
