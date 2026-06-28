@@ -401,16 +401,34 @@ export function renderWidgetContent(
           }
         }
 
-        console.log('=== DEBUG: images (before onDrilldown) ===', images);
+        // ★ filteredByConditions の各行に wp_inventory の images を紐付ける
+const enrichedData = filteredByConditions.map(item => {
+  // すでに images を持っていればそのまま
+  if (Array.isArray(item.images) && item.images.length > 0) return item;
 
-        onDrilldown(
-          undefined as any,
-          undefined as any,
-          w.title,
-          filteredByConditions,
-          drilldownColumns,
-          images,
-        );
+  // v_manage_id などで wp_inventory を検索して images を付与
+  let itemManageId: string | null = null;
+  for (const candidate of manageIdCandidates) {
+    if (item[candidate]) { itemManageId = String(item[candidate]); break; }
+  }
+  if (!itemManageId) return item;
+
+  const matched = wpData.find((wp: any) =>
+    manageIdCandidates.some(c => String(wp[c]) === itemManageId)
+  );
+  return (matched && Array.isArray(matched.images) && matched.images.length > 0)
+    ? { ...item, images: matched.images }
+    : item;
+});
+
+onDrilldown(
+  undefined as any,
+  undefined as any,
+  w.title,
+  enrichedData,  // ★ images付きデータ
+  drilldownColumns,
+  [],            // ★ images propは不要になったので空配列
+);
       };
 
       return (
