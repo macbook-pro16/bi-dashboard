@@ -1,4 +1,3 @@
-// src/components/dashboard/renderWidgetContent.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -206,7 +205,7 @@ export function renderWidgetContent(
   availableFields?: string[],
   handleDiffFilter?: (ids: string[], label: string) => void,
   allWidgetValues?: Record<string, number>,
-  onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[]) => void,
+  onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => void,
 ) {
   const dc = w.dataConfig || ({} as DataConfig);
   const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
@@ -286,7 +285,7 @@ export function renderWidgetContent(
         }
       };
 
-      // ★ 新規：メイン数値クリック時のドリルダウンハンドラ
+      // ★ 新規：メイン数値クリック時のドリルダウンハンドラ（画像対応版）
       const handleMainValueClick = () => {
         if (mode !== 'view' && mode !== 'signage') return;
         if (!onDrilldown) return;
@@ -317,15 +316,15 @@ export function renderWidgetContent(
             if (filters.statuses && filters.statuses.length > 0) {
               if (!filters.statuses.includes(item.status)) return false;
             }
-                    if (filters.crossFilters) {
-          for (const [field, values] of Object.entries(filters.crossFilters)) {
-            const valuesArray = values as string[];  // ★ キャスト
-            if (valuesArray && valuesArray.length > 0) {
-              const val = extractStringValue(item[field]);
-              if (!valuesArray.includes(val)) return false;
+            if (filters.crossFilters) {
+              for (const [field, values] of Object.entries(filters.crossFilters)) {
+                const valuesArray = values as string[];
+                if (valuesArray && valuesArray.length > 0) {
+                  const val = extractStringValue(item[field]);
+                  if (!valuesArray.includes(val)) return false;
+                }
+              }
             }
-          }
-        }
             return true;
           });
         };
@@ -336,7 +335,6 @@ export function renderWidgetContent(
         const logic = dc.conditionLogic || 'and';
         const filteredByConditions = crossFiltered.filter((item) => {
           const passCross = evaluateConditions(item, conditions, logic);
-          // 指標フィールドのフィルター（dc.field と dc.filterValue）
           const passIndicator = (() => {
             if (!dc.field) return true;
             const val = extractStringValue(item[dc.field]);
@@ -350,17 +348,36 @@ export function renderWidgetContent(
         });
 
         // ★ ドリルダウン表示カラム：drilldownFields があればそれを使う
-const drilldownColumns = dc.drilldownFields && dc.drilldownFields.length > 0
-  ? dc.drilldownFields
-  : undefined;  // 未指定の場合は DrilldownModal が全フィールドを表示
+        const drilldownColumns = dc.drilldownFields && dc.drilldownFields.length > 0
+          ? dc.drilldownFields
+          : undefined;
 
-onDrilldown(
-  undefined as any,
-  undefined as any,
-  w.title,
-  filteredByConditions,
-  drilldownColumns  // ★ カラム指定を追加
-);
+        // ★★★ WordPress画像を取得 ★★★
+        const wpData = filteredDataByIndex['wp_inventory'] || [];
+        let images: string[] = [];
+
+        // フィルタリング結果の最初のアイテムから管理番号を取得して、wp_inventory から images を探す
+        if (filteredByConditions.length > 0) {
+          const firstItem = filteredByConditions[0];
+          const manageId = firstItem['v_manage_id'] || firstItem['管理番号'];
+          if (manageId) {
+            const matchedWp = wpData.find((item: any) =>
+              String(item['v_manage_id']) === String(manageId)
+            );
+            if (matchedWp && Array.isArray(matchedWp.images)) {
+              images = matchedWp.images;
+            }
+          }
+        }
+
+        onDrilldown(
+          undefined as any,
+          undefined as any,
+          w.title,
+          filteredByConditions,
+          drilldownColumns,
+          images,  // ★ images を追加
+        );
       };
 
       return (
@@ -399,7 +416,7 @@ onDrilldown(
             todayDiff={dc.showTodayValue ? todayDiffMap?.[w.id] : undefined}
             todayPopupFields={dc.todayPopupFields}
             onDiffFilter={handleDiffFilter}
-            onClick={handleMainValueClick}  // ★ 追加
+            onClick={handleMainValueClick}
           />
         </div>
       );

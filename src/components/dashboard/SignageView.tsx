@@ -393,13 +393,15 @@ export default function SignageView({
       </div>
       {drilldown && (
         <DrilldownModal
-          open={!!drilldown}
-          onClose={() => setDrilldown(null)}
-          title={drilldown.widgetTitle}
-          data={drilldown.data ?? filteredDataByIndex['001']}
-          filterField={drilldown.field}
-          filterValue={drilldown.value}
-        />
+  open={!!drilldown}
+  onClose={() => setDrilldown(null)}
+  title={drilldown.widgetTitle}
+  data={drilldown.data ?? filteredDataByIndex['001']}
+  filterField={drilldown.field}
+  filterValue={drilldown.value}
+  columns={drilldown.columns}
+  images={drilldown.images}  // ★ 追加
+/>
       )}
     </div>
   );

@@ -264,7 +264,8 @@ function DashboardInner() {
   value: string;
   widgetTitle: string;
   data?: any[];
-  columns?: string[];  // ★ 追加
+  columns?: string[];
+  images?: string[];  // ★ 追加
 } | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showAiDrawer, setShowAiDrawer] = useState(false);
@@ -2193,8 +2194,8 @@ function DashboardInner() {
   availableFieldsBySource['001'] || [],
   handleDiffFilter,
   allWidgetValues,
-  (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[]) => {
-  setDrilldown({ field, value, widgetTitle, data, columns });
+  (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
+  setDrilldown({ field, value, widgetTitle, data, columns, images });
 }
 );
                   const flashClass = editModeFlash ? 'ring-1 ring-slate-300 transition-all duration-300' : '';
@@ -4454,7 +4455,7 @@ function DashboardInner() {
       ].map(s=><div key={s.key} className="flex justify-between items-center text-sm"><span className="font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md font-mono">{s.key}</span><span className="text-slate-500 font-medium">{s.desc}</span></div>)}</div><button onClick={()=>setShowShortcuts(false)} className="mt-8 w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-sm">閉じる</button></div></div>}
       {showTemplateGallery&&<TemplateGallery onSelect={handleTemplateSelect} onClose={()=>setShowTemplateGallery(false)}/>}
       <AiSummaryModal open={showAiSummary} onClose={()=>setShowAiSummary(false)} summary={aiSummary} />
-      {drilldown && <DrilldownModal open={!!drilldown} onClose={()=>setDrilldown(null)} title={drilldown.widgetTitle} data={drilldown.data ?? activeFilteredData} filterField={drilldown.field} filterValue={drilldown.value} columns={drilldown.columns} />}
+      {drilldown && <DrilldownModal open={!!drilldown} onClose={()=>setDrilldown(null)} title={drilldown.widgetTitle} data={drilldown.data ?? activeFilteredData} filterField={drilldown.field} filterValue={drilldown.value} columns={drilldown.columns} images={drilldown.images} />}
     </div>
   );
 }
