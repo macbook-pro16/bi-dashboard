@@ -286,7 +286,7 @@ export function renderWidgetContent(
       };
 
       // ★ 新規：メイン数値クリック時のドリルダウンハンドラ（画像対応版）
-                  const handleMainValueClick = () => {
+                        const handleMainValueClick = () => {
         if (mode !== 'view' && mode !== 'signage') return;
         if (!onDrilldown) return;
 
@@ -347,7 +347,7 @@ export function renderWidgetContent(
           ? dc.drilldownFields
           : undefined;
 
-                // ★★★ 画像取得ロジック（修正版：データ欠落に対応） ★★★
+        // ★★★ 画像取得ロジック（デバッグコード付き） ★★★
         const wpData = filteredDataByIndex['wp_inventory'] || [];
         let images: string[] = [];
 
@@ -379,32 +379,42 @@ export function renderWidgetContent(
         console.log('=== DEBUG: manageId ===', manageId);
 
         if (manageId) {
-          // ★ 修正点1: 管理番号が完全一致しなくても、wpData 内のいずれかのフィールドに含まれているかチェック
+          // ★ 管理番号から英字を除去（数字だけの比較用）
+          const numericManageId = manageId.replace(/[^0-9]/g, '');
+
           const matchedWp = wpData.find((item: any) => {
-            // まずは候補フィールドで完全一致を試す
+            // 候補フィールドで完全一致を試す
             for (const candidate of manageIdCandidates) {
               if (String(item[candidate]) === manageId) {
                 return true;
               }
             }
-            // ★ 修正点2: それでも見つからない場合は、全フィールドを文字列検索
+            // 数字だけの比較（英字を除去して比較）
+            for (const candidate of manageIdCandidates) {
+              if (String(item[candidate]).replace(/[^0-9]/g, '') === numericManageId) {
+                return true;
+              }
+            }
+            // フォールバック：部分一致
             const stringifiedItem = JSON.stringify(item);
-            if (stringifiedItem.includes(manageId as string)) {
+            if (stringifiedItem.includes(manageId as string) || stringifiedItem.includes(numericManageId)) {
               return true;
             }
             return false;
           });
+
           // ★ デバッグ3: マッチしたWPデータを確認
           console.log('=== DEBUG: matchedWp ===', matchedWp);
+
           if (matchedWp && Array.isArray(matchedWp.images)) {
             images = matchedWp.images;
-          } else {
-            // ★ 修正点3: マッチしなかった場合のフォールバック（wp_inventory の最初のデータから images を取得）
-            console.warn('⚠️ 管理番号に一致するWPデータがありません。フォールバックとして最初の車両の画像を使用します。');
-            if (wpData.length > 0 && Array.isArray(wpData[0].images)) {
-              images = wpData[0].images;
-            }
           }
+        }
+
+        // ★ フォールバック：一致しなかった場合、wpData の最初の画像を使用（警告付き）
+        if (images.length === 0 && wpData.length > 0 && Array.isArray(wpData[0].images)) {
+          images = wpData[0].images;
+          console.warn('⚠️ 管理番号に一致するWPデータがありません。フォールバックとして最初の車両の画像を使用します。');
         }
 
         // ★ デバッグ4: 最終的な images を確認
