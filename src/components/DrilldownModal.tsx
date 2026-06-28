@@ -103,17 +103,26 @@ export default function DrilldownModal({
       );
     }
     const strVal = String(value ?? '—');
-    if (isImageUrl(strVal)) {
-      return (
-        <img src={strVal} alt=""
-          className="w-12 h-12 object-cover rounded border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
-          loading="lazy"
-          onClick={e => { e.stopPropagation(); window.open(strVal, '_blank'); }}
-          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-        />
-      );
-    }
-    return <span className="truncate block max-w-[200px]" title={strVal}>{strVal}</span>;
+
+// ★ boolean / "true" / "false" の変換
+if (typeof value === 'boolean' || strVal.toLowerCase() === 'true' || strVal.toLowerCase() === 'false') {
+  const isTrue = typeof value === 'boolean' ? value : strVal.toLowerCase() === 'true';
+  return isTrue
+    ? <span className="text-emerald-600 text-base font-bold">✓</span>
+    : <span className="text-slate-300 text-base">—</span>;
+}
+
+if (isImageUrl(strVal)) {
+  return (
+    <img src={strVal} alt=""
+      className="w-12 h-12 object-cover rounded border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+      loading="lazy"
+      onClick={e => { e.stopPropagation(); window.open(strVal, '_blank'); }}
+      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+    />
+  );
+}
+return <span className="truncate block max-w-[200px]" title={strVal}>{strVal}</span>;
   };
 
   return (
