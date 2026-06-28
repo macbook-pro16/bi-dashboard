@@ -414,8 +414,10 @@ const enrichedData = filteredByConditions.map(item => {
   if (!itemManageId) return item;
 
   const matched = wpData.find((wp: any) =>
-    manageIdCandidates.some(c => String(wp[c]) === itemManageId)
-  );
+  manageIdCandidates.some(c => 
+    String(wp[c] ?? '').trim() === String(itemManageId ?? '').trim()
+  )
+);
   return (matched && Array.isArray(matched.images) && matched.images.length > 0)
     ? { ...item, images: matched.images }
     : item;

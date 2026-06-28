@@ -213,14 +213,16 @@ export default function DrilldownModal({
 
       {/* ★ Lightbox（行ごとの画像セットで開く） */}
       {lightbox !== null && (
-        <div
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-[300]"
-          onClick={() => setLightbox(null)}
-        >
-          <div
-            className="relative max-w-[90vw] max-h-[90vh]"
-            onClick={e => e.stopPropagation()}
-          >
+  <div
+    className="fixed inset-0 bg-black/80 flex items-center justify-center z-[300]"
+    onPointerDown={e => e.stopPropagation()}  {/* ★ モーダルへの伝播を止める */}
+    onClick={() => setLightbox(null)}
+  >
+    <div
+      className="relative max-w-[90vw] max-h-[90vh]"
+      onClick={e => e.stopPropagation()}
+      onPointerDown={e => e.stopPropagation()}  {/* ★ 追加 */}
+    >
             <img
               src={lightbox.urls[lightbox.index]}
               alt={`画像 ${lightbox.index + 1}`}
@@ -228,21 +230,30 @@ export default function DrilldownModal({
               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
             <button
-              className="absolute top-4 right-4 text-white text-3xl hover:text-slate-300 transition-colors"
-              onClick={() => setLightbox(null)}
-            >✕</button>
+  className="absolute top-4 right-4 text-white text-3xl hover:text-slate-300 transition-colors"
+  onPointerDown={e => e.stopPropagation()}  {/* ★ 追加 */}
+  onClick={() => setLightbox(null)}
+>✕</button>
             {lightbox.index > 0 && (
-              <button
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-white text-5xl hover:text-slate-300 transition-colors p-2"
-                onClick={e => { e.stopPropagation(); setLightbox(prev => prev ? { ...prev, index: prev.index - 1 } : null); }}
-              >‹</button>
-            )}
-            {lightbox.index < lightbox.urls.length - 1 && (
-              <button
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-5xl hover:text-slate-300 transition-colors p-2"
-                onClick={e => { e.stopPropagation(); setLightbox(prev => prev ? { ...prev, index: prev.index + 1 } : null); }}
-              >›</button>
-            )}
+  <button
+    className="absolute left-4 top-1/2 -translate-y-1/2 text-white text-5xl hover:text-slate-300 transition-colors p-2"
+    onPointerDown={e => e.stopPropagation()}  {/* ★ 追加 */}
+    onClick={e => {
+      e.stopPropagation();
+      setLightbox(prev => prev ? { ...prev, index: prev.index - 1 } : null);
+    }}
+  >‹</button>
+)}
+{lightbox.index < lightbox.urls.length - 1 && (
+  <button
+    className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-5xl hover:text-slate-300 transition-colors p-2"
+    onPointerDown={e => e.stopPropagation()}  {/* ★ 追加 */}
+    onClick={e => {
+      e.stopPropagation();
+      setLightbox(prev => prev ? { ...prev, index: prev.index + 1 } : null);
+    }}
+  >›</button>
+)}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-4 py-1 rounded-full">
               {lightbox.index + 1} / {lightbox.urls.length}
             </div>
