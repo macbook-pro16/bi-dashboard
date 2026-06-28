@@ -75,11 +75,6 @@ export default function DrilldownModal({
 
   if (!open) return null;
 
-  // ★ デバッグ：画像データの確認
-  console.log('=== DrilldownModal Debug ===');
-  console.log('images:', images);
-  console.log('images length:', images.length);
-
   const filtered = data.filter(item => {
     let matches = true;
     if (filterField && filterValue) {
@@ -163,65 +158,64 @@ export default function DrilldownModal({
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[250]" onPointerDown={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+        className="bg-white rounded-2xl shadow-2xl p-6 max-w-5xl w-full mx-4 max-h-[85vh] overflow-y-auto"
         onPointerDown={e => e.stopPropagation()}
         onKeyDown={handleKeyDown}
         tabIndex={0}
       >
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-bold">{title}: {filtered.length}件</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-slate-800">{title}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none transition-colors">
+            ✕
+          </button>
         </div>
 
-        {/* ★ デバッグ：画像数の表示（常に表示） */}
-        <div className="text-xs text-slate-500 mb-2">
-          画像数: {images.length} 枚
-          {images.length > 0 && images.map((url, i) => (
-            <span key={i} className="ml-2 text-blue-500 truncate max-w-[100px] inline-block">{url.substring(0, 30)}...</span>
-          ))}
-        </div>
-
-        {/* ★ 画像サムネイル（横スクロール） - images.length > 0 で表示 */}
+        {/* 画像ギャラリー（横スクロール） */}
         {images.length > 0 && (
-          <div className="mb-3">
-            <div className="flex gap-1 overflow-x-auto pb-2">
+          <div className="mb-4">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300">
               {images.slice(0, 9).map((url, idx) => (
                 <div
                   key={idx}
-                  className="flex-shrink-0 w-20 h-20 cursor-pointer hover:opacity-80 transition-opacity"
+                  className="flex-shrink-0 w-28 h-28 rounded-xl overflow-hidden shadow-md border-2 border-slate-200 cursor-pointer hover:shadow-lg hover:border-indigo-400 transition-all duration-200"
                   onClick={() => setSelectedImage(idx)}
                 >
                   <img
                     src={url}
                     alt={`画像 ${idx + 1}`}
-                    className="w-full h-full object-cover rounded border border-slate-200"
+                    className="w-full h-full object-cover"
                     loading="lazy"
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 </div>
               ))}
             </div>
-            <div className="text-xs text-slate-400 text-center">
+            <p className="text-xs text-slate-400 mt-2 text-center">
               {images.length}枚の画像（クリックで拡大）
-            </div>
+            </p>
           </div>
         )}
 
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="全フィールド検索..."
-          className="w-full text-sm border px-3 py-1.5 rounded-lg outline-none mb-2"
-        />
+        {/* 検索ボックス */}
+        <div className="mb-3">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="🔍 フィルタリング..."
+            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+          />
+        </div>
 
-        <div className="overflow-auto max-h-96">
+        {/* テーブル */}
+        <div className="overflow-auto max-h-72">
           {filtered.length > 0 ? (
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white z-10">
                 <tr className="border-b border-slate-200">
                   {displayColumns.map(key => (
-                    <th key={key} className="text-left py-1.5 px-2 font-semibold text-slate-600 whitespace-nowrap">
+                    <th key={key} className="text-left py-2 px-3 font-semibold text-slate-600 whitespace-nowrap">
                       {key}
                     </th>
                   ))}
@@ -229,9 +223,9 @@ export default function DrilldownModal({
               </thead>
               <tbody>
                 {filtered.map(item => (
-                  <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                     {displayColumns.map(key => (
-                      <td key={key} className="py-1.5 px-2">
+                      <td key={key} className="py-2 px-3">
                         {renderCellValue(item[key], item, key)}
                       </td>
                     ))}
@@ -243,8 +237,14 @@ export default function DrilldownModal({
             <div className="text-center text-slate-400 py-8">該当データがありません</div>
           )}
         </div>
+
+        {/* フッター */}
+        <div className="mt-3 text-xs text-slate-400 text-right">
+          {filtered.length} 件表示
+        </div>
       </div>
 
+      {/* Lightbox */}
       {selectedImage !== null && images.length > 0 && (
         <div
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-[300]"
@@ -262,14 +262,14 @@ export default function DrilldownModal({
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
             <button
-              className="absolute top-2 right-2 text-white text-3xl hover:text-slate-300 transition-colors"
+              className="absolute top-4 right-4 text-white text-3xl hover:text-slate-300 transition-colors"
               onClick={() => setSelectedImage(null)}
             >
               ✕
             </button>
             {selectedImage > 0 && (
               <button
-                className="absolute left-2 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-slate-300 transition-colors p-2"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white text-5xl hover:text-slate-300 transition-colors p-2"
                 onClick={(e) => { e.stopPropagation(); handlePrevImage(); }}
               >
                 ‹
@@ -277,13 +277,13 @@ export default function DrilldownModal({
             )}
             {selectedImage < images.length - 1 && (
               <button
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-slate-300 transition-colors p-2"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-5xl hover:text-slate-300 transition-colors p-2"
                 onClick={(e) => { e.stopPropagation(); handleNextImage(); }}
               >
                 ›
               </button>
             )}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-4 py-1 rounded-full">
               {selectedImage + 1} / {images.length}
             </div>
           </div>

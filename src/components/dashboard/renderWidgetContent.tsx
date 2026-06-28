@@ -286,18 +286,16 @@ export function renderWidgetContent(
       };
 
       // ★ 新規：メイン数値クリック時のドリルダウンハンドラ（画像対応版）
-      const handleMainValueClick = () => {
+            const handleMainValueClick = () => {
         if (mode !== 'view' && mode !== 'signage') return;
         if (!onDrilldown) return;
 
-        // データソースとフィルター条件を取得
         const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
         const allSrc = filteredDataByIndex[srcIdx] || [];
         const dateField = resolveDateFilterField(w);
         const dateFilter = dc.dateFilter ?? 'range';
         const { start, end } = dateRange;
 
-        // 日付フィルタリング
         let baseData = allSrc;
         if (dateFilter === 'range') {
           baseData = allSrc.filter((item) => {
@@ -310,27 +308,25 @@ export function renderWidgetContent(
           baseData = allSrc.filter((item) => item[dateField] === todayStr);
         }
 
-        // グローバルフィルター（ステータス・クロスフィルター）を適用
         const applyGlobalFilters = (data: DBItem[]) => {
           return data.filter((item) => {
             if (filters.statuses && filters.statuses.length > 0) {
               if (!filters.statuses.includes(item.status)) return false;
             }
-            if (filters.crossFilters) {
-              for (const [field, values] of Object.entries(filters.crossFilters)) {
-                const valuesArray = values as string[];
-                if (valuesArray && valuesArray.length > 0) {
-                  const val = extractStringValue(item[field]);
-                  if (!valuesArray.includes(val)) return false;
-                }
-              }
+                    if (filters.crossFilters) {
+          for (const [field, values] of Object.entries(filters.crossFilters)) {
+            const valuesArray = values as string[];
+            if (valuesArray && valuesArray.length > 0) {
+              const val = extractStringValue(item[field]);
+              if (!valuesArray.includes(val)) return false;
             }
+          }
+        }
             return true;
           });
         };
         const crossFiltered = applyGlobalFilters(baseData);
 
-        // クロスフィルター条件（ウィジェット固有）を適用
         const conditions = dc.filterConditions || [];
         const logic = dc.conditionLogic || 'and';
         const filteredByConditions = crossFiltered.filter((item) => {
@@ -347,26 +343,46 @@ export function renderWidgetContent(
           return passCross && passIndicator;
         });
 
-        // ★ ドリルダウン表示カラム：drilldownFields があればそれを使う
         const drilldownColumns = dc.drilldownFields && dc.drilldownFields.length > 0
           ? dc.drilldownFields
           : undefined;
 
-        // ★★★ WordPress画像を取得 ★★★
+        // ★★★ 画像取得ロジック（強化版） ★★★
         const wpData = filteredDataByIndex['wp_inventory'] || [];
         let images: string[] = [];
 
-        // フィルタリング結果の最初のアイテムから管理番号を取得して、wp_inventory から images を探す
+        const manageIdCandidates = ['v_manage_id', '管理番号', 'manage_id', 'vehicle_id'];
+        let manageId: string | null = null;
+
         if (filteredByConditions.length > 0) {
           const firstItem = filteredByConditions[0];
-          const manageId = firstItem['v_manage_id'] || firstItem['管理番号'];
-          if (manageId) {
-            const matchedWp = wpData.find((item: any) =>
-              String(item['v_manage_id']) === String(manageId)
-            );
-            if (matchedWp && Array.isArray(matchedWp.images)) {
-              images = matchedWp.images;
+          for (const candidate of manageIdCandidates) {
+            if (firstItem[candidate]) {
+              manageId = String(firstItem[candidate]);
+              break;
             }
+          }
+          if (!manageId) {
+            for (const [key, value] of Object.entries(firstItem)) {
+              if (typeof value === 'string' && /^\d+$/.test(value) && value.length >= 4) {
+                manageId = value;
+                break;
+              }
+            }
+          }
+        }
+
+        if (manageId) {
+          const matchedWp = wpData.find((item: any) => {
+            for (const candidate of manageIdCandidates) {
+              if (String(item[candidate]) === manageId) {
+                return true;
+              }
+            }
+            return false;
+          });
+          if (matchedWp && Array.isArray(matchedWp.images)) {
+            images = matchedWp.images;
           }
         }
 
@@ -376,7 +392,7 @@ export function renderWidgetContent(
           w.title,
           filteredByConditions,
           drilldownColumns,
-          images,  // ★ images を追加
+          images,
         );
       };
 
