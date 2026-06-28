@@ -206,7 +206,7 @@ export function renderWidgetContent(
   availableFields?: string[],
   handleDiffFilter?: (ids: string[], label: string) => void,
   allWidgetValues?: Record<string, number>,
-  onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[]) => void,
+  onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[]) => void,
 ) {
   const dc = w.dataConfig || ({} as DataConfig);
   const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
@@ -349,12 +349,17 @@ export function renderWidgetContent(
           return passCross && passIndicator;
         });
 
-        // ドリルダウンモーダルを開く（フィールド名, 値, タイトル, データ）
-        onDrilldown(
-  undefined as any,   // ★ フィルタリングをスキップさせるため
+        // ★ ドリルダウン表示カラム：todayPopupFields があればそれを使う
+const drilldownColumns = dc.todayPopupFields && dc.todayPopupFields.length > 0
+  ? dc.todayPopupFields
+  : undefined;  // 未指定の場合は DrilldownModal が全フィールドを表示
+
+onDrilldown(
+  undefined as any,
   undefined as any,
   w.title,
-  filteredByConditions
+  filteredByConditions,
+  drilldownColumns  // ★ カラム指定を追加
 );
       };
 
