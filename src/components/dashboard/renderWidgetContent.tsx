@@ -349,12 +349,12 @@ export function renderWidgetContent(
           return passCross && passIndicator;
         });
 
-        // ドリルダウンモーダルを開く
+        // ドリルダウンモーダルを開く（フィールド名, 値, タイトル, データ）
         onDrilldown(
-          'スコアカード詳細',
-          `${w.title} (${filteredByConditions.length}件)`,
-          w.title,
-          filteredByConditions
+          'スコアカード詳細',        // field（モーダルで表示するラベル）
+          `${w.title} (${filteredByConditions.length}件)`, // value（モーダルのサブタイトル）
+          w.title,                   // widgetTitle
+          filteredByConditions       // data
         );
       };
 

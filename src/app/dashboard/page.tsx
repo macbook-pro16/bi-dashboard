@@ -2172,7 +2172,30 @@ function DashboardInner() {
             ) : (
               <DndContext id="canvas-dnd" sensors={canvasSensors} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
                 {layout.map((w, idx) => {
-                  const content = renderWidgetContent(w, computedValues, computedTargetValues, computedPreviousValues, filteredDataByIndex, widgetFilteredData, statusOptions, handleStatusChange, handleChartCrossFilter, filters, toggleCrossFilter, filters.dateRange, mode, editWidgets, layout, todayDiffByWidget, availableFieldsBySource['001'] || [], handleDiffFilter, allWidgetValues);
+                  const content = renderWidgetContent(
+  w,
+  computedValues,
+  computedTargetValues,
+  computedPreviousValues,
+  filteredDataByIndex,
+  widgetFilteredData,
+  statusOptions,
+  handleStatusChange,
+  handleChartCrossFilter,
+  filters,
+  toggleCrossFilter,
+  filters.dateRange,
+  mode,
+  editWidgets,
+  layout,
+  todayDiffByWidget,
+  availableFieldsBySource['001'] || [],
+  handleDiffFilter,
+  allWidgetValues,
+  (field: string, value: string, widgetTitle: string, data?: any[]) => {
+    setDrilldown({ field, value, widgetTitle, data });
+  }
+);
                   const flashClass = editModeFlash ? 'ring-1 ring-slate-300 transition-all duration-300' : '';
                   return (
                     <div key={w.id} className={flashClass}>
