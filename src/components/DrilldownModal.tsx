@@ -2,10 +2,8 @@
 import React, { useState } from 'react';
 import { DBItem } from '../types';
 
-// ★ KpiWidget から流用（画像URL抽出）
 function extractFileUrls(val: any): { url: string; name: string; type?: string }[] {
   if (!val) return [];
-
   if (typeof val === 'string') {
     try {
       const parsed = JSON.parse(val);
@@ -20,7 +18,6 @@ function extractFileUrls(val: any): { url: string; name: string; type?: string }
     if (val.startsWith('http')) return [{ url: val, name: '', type: 'external' }];
     return [];
   }
-
   if (typeof val === 'object' && val.type === 'files' && Array.isArray(val.files)) {
     return val.files
       .map((f: any) => {
@@ -30,7 +27,6 @@ function extractFileUrls(val: any): { url: string; name: string; type?: string }
       })
       .filter(Boolean) as { url: string; name: string; type?: string }[];
   }
-
   if (Array.isArray(val) && val.length > 0 && (val[0].type === 'external' || val[0].type === 'file')) {
     return val
       .map((f: any) => {
@@ -40,7 +36,6 @@ function extractFileUrls(val: any): { url: string; name: string; type?: string }
       })
       .filter(Boolean) as { url: string; name: string; type?: string }[];
   }
-
   return [];
 }
 
@@ -79,6 +74,11 @@ export default function DrilldownModal({
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
 
   if (!open) return null;
+
+  // ★ デバッグ：画像データの確認
+  console.log('=== DrilldownModal Debug ===');
+  console.log('images:', images);
+  console.log('images length:', images.length);
 
   const filtered = data.filter(item => {
     let matches = true;
@@ -173,7 +173,15 @@ export default function DrilldownModal({
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
         </div>
 
-        {/* ★ 画像サムネイル（横スクロール） - 画像がある場合のみ表示 */}
+        {/* ★ デバッグ：画像数の表示（常に表示） */}
+        <div className="text-xs text-slate-500 mb-2">
+          画像数: {images.length} 枚
+          {images.length > 0 && images.map((url, i) => (
+            <span key={i} className="ml-2 text-blue-500 truncate max-w-[100px] inline-block">{url.substring(0, 30)}...</span>
+          ))}
+        </div>
+
+        {/* ★ 画像サムネイル（横スクロール） - images.length > 0 で表示 */}
         {images.length > 0 && (
           <div className="mb-3">
             <div className="flex gap-1 overflow-x-auto pb-2">
@@ -199,7 +207,6 @@ export default function DrilldownModal({
           </div>
         )}
 
-        {/* 検索ボックス */}
         <input
           type="text"
           value={search}
@@ -208,7 +215,6 @@ export default function DrilldownModal({
           className="w-full text-sm border px-3 py-1.5 rounded-lg outline-none mb-2"
         />
 
-        {/* テーブル */}
         <div className="overflow-auto max-h-96">
           {filtered.length > 0 ? (
             <table className="w-full text-xs">
@@ -239,7 +245,6 @@ export default function DrilldownModal({
         </div>
       </div>
 
-      {/* ★ Lightbox */}
       {selectedImage !== null && images.length > 0 && (
         <div
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-[300]"
