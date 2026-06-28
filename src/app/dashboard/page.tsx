@@ -12,7 +12,7 @@ import {
   DndContext, useDraggable, useSensor, useSensors, PointerSensor,
   DragEndEvent, DragMoveEvent, closestCenter,
 } from '@dnd-kit/core';
-import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 import { FilterProvider, useFilter } from '../../contexts/FilterContext';
@@ -64,6 +64,8 @@ import SignageView from '../../components/dashboard/SignageView';
 import CanvasWidget from '../../components/dashboard/CanvasWidget';
 import SelectWithSearch from '../../components/SelectWithSearch';
 import ActiveFilterBar from '../../components/dashboard/ActiveFilterBar';
+import LayerRow from '../../components/dashboard/LayerRow';
+import DashboardPageList from '../../components/dashboard/DashboardPageList';
 
 const DATABASE_CONFIG = [
   { index: '001', name: '車両一覧' },
@@ -210,122 +212,6 @@ function removeWidgetById(widgets: Widget[], id: string): Widget[] {
       }
       return w;
     });
-}
-
-function LayerRow({ widget, isSelected, onSelect, onToggleVisible, onToggleLock, onRename, onContextMenu }:{
-  widget:Widget; isSelected:boolean; onSelect:(id:string)=>void; onToggleVisible:(id:string)=>void;
-  onToggleLock:(id:string)=>void; onRename:(id:string,val:string)=>void; onContextMenu?:(id:string,x:number,y:number)=>void;
-}){
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: widget.id });
-  const [isEditing,setIsEditing]=useState(false); const [title,setTitle]=useState(widget.title);
-  useEffect(()=>{if(!isEditing)setTitle(widget.title);},[widget.title,isEditing]);
-  const style={ transform:CSS.Transform.toString(transform), transition };
-  return (
-    <div ref={setNodeRef} style={style} className={`group flex items-center px-3 py-2.5 gap-3 text-sm font-medium cursor-pointer rounded-lg transition-colors ${isSelected?'bg-indigo-50/50 text-indigo-700':'text-slate-600 hover:bg-slate-50'}`}
-      onClick={()=>onSelect(widget.id)} onContextMenu={e=>{e.preventDefault(); if (onContextMenu) onContextMenu(widget.id, e.clientX, e.clientY);}}>
-      <div {...attributes} {...listeners} className="cursor-grab text-slate-400 hover:text-slate-600">
-        <svg width="12" height="12" style={{ width: '12px', height: '12px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-      </div>
-      <div className="flex-1 truncate" onDoubleClick={()=>setIsEditing(true)}>
-        {isEditing ? (
-          <textarea
-            autoFocus
-            className="w-full bg-white border border-indigo-400 rounded px-2 py-0.5 outline-none text-slate-900 text-sm resize-none"
-            style={{ height: `${Math.max(28, title.split('\n').length * 20 + 8)}px` }}
-            value={title}
-            onChange={e=>setTitle(e.target.value)}
-            onBlur={()=>{setIsEditing(false);onRename(widget.id,title);}}
-            onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();e.currentTarget.blur();}}}
-          />
-        ) : (
-          <span className="flex items-center gap-2">
-            {widget.type==='group' ? <><Icons.Folder className="w-4 h-4"/> {widget.title?.replace(/\n/g, ' ')}</> : <>{widget.title?.replace(/\n/g, ' ') || widget.type}</>}
-          </span>
-        )}
-      </div>
-      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
-        <button className={`hover:text-slate-700 transition-colors ${widget.locked?'text-indigo-500':''}`} onClick={e=>{e.stopPropagation();onToggleLock(widget.id);}} title={widget.locked ? 'ロック解除' : 'ロック'}>
-          {widget.locked?<Icons.Lock className="w-4 h-4"/>:<Icons.Unlock className="w-4 h-4"/>}
-        </button>
-        <button className={`hover:text-slate-700 transition-colors ${widget.hidden?'text-slate-300':'text-indigo-500'}`} onClick={e=>{e.stopPropagation();onToggleVisible(widget.id);}} title={widget.hidden ? '表示する' : '非表示にする'}>
-          {widget.hidden?<Icons.EyeOff className="w-4 h-4"/>:<Icons.Eye className="w-4 h-4"/>}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function DashboardPageList({ dashboards, activeIndex, onSelect, onAdd, onDelete, onRename, onToggleSignage, collapsed }:{
-  dashboards:DashboardPage[]; activeIndex:number; onSelect:(idx:number)=>void;
-  onAdd:()=>void; onDelete:(idx:number)=>void; onRename:(idx:number,name:string)=>void;
-  onToggleSignage: (idx:number) => void;
-  collapsed?: boolean;
-}){
-  const [editingIdx,setEditingIdx]=useState<number|null>(null); const [editName,setEditName]=useState('');
-  const handleDoubleClick=(idx:number,name:string)=>{setEditingIdx(idx);setEditName(name);};
-  const handleConfirm=()=>{if(editingIdx!==null&&editName.trim())onRename(editingIdx,editName.trim());setEditingIdx(null);};
-
-  if (collapsed) {
-    return (
-      <div className="flex flex-col items-center gap-2 w-full mt-4">
-        {dashboards.map((page, idx) => (
-          <button
-            key={page.id}
-            onClick={() => onSelect(idx)}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-sm ${
-              idx === activeIndex
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-200'
-            }`}
-            title={page.name}
-          >
-            {idx + 1}
-          </button>
-        ))}
-        <button onClick={onAdd} className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-dashed border-slate-300 transition-colors mt-2" title="ページを追加">
-          <Icons.Plus className="w-4 h-4" />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mb-2">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pages</h3>
-        <button onClick={onAdd} className="text-slate-400 hover:text-indigo-600 transition-colors p-1" title="ページを追加">
-          <Icons.Plus className="w-4 h-4" />
-        </button>
-      </div>
-      <ul className="space-y-1">
-        {dashboards.map((page,idx)=><li key={page.id} className="flex items-center justify-between group">
-          {editingIdx===idx?<input autoFocus className="text-sm bg-white border border-indigo-400 rounded-md px-3 py-1.5 w-full mr-2 outline-none text-slate-900 shadow-sm" value={editName} onChange={e=>setEditName(e.target.value)} onBlur={handleConfirm} onKeyDown={e=>{if(e.key==='Enter')handleConfirm();}} />
-          :<button onClick={()=>onSelect(idx)} onDoubleClick={()=>handleDoubleClick(idx,page.name)} className={`text-left text-sm px-4 py-2 rounded-lg w-full transition-all ${idx===activeIndex?'bg-indigo-50/80 text-indigo-700 font-semibold shadow-sm':'text-slate-600 hover:bg-slate-50'}`}>{page.name}</button>}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleSignage(idx); }}
-              title={page.includeInSignage !== false ? 'サイネージに表示中' : 'サイネージから除外'}
-              className={`p-1 rounded transition-colors ${
-                page.includeInSignage !== false ? 'text-indigo-500' : 'text-slate-300'
-              }`}
-            >
-              <Icons.Monitor className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => { if (dashboards.length > 1) onDelete(idx); }}
-              disabled={dashboards.length <= 1}
-              title={dashboards.length <= 1 ? '最後のページは削除できません' : 'ページを削除'}
-              className={`text-slate-400 hover:text-rose-500 text-sm px-2 transition-colors ${
-                dashboards.length <= 1 ? 'opacity-30 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100'
-              }`}
-            >
-              <Icons.X className="w-4 h-4"/>
-            </button>
-          </div>
-        </li>)}
-      </ul>
-    </div>
-  );
 }
 
 function AiSummaryModal({ open, onClose, summary }: { open:boolean, onClose:() => void, summary:string }) {
