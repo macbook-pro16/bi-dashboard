@@ -4404,82 +4404,354 @@ function DashboardInner() {
       )}
 
       {mode === 'edit' && ctxMenu && (
-        <div className="fixed bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl py-2 z-[300] min-w-[200px]" style={{left:ctxMenu.x,top:ctxMenu.y}} onPointerDown={e=>e.stopPropagation()}>
-          {[
-            {label:'✏️ タイトル名を変更',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setTitleEditWidgetId(ctxMenu.id); setTitleEditValue(w.title); } }},
-            null,
-            {label:'📝 スタイルをコピー',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setStyleClipboard({ shape: w.shape, w: w.w, h: w.h, bgColor: w.bgColor, textColor: w.textColor, borderColor: w.borderColor, borderWidth: w.borderWidth, fontSize: w.fontSize, textAlign: w.textAlign, hasShadow: w.hasShadow, bgAlpha: w.bgAlpha, tableConfig: w.tableConfig ? { ...w.tableConfig } : undefined, showTodayValue: w.dataConfig?.showTodayValue, colorDelta: w.dataConfig?.colorDelta, colorDeltaMinus: w.dataConfig?.colorDeltaMinus, todayFontSize: w.dataConfig?.todayFontSize, todayX: w.dataConfig?.todayX, todayY: w.dataConfig?.todayY, addedX: w.dataConfig?.addedX, addedY: w.dataConfig?.addedY, removedX: w.dataConfig?.removedX, removedY: w.dataConfig?.removedY, todayDiffMatchField: w.dataConfig?.todayDiffMatchField, todayDiffChangeField: w.dataConfig?.todayDiffChangeField, todayPopupFields: w.dataConfig?.todayPopupFields, drilldownFields: w.dataConfig?.drilldownFields, dataConfig: w.dataConfig ? { ...w.dataConfig } : undefined }); addToastRef.current('スタイルをコピーしました', 'success'); } }},
-            {
-  label: '📋 スタイルを貼り付け',
-  action: () => {
-    if (styleClipboard) {
-      const {
-        showTodayValue,
-        colorDelta,
-        colorDeltaMinus,
-        todayFontSize,
-        todayX,
-        todayY,
-        addedX,
-        addedY,
-        removedX,
-        removedY,
-        todayDiffMatchField,
-        todayDiffChangeField,
-        todayPopupFields,
-        drilldownFields,
-        dataConfig: copiedDataConfig,
-        ...restStyle
-      } = styleClipboard;
+  <div
+    className="fixed bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-2xl py-2 z-[300] min-w-[200px]"
+    style={{ left: ctxMenu.x, top: ctxMenu.y }}
+    onPointerDown={(e) => e.stopPropagation()}
+  >
+    {[
+      {
+        label: '✏️ タイトル名を変更',
+        action: () => {
+          const w = findWidgetById(layout, ctxMenu.id);
+          if (w) {
+            setTitleEditWidgetId(ctxMenu.id);
+            setTitleEditValue(w.title);
+          }
+        },
+      },
+      null,
+      {
+        label: '📝 スタイルをコピー',
+        action: () => {
+          const w = findWidgetById(layout, ctxMenu.id);
+          if (w) {
+            // ★ スタイルのみコピー（dataConfig のデータ取得設定は除外）
+            const styleData = {
+              shape: w.shape,
+              w: w.w,
+              h: w.h,
+              bgColor: w.bgColor,
+              textColor: w.textColor,
+              borderColor: w.borderColor,
+              borderWidth: w.borderWidth,
+              fontSize: w.fontSize,
+              textAlign: w.textAlign,
+              hasShadow: w.hasShadow,
+              bgAlpha: w.bgAlpha,
+              // テーブル設定（見た目のみ）
+              tableConfig: w.tableConfig
+                ? {
+                    headerBgColor: w.tableConfig.headerBgColor,
+                    headerTextColor: w.tableConfig.headerTextColor,
+                    headerFontSize: w.tableConfig.headerFontSize,
+                    borderColor: w.tableConfig.borderColor,
+                    borderWidth: w.tableConfig.borderWidth,
+                    verticalBorderColor: w.tableConfig.verticalBorderColor,
+                    verticalBorderWidth: w.tableConfig.verticalBorderWidth,
+                    horizontalBorderColor: w.tableConfig.horizontalBorderColor,
+                    horizontalBorderWidth: w.tableConfig.horizontalBorderWidth,
+                    showHeader: w.tableConfig.showHeader,
+                    showFooter: w.tableConfig.showFooter,
+                    rowHeight: w.tableConfig.rowHeight,
+                    groupHeaderBgColor: w.tableConfig.groupHeaderBgColor,
+                    groupHeaderTextColor: w.tableConfig.groupHeaderTextColor,
+                    groupHeaderHeight: w.tableConfig.groupHeaderHeight,
+                    groupHeaderFontSize: w.tableConfig.groupHeaderFontSize,
+                    groupHeaderBadgeBgColor: w.tableConfig.groupHeaderBadgeBgColor,
+                    groupHeaderBadgeTextColor: w.tableConfig.groupHeaderBadgeTextColor,
+                    groupHeaderBadgeFontSize: w.tableConfig.groupHeaderBadgeFontSize,
+                    groupHeaderBadgeLabelColor: w.tableConfig.groupHeaderBadgeLabelColor,
+                    groupHeaderBadgeValueColor: w.tableConfig.groupHeaderBadgeValueColor,
+                    groupHeaderConditionalStyles: w.tableConfig.groupHeaderConditionalStyles
+                      ? w.tableConfig.groupHeaderConditionalStyles.map((rule) => ({ ...rule }))
+                      : undefined,
+                  }
+                : undefined,
+              // スコアカードの表示関連のみ
+              showTodayValue: w.dataConfig?.showTodayValue,
+              colorDelta: w.dataConfig?.colorDelta,
+              colorDeltaMinus: w.dataConfig?.colorDeltaMinus,
+              todayFontSize: w.dataConfig?.todayFontSize,
+              todayX: w.dataConfig?.todayX,
+              todayY: w.dataConfig?.todayY,
+              addedX: w.dataConfig?.addedX,
+              addedY: w.dataConfig?.addedY,
+              removedX: w.dataConfig?.removedX,
+              removedY: w.dataConfig?.removedY,
+              todayPopupFields: w.dataConfig?.todayPopupFields,
+              drilldownFields: w.dataConfig?.drilldownFields,
+            };
+            setStyleClipboard(styleData);
+            addToastRef.current('スタイルをコピーしました（データソースは除く）', 'success');
+          }
+        },
+      },
+      {
+        label: '📋 スタイルを貼り付け',
+        action: () => {
+          if (styleClipboard) {
+            const {
+              shape,
+              w: width,
+              h: height,
+              bgColor,
+              textColor,
+              borderColor,
+              borderWidth,
+              fontSize,
+              textAlign,
+              hasShadow,
+              bgAlpha,
+              tableConfig,
+              showTodayValue,
+              colorDelta,
+              colorDeltaMinus,
+              todayFontSize,
+              todayX,
+              todayY,
+              addedX,
+              addedY,
+              removedX,
+              removedY,
+              todayPopupFields,
+              drilldownFields,
+            } = styleClipboard;
 
-      editWidgets(
-        updateWidgetById(layout, ctxMenu.id, (w) => {
-          const newDataConfig = {
-            ...w.dataConfig,
-            ...copiedDataConfig,
-            showTodayValue: showTodayValue !== undefined ? showTodayValue : w.dataConfig?.showTodayValue,
-            colorDelta: colorDelta !== undefined ? colorDelta : w.dataConfig?.colorDelta,
-            colorDeltaMinus: colorDeltaMinus !== undefined ? colorDeltaMinus : w.dataConfig?.colorDeltaMinus,
-            todayFontSize: todayFontSize !== undefined ? todayFontSize : w.dataConfig?.todayFontSize,
-            todayX: todayX !== undefined ? todayX : w.dataConfig?.todayX,
-            todayY: todayY !== undefined ? todayY : w.dataConfig?.todayY,
-            addedX: addedX !== undefined ? addedX : w.dataConfig?.addedX,
-            addedY: addedY !== undefined ? addedY : w.dataConfig?.addedY,
-            removedX: removedX !== undefined ? removedX : w.dataConfig?.removedX,
-            removedY: removedY !== undefined ? removedY : w.dataConfig?.removedY,
-            todayDiffMatchField: todayDiffMatchField !== undefined ? todayDiffMatchField : w.dataConfig?.todayDiffMatchField,
-            todayDiffChangeField: todayDiffChangeField !== undefined ? todayDiffChangeField : w.dataConfig?.todayDiffChangeField,
-            todayPopupFields: todayPopupFields !== undefined ? todayPopupFields : w.dataConfig?.todayPopupFields,
-            drilldownFields: drilldownFields !== undefined ? drilldownFields : w.dataConfig?.drilldownFields,
-          };
-          return { ...w, ...restStyle, dataConfig: newDataConfig };
-        })
+            editWidgets(
+              updateWidgetById(layout, ctxMenu.id, (w) => {
+                // ★ スタイルのみ適用（dataConfig のデータ取得設定は保持）
+                const updated: any = {
+                  ...w,
+                  shape: shape || w.shape,
+                  w: width || w.w,
+                  h: height || w.h,
+                  bgColor: bgColor || w.bgColor,
+                  textColor: textColor || w.textColor,
+                  borderColor: borderColor || w.borderColor,
+                  borderWidth: borderWidth !== undefined ? borderWidth : w.borderWidth,
+                  fontSize: fontSize || w.fontSize,
+                  textAlign: textAlign || w.textAlign,
+                  hasShadow: hasShadow !== undefined ? hasShadow : w.hasShadow,
+                  bgAlpha: bgAlpha !== undefined ? bgAlpha : w.bgAlpha,
+                };
+
+                if (tableConfig) {
+                  updated.tableConfig = {
+                    ...w.tableConfig,
+                    headerBgColor:
+                      tableConfig.headerBgColor !== undefined
+                        ? tableConfig.headerBgColor
+                        : w.tableConfig?.headerBgColor,
+                    headerTextColor:
+                      tableConfig.headerTextColor !== undefined
+                        ? tableConfig.headerTextColor
+                        : w.tableConfig?.headerTextColor,
+                    headerFontSize:
+                      tableConfig.headerFontSize !== undefined
+                        ? tableConfig.headerFontSize
+                        : w.tableConfig?.headerFontSize,
+                    borderColor:
+                      tableConfig.borderColor !== undefined
+                        ? tableConfig.borderColor
+                        : w.tableConfig?.borderColor,
+                    borderWidth:
+                      tableConfig.borderWidth !== undefined
+                        ? tableConfig.borderWidth
+                        : w.tableConfig?.borderWidth,
+                    verticalBorderColor:
+                      tableConfig.verticalBorderColor !== undefined
+                        ? tableConfig.verticalBorderColor
+                        : w.tableConfig?.verticalBorderColor,
+                    verticalBorderWidth:
+                      tableConfig.verticalBorderWidth !== undefined
+                        ? tableConfig.verticalBorderWidth
+                        : w.tableConfig?.verticalBorderWidth,
+                    horizontalBorderColor:
+                      tableConfig.horizontalBorderColor !== undefined
+                        ? tableConfig.horizontalBorderColor
+                        : w.tableConfig?.horizontalBorderColor,
+                    horizontalBorderWidth:
+                      tableConfig.horizontalBorderWidth !== undefined
+                        ? tableConfig.horizontalBorderWidth
+                        : w.tableConfig?.horizontalBorderWidth,
+                    showHeader:
+                      tableConfig.showHeader !== undefined
+                        ? tableConfig.showHeader
+                        : w.tableConfig?.showHeader,
+                    showFooter:
+                      tableConfig.showFooter !== undefined
+                        ? tableConfig.showFooter
+                        : w.tableConfig?.showFooter,
+                    rowHeight:
+                      tableConfig.rowHeight !== undefined
+                        ? tableConfig.rowHeight
+                        : w.tableConfig?.rowHeight,
+                    groupHeaderBgColor:
+                      tableConfig.groupHeaderBgColor !== undefined
+                        ? tableConfig.groupHeaderBgColor
+                        : w.tableConfig?.groupHeaderBgColor,
+                    groupHeaderTextColor:
+                      tableConfig.groupHeaderTextColor !== undefined
+                        ? tableConfig.groupHeaderTextColor
+                        : w.tableConfig?.groupHeaderTextColor,
+                    groupHeaderHeight:
+                      tableConfig.groupHeaderHeight !== undefined
+                        ? tableConfig.groupHeaderHeight
+                        : w.tableConfig?.groupHeaderHeight,
+                    groupHeaderFontSize:
+                      tableConfig.groupHeaderFontSize !== undefined
+                        ? tableConfig.groupHeaderFontSize
+                        : w.tableConfig?.groupHeaderFontSize,
+                    groupHeaderBadgeBgColor:
+                      tableConfig.groupHeaderBadgeBgColor !== undefined
+                        ? tableConfig.groupHeaderBadgeBgColor
+                        : w.tableConfig?.groupHeaderBadgeBgColor,
+                    groupHeaderBadgeTextColor:
+                      tableConfig.groupHeaderBadgeTextColor !== undefined
+                        ? tableConfig.groupHeaderBadgeTextColor
+                        : w.tableConfig?.groupHeaderBadgeTextColor,
+                    groupHeaderBadgeFontSize:
+                      tableConfig.groupHeaderBadgeFontSize !== undefined
+                        ? tableConfig.groupHeaderBadgeFontSize
+                        : w.tableConfig?.groupHeaderBadgeFontSize,
+                    groupHeaderBadgeLabelColor:
+                      tableConfig.groupHeaderBadgeLabelColor !== undefined
+                        ? tableConfig.groupHeaderBadgeLabelColor
+                        : w.tableConfig?.groupHeaderBadgeLabelColor,
+                    groupHeaderBadgeValueColor:
+                      tableConfig.groupHeaderBadgeValueColor !== undefined
+                        ? tableConfig.groupHeaderBadgeValueColor
+                        : w.tableConfig?.groupHeaderBadgeValueColor,
+                    groupHeaderConditionalStyles:
+                      tableConfig.groupHeaderConditionalStyles !== undefined
+                        ? tableConfig.groupHeaderConditionalStyles
+                        : w.tableConfig?.groupHeaderConditionalStyles,
+                  };
+                }
+
+                // dataConfig はスタイル関連のみ更新（データ取得設定は変更しない）
+                if (w.dataConfig) {
+                  const ndc = { ...w.dataConfig };
+                  if (showTodayValue !== undefined) ndc.showTodayValue = showTodayValue;
+                  if (colorDelta !== undefined) ndc.colorDelta = colorDelta;
+                  if (colorDeltaMinus !== undefined) ndc.colorDeltaMinus = colorDeltaMinus;
+                  if (todayFontSize !== undefined) ndc.todayFontSize = todayFontSize;
+                  if (todayX !== undefined) ndc.todayX = todayX;
+                  if (todayY !== undefined) ndc.todayY = todayY;
+                  if (addedX !== undefined) ndc.addedX = addedX;
+                  if (addedY !== undefined) ndc.addedY = addedY;
+                  if (removedX !== undefined) ndc.removedX = removedX;
+                  if (removedY !== undefined) ndc.removedY = removedY;
+                  if (todayPopupFields !== undefined) ndc.todayPopupFields = todayPopupFields;
+                  if (drilldownFields !== undefined) ndc.drilldownFields = drilldownFields;
+                  updated.dataConfig = ndc;
+                }
+
+                return updated;
+              })
+            );
+            addToastRef.current('スタイルを貼り付けました（データソースは変更なし）', 'success');
+          } else {
+            addToastRef.current('コピーされたスタイルがありません', 'error');
+          }
+        },
+        disabled: !styleClipboard,
+      },
+      null,
+      {
+        label: '複製',
+        action: () => handleDuplicateWidget(ctxMenu.id),
+      },
+      {
+        label: findWidgetById(layout, ctxMenu.id)?.locked ? 'ロック解除' : 'ロックをかける',
+        action: () => handleToggleLockWidget(ctxMenu.id),
+      },
+      null,
+      {
+        label: '最前面へ移動',
+        action: () => {
+          const i = layout.findIndex((w) => w.id === ctxMenu.id);
+          if (i < layout.length - 1) {
+            const n = [...layout];
+            n.push(n.splice(i, 1)[0]);
+            editWidgets(n);
+          }
+        },
+      },
+      {
+        label: '最背面へ移動',
+        action: () => {
+          const i = layout.findIndex((w) => w.id === ctxMenu.id);
+          if (i > 0) {
+            const n = [...layout];
+            n.unshift(n.splice(i, 1)[0]);
+            editWidgets(n);
+          }
+        },
+      },
+      {
+        label: '一つ前面へ',
+        action: () => {
+          const i = layout.findIndex((w) => w.id === ctxMenu.id);
+          if (i < layout.length - 1) editWidgets(arrayMove(layout, i, i + 1));
+        },
+      },
+      {
+        label: '一つ背面へ',
+        action: () => {
+          const i = layout.findIndex((w) => w.id === ctxMenu.id);
+          if (i > 0) editWidgets(arrayMove(layout, i, i - 1));
+        },
+      },
+      null,
+      {
+        label: '選択項目をスライドショーに変換',
+        action: () => {
+          handleConvertToSlideshow();
+        },
+        disabled: !(mode === 'edit' && selectedIds.length >= 2),
+      },
+      null,
+      {
+        label: 'コメントを追加',
+        action: () => {
+          setSelectedIds([ctxMenu.id]);
+          setRightTab('properties');
+        },
+      },
+      null,
+      {
+        label: '削除',
+        action: () => {
+          editWidgets(removeWidgetById(layout, ctxMenu.id));
+          setSelectedIds([]);
+          addToastRef.current('ウィジェットを削除しました（Ctrl+Zで元に戻す）', 'info');
+        },
+        className: 'text-rose-600 hover:bg-rose-50',
+      },
+    ].map((item, idx) => {
+      if (item === null) {
+        return <div key={`sep-${idx}`} className="border-t border-slate-100 my-2" />;
+      }
+      return (
+        <button
+          key={item.label}
+          onClick={() => {
+            if (!item.disabled) {
+              item.action();
+              setCtxMenu(null);
+            }
+          }}
+          disabled={item.disabled}
+          className={`w-full text-left px-5 py-2.5 text-sm font-medium hover:bg-slate-50 text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${item.className || ''}`}
+        >
+          {item.label}
+        </button>
       );
-
-      addToastRef.current('スタイルを貼り付けました', 'success');
-    } else {
-      addToastRef.current('コピーされたスタイルがありません', 'error');
-    }
-  },
-  disabled: !styleClipboard,
-},
-            null,
-            {label:'複製',action:()=>handleDuplicateWidget(ctxMenu.id)},
-            {label:findWidgetById(layout, ctxMenu.id)?.locked?'ロック解除':'ロックをかける',action:()=>handleToggleLockWidget(ctxMenu.id)},
-            null,
-            {label:'最前面へ移動',action:()=>{const i=layout.findIndex(w=>w.id===ctxMenu.id);if(i<layout.length-1){const n=[...layout];n.push(n.splice(i,1)[0]);editWidgets(n);}}},
-            {label:'最背面へ移動',action:()=>{const i=layout.findIndex(w=>w.id===ctxMenu.id);if(i>0){const n=[...layout];n.unshift(n.splice(i,1)[0]);editWidgets(n);}}},
-            {label:'一つ前面へ',action:()=>{const i=layout.findIndex(w=>w.id===ctxMenu.id);if(i<layout.length-1)editWidgets(arrayMove(layout,i,i+1));}},
-            {label:'一つ背面へ',action:()=>{const i=layout.findIndex(w=>w.id===ctxMenu.id);if(i>0)editWidgets(arrayMove(layout,i,i-1));}},
-            null,
-            {label:'選択項目をスライドショーに変換',action:()=>{ handleConvertToSlideshow(); }, disabled: !(mode === 'edit' && selectedIds.length >= 2)},
-            null,
-            {label:'コメントを追加',action:()=>{setSelectedIds([ctxMenu.id]);setRightTab('properties');}},
-            null,
-            {label:'削除',action:()=>{ editWidgets(removeWidgetById(layout, ctxMenu.id)); setSelectedIds([]); addToastRef.current('ウィジェットを削除しました（Ctrl+Zで元に戻す）', 'info'); },className:'text-rose-600 hover:bg-rose-50'},
-          ].map((item,idx)=>item===null?<div key={`sep-${idx}`} className="border-t border-slate-100 my-2"/>:<button key={item.label} onClick={()=>{if(!item.disabled){item.action();setCtxMenu(null);}}} disabled={item.disabled} className={`w-full text-left px-5 py-2.5 text-sm font-medium hover:bg-slate-50 text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${item.className||''}`}>{item.label}</button>)}
-        </div>
-      )}
+    })}
+  </div>
+)}
 
       {confirmState && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[400]" onPointerDown={() => setConfirmState(null)}>
