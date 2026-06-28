@@ -66,6 +66,10 @@ import SelectWithSearch from '../../components/SelectWithSearch';
 import ActiveFilterBar from '../../components/dashboard/ActiveFilterBar';
 import LayerRow from '../../components/dashboard/LayerRow';
 import DashboardPageList from '../../components/dashboard/DashboardPageList';
+import AiSummaryModal from '../../components/dashboard/AiSummaryModal';
+import AiChatTab from '../../components/dashboard/AiChatTab';
+import FilterConditionsEditor from '../../components/dashboard/FilterConditionsEditor';
+import { getOrthogonalPath, getRoutePath, getMarkerDefs } from '../../utils/annotationUtils';
 
 const DATABASE_CONFIG = [
   { index: '001', name: '車両一覧' },
@@ -212,128 +216,6 @@ function removeWidgetById(widgets: Widget[], id: string): Widget[] {
       }
       return w;
     });
-}
-
-function AiSummaryModal({ open, onClose, summary }: { open:boolean, onClose:() => void, summary:string }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[300]" onPointerDown={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col" onPointerDown={e=>e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900">
-            <Icons.Sparkles className="w-6 h-6 text-indigo-500"/> AI インサイトレポート
-          </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1"><Icons.X className="w-5 h-5"/></button>
-        </div>
-        <div className="flex-1 overflow-y-auto bg-slate-50 rounded-xl p-6 border border-slate-100">
-          <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-loose font-sans">{summary}</pre>
-        </div>
-        <button onClick={onClose} className="mt-6 w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 shadow-sm transition-all">閉じる</button>
-      </div>
-    </div>
-  );
-}
-
-function AiChatTab({
-  onSend,
-  onWidgetGenerated,
-  onSummaryRequest,
-}: {
-  onSend: (prompt: string) => Promise<{ message?: string; widget?: any }>;
-  onWidgetGenerated?: (widget: any) => void;
-  onSummaryRequest?: () => void;
-}) {
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  const handleSend = async () => {
-    const trimmed = input.trim();
-    if (!trimmed) return;
-    setInput('');
-    setHistory(prev => [...prev, { role: 'user', text: trimmed }, { role: 'ai', text: '生成中...' }]);
-    setLoading(true);
-    try {
-      const result = await onSend(trimmed);
-      setHistory(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: 'ai', text: result.message || '回答がありませんでした' };
-        return updated;
-      });
-      if (result.widget) {
-        onWidgetGenerated?.(result.widget);
-        setHistory(prev => [...prev, { role: 'ai', text: 'ウィジェットが生成されました。' }]);
-      }
-    } catch {
-      setHistory(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: 'ai', text: 'エラーが発生しました' };
-        return updated;
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [history]);
-
-  return (
-    <div className="flex flex-col h-full bg-slate-50/50 rounded-2xl border border-slate-200/60 overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {history.length === 0 && (
-          <div className="text-sm text-slate-400 text-center py-10 flex flex-col items-center gap-3">
-            <Icons.Sparkles className="w-8 h-8 text-slate-300"/>
-            <p>AIアシスタントに自然言語で指示してください。<br/><span className="text-xs mt-1 opacity-80">例: 「ステータス別の棒グラフを追加して」</span></p>
-          </div>
-        )}
-        {history.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
-              msg.role === 'user'
-                ? 'bg-indigo-600 text-white rounded-tr-sm'
-                : 'bg-white text-slate-800 border border-slate-100 rounded-tl-sm'
-            }`}>
-              {msg.text}
-            </div>
-          </div>
-        ))}
-        <div ref={chatEndRef}/>
-      </div>
-      <div className="border-t border-slate-200 bg-white p-4 space-y-3">
-        <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                handleSend();
-              }
-            }}
-            placeholder="自然言語で指示..."
-            className="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 text-slate-900 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-          />
-          <button
-            onClick={handleSend}
-            disabled={loading}
-            className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 shadow-sm disabled:opacity-50 transition-all flex items-center justify-center min-w-[4rem]"
-          >
-            {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : '送信'}
-          </button>
-        </div>
-        {onSummaryRequest && (
-          <button
-            onClick={onSummaryRequest}
-            className="w-full py-2.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-          >
-            <Icons.FileText className="w-4 h-4"/> AIレポート生成
-          </button>
-        )}
-      </div>
-    </div>
-  );
 }
 
 type DashboardMode = 'view' | 'edit' | 'signage';
@@ -1923,193 +1805,6 @@ function DashboardInner() {
   />
 );
 
-  function getOrthogonalPath(x1: number, y1: number, x2: number, y2: number): string {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const adx = Math.abs(dx);
-    const ady = Math.abs(dy);
-
-    if (ady < 20 || adx < 20) return `M ${x1} ${y1} L ${x2} ${y2}`;
-
-    if (ady > adx * 1.5) {
-      const midY = (y1 + y2) / 2;
-      return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
-    } else {
-      const midX = (x1 + x2) / 2;
-      return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
-    }
-  }
-
-  function getRoutePath(ann: Annotation): string {
-    const { x1, y1, x2, y2, routeType } = ann;
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    if (routeType === 'direct') {
-      return `M ${x1} ${y1} L ${x2} ${y2}`;
-    }
-    if (routeType === 'orthogonal' || routeType === 'bezier') {
-      return getOrthogonalPath(x1, y1, x2, y2);
-    }
-    if (routeType === 'stairHV') {
-      return `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2}`;
-    }
-    if (routeType === 'stairVH') {
-      return `M ${x1} ${y1} L ${x1} ${y2} L ${x2} ${y2}`;
-    }
-    if (routeType === 'stairHVH') {
-      const midX = (x1 + x2) / 2;
-      return `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
-    }
-    if (routeType === 'stairVHV') {
-      const midY = (y1 + y2) / 2;
-      return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
-    }
-    return getOrthogonalPath(x1, y1, x2, y2);
-  }
-
-  const getMarkerDefs = () => {
-    return (
-      <>
-        {annotations.map(ann => {
-          const sizes = { small: 6, medium: 9, large: 14 };
-          const size = sizes[ann.arrowSize] || 9;
-          const shapePoints = {
-            triangle: `0 0, ${size} ${size/2}, 0 ${size}`,
-            sharp: `0 0, ${size} ${size/2}, 0 ${size}`,
-            blunt: `0 0, ${size*0.8} ${size/2}, 0 ${size}`,
-          };
-          const points = shapePoints[ann.arrowShape] || shapePoints.triangle;
-          const refXMap: Record<string, number> = {
-            triangle: size,
-            sharp: size * 0.8,
-            blunt: size * 0.6,
-          };
-          const refX = refXMap[ann.arrowShape] || size;
-          return (
-            <React.Fragment key={ann.id}>
-              {ann.arrowEnd && (
-                <marker id={`arrowhead-${ann.id}`} markerWidth={size} markerHeight={size} refX={refX} refY={size/2} orient="auto">
-                  <polygon points={points} fill={ann.color} />
-                </marker>
-              )}
-              {ann.arrowStart && (
-                <marker id={`arrowhead-reverse-${ann.id}`} markerWidth={size} markerHeight={size} refX={size - refX} refY={size/2} orient="auto">
-                  <polygon points={points} fill={ann.color} />
-                </marker>
-              )}
-            </React.Fragment>
-          );
-        })}
-        <marker id="arrowhead-draft" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
-          <polygon points="0 0, 9 3.5, 0 7" fill="#6366f1" />
-        </marker>
-      </>
-    );
-  };
-
-  const renderFilterConditions = (
-    conditions: { field: string; value: string; operator?: string; logic?: 'and' | 'or' }[],
-    allFields: string[],
-    updateConditions: (newConds: typeof conditions) => void
-  ) => {
-    const addCondition = () => {
-      if (conditions.length >= 10) return;
-      updateConditions([...conditions, { field: '', value: '', operator: 'eq', logic: 'and' }]);
-    };
-    return (
-      <div className="space-y-3 pt-2 border-t border-slate-100">
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><Icons.Table className="w-4 h-4"/> クロスフィルター条件</label>
-        </div>
-        {conditions.map((cond, idx) => (
-          <div key={idx} className="space-y-1">
-            <div className="flex items-center gap-1 bg-slate-50 p-2 rounded-xl border border-slate-100">
-              <span className="text-xs font-bold text-slate-400 w-5 text-center shrink-0">#{idx+1}</span>
-              <div className="flex-1 min-w-0">
-                <SelectWithSearch
-                  options={allFields}
-                  value={cond.field}
-                  onChange={v => {
-                    const newConds = [...conditions];
-                    newConds[idx] = { ...newConds[idx], field: v, value: '' };
-                    updateConditions(newConds);
-                  }}
-                  placeholder="フィールド"
-                />
-              </div>
-              <select
-                value={cond.operator || 'eq'}
-                onChange={e => {
-                  const newConds = [...conditions];
-                  newConds[idx] = { ...newConds[idx], operator: e.target.value as any };
-                  updateConditions(newConds);
-                }}
-                className="w-16 text-[10px] border border-slate-200 rounded px-1 py-1.5 bg-white outline-none shrink-0"
-              >
-                <option value="eq">一致</option>
-                <option value="neq">不一致</option>
-                <option value="empty">空欄</option>
-                <option value="not_empty">空欄以外</option>
-              </select>
-              {(!cond.operator || cond.operator === 'eq' || cond.operator === 'neq') && (
-                <div className="flex-1 min-w-0">
-                  <SelectWithSearch
-                    options={cond.field ? (fieldUniqueValuesBySource[activeEditorWidget?.dataConfig?.sourceIndex || '001']?.[cond.field] || []) : []}
-                    value={cond.value}
-                    onChange={v => {
-                      const newConds = [...conditions];
-                      newConds[idx] = { ...newConds[idx], value: v };
-                      updateConditions(newConds);
-                    }}
-                    placeholder="値"
-                  />
-                </div>
-              )}
-              <button onClick={() => {
-                const newConds = conditions.filter((_, i) => i !== idx);
-                updateConditions(newConds);
-              }} className="text-slate-400 hover:text-rose-500 p-1 bg-white rounded-md shadow-sm border border-slate-200 transition-colors shrink-0"><Icons.X className="w-3.5 h-3.5"/></button>
-            </div>
-            {idx > 0 && (
-              <div className="flex items-center gap-2 ml-6">
-                <span className="text-[10px] text-slate-400">結合:</span>
-                <button
-                  onClick={() => {
-                    const newConds = [...conditions];
-                    newConds[idx] = { ...newConds[idx], logic: 'and' };
-                    updateConditions(newConds);
-                  }}
-                  className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-all ${
-                    (cond.logic || 'and') === 'and' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                  }`}
-                >
-                  AND
-                </button>
-                <button
-                  onClick={() => {
-                    const newConds = [...conditions];
-                    newConds[idx] = { ...newConds[idx], logic: 'or' };
-                    updateConditions(newConds);
-                  }}
-                  className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-all ${
-                    cond.logic === 'or' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                  }`}
-                >
-                  OR
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-        {conditions.length < 10 && (
-          <button onClick={addCondition} className="w-full text-sm font-medium py-2.5 border-2 border-dashed border-slate-200 bg-slate-50 rounded-xl text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2">
-            <Icons.Plus className="w-4 h-4"/> 条件を追加（最大10）
-          </button>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden text-slate-900 selection:bg-indigo-500/30">
 
@@ -2412,7 +2107,7 @@ function DashboardInner() {
 
             <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 50 }}>
               <defs>
-                {getMarkerDefs()}
+                {getMarkerDefs(annotations)}
               </defs>
               {annotations.map(ann => {
                 const isSelected = selectedAnnotationIds.includes(ann.id);
@@ -2849,7 +2544,14 @@ function DashboardInner() {
                                     ))}
                                   </div>
                                 </div>
-                                {renderFilterConditions(conditions, allFields, (newConds) => updateSelectedDesign('dataConfig', { ...dc, filterConditions: newConds }))}
+                                <FilterConditionsEditor
+  conditions={conditions}
+  allFields={allFields}
+  fieldUniqueValues={fieldUniqueValuesBySource[srcIdx] || {}}
+  sourceIndex={srcIdx}
+  onUpdate={(newConds) => updateSelectedDesign('dataConfig', { ...dc, filterConditions: newConds })}
+  maxConditions={10}
+/>
 
                                 {activeEditorWidget.type === 'comparison' && (
   <div className="space-y-4 pt-4 border-t border-slate-100">
