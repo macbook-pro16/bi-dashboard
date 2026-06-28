@@ -7,8 +7,8 @@ interface DrilldownModalProps {
   onClose: () => void;
   title: string;
   data: DBItem[];
-  filterField: string;
-  filterValue: string;
+  filterField?: string;   // ★ オプションに変更
+  filterValue?: string;   // ★ オプションに変更
 }
 
 export default function DrilldownModal({ open, onClose, title, data, filterField, filterValue }: DrilldownModalProps) {
@@ -16,11 +16,14 @@ export default function DrilldownModal({ open, onClose, title, data, filterField
   if (!open) return null;
 
   const filtered = data.filter(item => {
-    const matches = String((item as any)[filterField] ?? '') === filterValue;
-    const searchMatch = !search || item.name.toLowerCase().includes(search.toLowerCase()) || item.chassisNumber.toLowerCase().includes(search.toLowerCase());
-    return matches && searchMatch;
-  });
-
+  // ★ filterField が指定されていないか空文字の場合はフィルタリングしない
+  let matches = true;
+  if (filterField && filterValue) {
+    matches = String((item as any)[filterField] ?? '') === filterValue;
+  }
+  const searchMatch = !search || item.name.toLowerCase().includes(search.toLowerCase()) || item.chassisNumber.toLowerCase().includes(search.toLowerCase());
+  return matches && searchMatch;
+});
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[250]" onPointerDown={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" onPointerDown={e => e.stopPropagation()}>
