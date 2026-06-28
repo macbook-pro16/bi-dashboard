@@ -206,6 +206,7 @@ export function renderWidgetContent(
   handleDiffFilter?: (ids: string[], label: string) => void,
   allWidgetValues?: Record<string, number>,
   onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => void,
+  cacheStore?: Record<string, DBItem[]>, // ★ 追加
 ) {
   const dc = w.dataConfig || ({} as DataConfig);
   const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
@@ -348,10 +349,17 @@ export function renderWidgetContent(
           : undefined;
 
                 // ★★★ 画像取得ロジック（修正版） ★★★
-        const wpData = filteredDataByIndex['wp_inventory'] || [];
+                // ★ wp_inventory データを取得（フィルター済みがなければ生データを使う）
+        let wpData = filteredDataByIndex['wp_inventory'] || [];
+        if (wpData.length === 0 && cacheStore && cacheStore['wp_inventory']) {
+          wpData = cacheStore['wp_inventory'];
+          console.warn('⚠️ filterDataByIndex が空のため、cacheStore から wp_inventory を使用します');
+        }
+
         let images: string[] = [];
 
-        const manageIdCandidates = ['v_manage_id', '管理番号', 'manage_id', 'vehicle_id'];
+        // ★ 管理番号候補に 'name' を追加
+        const manageIdCandidates = ['v_manage_id', '管理番号', 'manage_id', 'vehicle_id', 'name'];
         let manageId: string | null = null;
 
         if (filteredByConditions.length > 0) {

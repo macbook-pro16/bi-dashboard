@@ -589,11 +589,12 @@ function DashboardInner() {
   useEffect(()=>{if(status==='authenticated')fetchAllDatabases(false);},[status,fetchAllDatabases]);
   useEffect(()=>{ if(refreshInterval<=0)return; const iv=setInterval(()=>fetchAllDatabases(true),refreshInterval); return()=>clearInterval(iv); },[refreshInterval,fetchAllDatabases]);
 
-  const usedSources = useMemo(() =>
+      const usedSources = useMemo(() =>
     [...new Set([
       ...layout.map(w => w.dataConfig?.sourceIndex || w.dataSourceIndex || '001'),
       ...layout.map(w => w.dataConfig?.barSourceIndex).filter(Boolean) as string[],
       ...layout.map(w => w.dataConfig?.lineSourceIndex).filter(Boolean) as string[],
+      'wp_inventory', // ★ 追加
     ])],
     [layout]
   );
@@ -2194,9 +2195,12 @@ function DashboardInner() {
   availableFieldsBySource['001'] || [],
   handleDiffFilter,
   allWidgetValues,
+  
   (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
   setDrilldown({ field, value, widgetTitle, data, columns, images });
-}
+  },
+  
+  cacheStore  // ★ 追加（カンマ忘れずに）
 );
                   const flashClass = editModeFlash ? 'ring-1 ring-slate-300 transition-all duration-300' : '';
                   return (
