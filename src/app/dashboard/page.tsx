@@ -4409,7 +4409,60 @@ function DashboardInner() {
             {label:'✏️ タイトル名を変更',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setTitleEditWidgetId(ctxMenu.id); setTitleEditValue(w.title); } }},
             null,
             {label:'📝 スタイルをコピー',action:()=>{ const w = findWidgetById(layout, ctxMenu.id); if(w){ setStyleClipboard({ shape: w.shape, w: w.w, h: w.h, bgColor: w.bgColor, textColor: w.textColor, borderColor: w.borderColor, borderWidth: w.borderWidth, fontSize: w.fontSize, textAlign: w.textAlign, hasShadow: w.hasShadow, bgAlpha: w.bgAlpha, tableConfig: w.tableConfig ? { ...w.tableConfig } : undefined, showTodayValue: w.dataConfig?.showTodayValue, colorDelta: w.dataConfig?.colorDelta, colorDeltaMinus: w.dataConfig?.colorDeltaMinus, todayFontSize: w.dataConfig?.todayFontSize, todayX: w.dataConfig?.todayX, todayY: w.dataConfig?.todayY, addedX: w.dataConfig?.addedX, addedY: w.dataConfig?.addedY, removedX: w.dataConfig?.removedX, removedY: w.dataConfig?.removedY, todayDiffMatchField: w.dataConfig?.todayDiffMatchField, todayDiffChangeField: w.dataConfig?.todayDiffChangeField, todayPopupFields: w.dataConfig?.todayPopupFields, drilldownFields: w.dataConfig?.drilldownFields, dataConfig: w.dataConfig ? { ...w.dataConfig } : undefined }); addToastRef.current('スタイルをコピーしました', 'success'); } }},
-            {label:'📋 スタイルを貼り付け',action:()=>{ if(styleClipboard){ const { showTodayValue, colorDelta, colorDeltaMinus, todayFontSize, todayX, todayY, addedX, addedY, removedX, removedY, todayDiffMatchField, todayDiffChangeField, todayPopupFields, drilldownFields, dataConfig: copiedDataConfig, ...restStyle } = styleClipboard; editWidgets(updateWidgetById(layout, ctxMenu.id, w => { const newDataConfig = { ...w.dataConfig, ...copiedDataConfig, showTodayValue: showTodayValue !== undefined ? showTodayValue : w.dataConfig?.showTodayValue, colorDelta: colorDelta !== undefined ? colorDelta : w.dataConfig?.colorDelta, colorDeltaMinus: colorDeltaMinus !== undefined ? colorDeltaMinus : w.dataConfig?.colorDeltaMinus, todayFontSize: todayFontSize !== undefined ? todayFontSize : w.dataConfig?.todayFontSize, todayX: todayX !== undefined ? todayX : w.dataConfig?.todayX, todayY: todayY !== undefined ? todayY : w.dataConfig?.todayY, addedX: addedX !== undefined ? addedX : w.dataConfig?.addedX, addedY: addedY !== undefined ? addedY : w.dataConfig?.addedY, removedX: removedX !== undefined ? removedX : w.dataConfig?.removedX, removedY: removedY !== undefined ? removedY : w.dataConfig?.removedY, todayDiffMatchField: todayDiffMatchField !== undefined ? todayDiffMatchField : w.dataConfig?.todayDiffMatchField, todayDiffChangeField: todayDiffChangeField !== undefined ? todayDiffChangeField : w.dataConfig?.todayDiffChangeField, todayPopupFields: todayPopupFields !== undefined ? todayPopupFields : w.dataConfig?.todayPopupFields, drilldownFields: drilldownFields !== undefined ? drilldownFields : w.dataConfig?.drilldownFields, }; return { ...w, ...restStyle, dataConfig: newDataConfig }; }))); addToastRef.current('スタイルを貼り付けました', 'success'); } else { addToastRef.current('コピーされたスタイルがありません', 'error'); } }, disabled: !styleClipboard},
+            {
+  label: '📋 スタイルを貼り付け',
+  action: () => {
+    if (styleClipboard) {
+      const {
+        showTodayValue,
+        colorDelta,
+        colorDeltaMinus,
+        todayFontSize,
+        todayX,
+        todayY,
+        addedX,
+        addedY,
+        removedX,
+        removedY,
+        todayDiffMatchField,
+        todayDiffChangeField,
+        todayPopupFields,
+        drilldownFields,
+        dataConfig: copiedDataConfig,
+        ...restStyle
+      } = styleClipboard;
+
+      editWidgets(
+        updateWidgetById(layout, ctxMenu.id, (w) => {
+          const newDataConfig = {
+            ...w.dataConfig,
+            ...copiedDataConfig,
+            showTodayValue: showTodayValue !== undefined ? showTodayValue : w.dataConfig?.showTodayValue,
+            colorDelta: colorDelta !== undefined ? colorDelta : w.dataConfig?.colorDelta,
+            colorDeltaMinus: colorDeltaMinus !== undefined ? colorDeltaMinus : w.dataConfig?.colorDeltaMinus,
+            todayFontSize: todayFontSize !== undefined ? todayFontSize : w.dataConfig?.todayFontSize,
+            todayX: todayX !== undefined ? todayX : w.dataConfig?.todayX,
+            todayY: todayY !== undefined ? todayY : w.dataConfig?.todayY,
+            addedX: addedX !== undefined ? addedX : w.dataConfig?.addedX,
+            addedY: addedY !== undefined ? addedY : w.dataConfig?.addedY,
+            removedX: removedX !== undefined ? removedX : w.dataConfig?.removedX,
+            removedY: removedY !== undefined ? removedY : w.dataConfig?.removedY,
+            todayDiffMatchField: todayDiffMatchField !== undefined ? todayDiffMatchField : w.dataConfig?.todayDiffMatchField,
+            todayDiffChangeField: todayDiffChangeField !== undefined ? todayDiffChangeField : w.dataConfig?.todayDiffChangeField,
+            todayPopupFields: todayPopupFields !== undefined ? todayPopupFields : w.dataConfig?.todayPopupFields,
+            drilldownFields: drilldownFields !== undefined ? drilldownFields : w.dataConfig?.drilldownFields,
+          };
+          return { ...w, ...restStyle, dataConfig: newDataConfig };
+        })
+      );
+
+      addToastRef.current('スタイルを貼り付けました', 'success');
+    } else {
+      addToastRef.current('コピーされたスタイルがありません', 'error');
+    }
+  },
+  disabled: !styleClipboard,
+},
             null,
             {label:'複製',action:()=>handleDuplicateWidget(ctxMenu.id)},
             {label:findWidgetById(layout, ctxMenu.id)?.locked?'ロック解除':'ロックをかける',action:()=>handleToggleLockWidget(ctxMenu.id)},
