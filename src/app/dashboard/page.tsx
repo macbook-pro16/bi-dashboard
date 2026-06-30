@@ -111,7 +111,8 @@ type DashboardAction =
   | { type: 'COMMIT_STATE', payload: { layout: Widget[]; annotations: Annotation[] } }
   | { type: 'UNDO' }
   | { type: 'REDO' }
-  | { type: 'TOGGLE_PAGE_SIGNAGE', payload: number };
+  | { type: 'TOGGLE_PAGE_SIGNAGE', payload: number }
+  | { type: 'REORDER_PAGES', payload: DashboardPage[] };
 
 interface PageState {
   layout: Widget[];
@@ -1847,6 +1848,7 @@ function DashboardInner() {
                 if(mode==='edit') dispatch({type:'RENAME_PAGE',payload:{index:i,name:n}});
               }}
               onToggleSignage={toggleSignageInclusion}
+              onReorder={(newOrder) => dispatch({ type: 'REORDER_PAGES', payload: newOrder })}
               collapsed={!leftSidebarOpen}
             />
           </section>
