@@ -15,6 +15,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
+  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -178,21 +179,19 @@ export default function DashboardPageList({
   };
 
   const handleDragEnd = useCallback(
-    (event: any) => {
-      const { active, over } = event;
-      if (over && active.id !== over.id) {
-        const oldIndex = dashboards.findIndex((p) => p.id === active.id);
-        const newIndex = dashboards.findIndex((p) => p.id === over.id);
-        if (oldIndex !== -1 && newIndex !== -1) {
-          const reordered = [...dashboards];
-          reordered.splice(oldIndex, 1);
-          reordered.splice(newIndex, 0, dashboards[oldIndex]);
-          onReorder(reordered);
-        }
+  (event: any) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = dashboards.findIndex((p) => p.id === active.id);
+      const newIndex = dashboards.findIndex((p) => p.id === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reordered = arrayMove(dashboards, oldIndex, newIndex);
+        onReorder(reordered);
       }
-    },
-    [dashboards, onReorder]
-  );
+    }
+  },
+  [dashboards, onReorder]
+);
 
   if (collapsed) {
     return (

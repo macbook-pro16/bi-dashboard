@@ -183,6 +183,8 @@ function dashboardReducer(
           i === action.payload ? { ...p, includeInSignage: p.includeInSignage === false ? true : false } : p
         ),
       };
+    case 'REORDER_PAGES':
+      return { ...state, dashboards: action.payload };
     default: return state;
   }
 }
