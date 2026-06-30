@@ -2,7 +2,7 @@
 'use client';
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { DBItem } from '../types';
-import { DEFAULT_FILTER_DATE_RANGE } from '../constants';
+import { getDefaultFilterDateRange } from '../constants';
 
 interface FilterState {
   statuses: string[];
@@ -27,7 +27,7 @@ interface FilterContextValue {
 
 const initialFilters: FilterState = {
   statuses: [],
-  dateRange: { ...DEFAULT_FILTER_DATE_RANGE },
+  dateRange: getDefaultFilterDateRange(),
   searchTerm: '',
   crossFilters: {},
 };
@@ -121,10 +121,12 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
 export function useFilter() {
   const ctx = useContext(FilterContext);
   if (!ctx) {
+    // ★ フォールバック値も getDefaultFilterDateRange() を使う
+    const defaultRange = getDefaultFilterDateRange();
     return {
       filters: {
         statuses: [] as string[],
-        dateRange: { start: DEFAULT_FILTER_DATE_RANGE.start, end: DEFAULT_FILTER_DATE_RANGE.end },
+        dateRange: { start: defaultRange.start, end: defaultRange.end },
         searchTerm: '',
         crossFilters: {} as Record<string, string[]>,
       },

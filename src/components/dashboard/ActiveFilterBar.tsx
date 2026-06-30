@@ -4,16 +4,19 @@
 import React from 'react';
 import { useFilter } from '../../contexts/FilterContext';
 import Icons from '../Icons';
-import { DEFAULT_FILTER_DATE_RANGE } from '../../constants';
+import { getDefaultFilterDateRange } from '../../constants';
 
 export default function ActiveFilterBar() {
   const { filters, removeCrossFilter, setStatuses, setDateRange, clearCrossFilters } = useFilter();
   const allBadges: { label: string; onRemove: () => void }[] = [];
 
-  if (filters.dateRange.start !== DEFAULT_FILTER_DATE_RANGE.start || filters.dateRange.end !== DEFAULT_FILTER_DATE_RANGE.end) {
+  // ★ デフォルトの範囲を動的に取得
+  const defaultRange = getDefaultFilterDateRange();
+
+  if (filters.dateRange.start !== defaultRange.start || filters.dateRange.end !== defaultRange.end) {
     allBadges.push({
       label: `期間: ${filters.dateRange.start} 〜 ${filters.dateRange.end}`,
-      onRemove: () => setDateRange({ start: DEFAULT_FILTER_DATE_RANGE.start, end: DEFAULT_FILTER_DATE_RANGE.end })
+      onRemove: () => setDateRange({ start: defaultRange.start, end: defaultRange.end })
     });
   }
 
