@@ -1268,130 +1268,63 @@ function DashboardInner() {
   }, [cacheStore, layout, filters, evaluateConditions, applyGlobalNonDateFilters]);
 
   // ★ 比較ウィジェット用：実績側/目標側の生データをキーで突き合わせて差分を抽出
+  // ★ 修正：ポップアップのデータは常に「実績・目標の計算要素」として選んだウィジェットから生成する。
+  //   以前は「不一致データの照合設定」を指定すると、画面の数字（計算要素の合計）とは無関係な
+  //   別のデータソース・条件で差分を再計算していたため、
+  //   ①同じソースだと差分ゼロになりポップアップが出ない
+  //   ②違うソースだと数字と食い違う意図しない結果になる
+  //   という不具合があった。一本化することで、画面の数字とポップアップの中身が常に一致する。
   const comparisonDiffMap = useMemo(() => {
     const result: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }> = {};
-    const { start, end } = filters.dateRange;
 
-    // ★ 修正：比較ウィジェット自体がグループ/スライドショー内にネストしていても
-    //   diff エントリが作られるよう flattenWidgets を使用
     flattenWidgets(layout).forEach(w => {
       if (w.type !== 'comparison') return;
       const dc = w.dataConfig;
-      
-      const actualSrcIndex = dc?.compareActualSourceIndex;
-      const targetSrcIndex = dc?.compareTargetSourceIndex;
 
-      // ★ 新機能: 照合データソースが「未設定」の場合は、構成要素のウィジェットからデータを自動結合する
-      if (!actualSrcIndex || !targetSrcIndex) {
-        const actualItems = dc?.compareActualItems || [];
-        const targetItems = dc?.compareTargetItems || [];
-        // ★ 修正：ウィジェット結合モードでも突き合わせキー設定を反映する（未設定時のみ id）
-        const actualKeyField = dc?.compareActualKeyField || 'id';
-        const targetKeyField = dc?.compareTargetKeyField || 'id';
-
-        const actualMap = new Map<string, DBItem>();
-        actualItems.forEach(it => {
-          if (it.operator === 'plus') {
-            const items = allWidgetFilteredData[it.widgetId] || [];
-            console.log('[比較Widget診断] 実績側', it.widgetId, '→', items.length, '件', items);
-            items.forEach(item => {
-              const key = actualKeyField === 'id' ? item.id : extractStringValue(item[actualKeyField]);
-              if (key) actualMap.set(key, item);
-            });
-          }
-        });
-
-        const targetMap = new Map<string, DBItem>();
-        targetItems.forEach(it => {
-          if (it.operator === 'plus') {
-            // ★ 修正：ページをまたいだ参照でも差分データを取得できるよう allWidgetFilteredData を使用
-            const items = allWidgetFilteredData[it.widgetId] || [];
-            items.forEach(item => {
-              // ★ 修正：targetKeyField を実際に使う（従来は item.id 固定で無視されていた）
-              const key = targetKeyField === 'id' ? item.id : extractStringValue(item[targetKeyField]);
-              if (key) targetMap.set(key, item);
-            });
-          }
-        });
-
-        const onlyInActual: DBItem[] = [];
-        actualMap.forEach((item, key) => {
-          if (!targetMap.has(key)) onlyInActual.push(item);
-        });
-
-        const onlyInTarget: DBItem[] = [];
-        targetMap.forEach((item, key) => {
-          if (!actualMap.has(key)) onlyInTarget.push(item);
-        });
-
-        result[w.id] = { onlyInActual, onlyInTarget };
-        return;
-      }
-
-      // 以下は従来の手動設定がされている場合のロジック
-      const actualSrc = cacheStore[actualSrcIndex] || [];
-      const targetSrc = cacheStore[targetSrcIndex] || [];
-
-      // ★ 照合設定には日付設定がないため、基本の 'date' フィールドでダッシュボードの期間を適用
-      const dateField = resolveDateFilterField(w);
-      const filterByDate = (data: DBItem[]) => {
-        return data.filter(item => {
-          const d = item[dateField];
-          if (!d) return false;
-          return d >= start && d <= end;
-        });
-      };
-
-      const actualDateFiltered = filterByDate(actualSrc);
-      const targetDateFiltered = filterByDate(targetSrc);
-
-      const actualConditions = dc?.compareActualFilterConditions || [];
-      const actualLogic = dc?.compareActualConditionLogic || 'and';
-      const targetConditions = dc?.compareTargetFilterConditions || [];
-      const targetLogic = dc?.compareTargetConditionLogic || 'and';
-
-      // 期間適用済みのデータに対して、各条件とグローバルフィルターを適用する
-      const actualFiltered = applyGlobalNonDateFilters(
-        actualDateFiltered.filter(item => evaluateConditions(item, actualConditions, actualLogic))
-      );
-      const targetFiltered = applyGlobalNonDateFilters(
-        targetDateFiltered.filter(item => evaluateConditions(item, targetConditions, targetLogic))
-      );
-
+      const actualItems = dc?.compareActualItems || [];
+      const targetItems = dc?.compareTargetItems || [];
+      // 突き合わせキー：異なるデータソース同士を比較する場合は、
+      // Notionのページid同士は一致しないため、共通する項目（例：車体番号）を指定する
       const actualKeyField = dc?.compareActualKeyField || 'id';
       const targetKeyField = dc?.compareTargetKeyField || 'id';
 
-      const targetMap = new Map<string, DBItem>();
-      targetFiltered.forEach(item => {
-        const key = extractStringValue(item[targetKeyField]);
-        if (key) targetMap.set(key, item);
+      const actualMap = new Map<string, DBItem>();
+      actualItems.forEach(it => {
+        if (it.operator === 'plus') {
+          const items = allWidgetFilteredData[it.widgetId] || [];
+          items.forEach(item => {
+            const key = actualKeyField === 'id' ? item.id : extractStringValue(item[actualKeyField]);
+            if (key) actualMap.set(key, item);
+          });
+        }
       });
 
-      const actualMap = new Map<string, DBItem>();
-      actualFiltered.forEach(item => {
-        const key = extractStringValue(item[actualKeyField]);
-        if (key) actualMap.set(key, item);
+      const targetMap = new Map<string, DBItem>();
+      targetItems.forEach(it => {
+        if (it.operator === 'plus') {
+          const items = allWidgetFilteredData[it.widgetId] || [];
+          items.forEach(item => {
+            const key = targetKeyField === 'id' ? item.id : extractStringValue(item[targetKeyField]);
+            if (key) targetMap.set(key, item);
+          });
+        }
       });
 
       const onlyInActual: DBItem[] = [];
-      actualFiltered.forEach(item => {
-        const key = extractStringValue(item[actualKeyField]);
-        // キーが存在しない、またはターゲット側にない場合に「実績のみ」とする
-        if (!key || !targetMap.has(key)) onlyInActual.push(item);
+      actualMap.forEach((item, key) => {
+        if (!targetMap.has(key)) onlyInActual.push(item);
       });
 
       const onlyInTarget: DBItem[] = [];
-      targetFiltered.forEach(item => {
-        const key = extractStringValue(item[targetKeyField]);
-        // キーが存在しない、または実績側にない場合に「目標のみ」とする
-        if (!key || !actualMap.has(key)) onlyInTarget.push(item);
+      targetMap.forEach((item, key) => {
+        if (!actualMap.has(key)) onlyInTarget.push(item);
       });
 
       result[w.id] = { onlyInActual, onlyInTarget };
     });
 
     return result;
-  }, [cacheStore, layout, filters.dateRange, evaluateConditions, applyGlobalNonDateFilters, allWidgetFilteredData]);
+  }, [layout, allWidgetFilteredData]);
 
   const handleSelect=useCallback((id:string)=>{setSelectedIds([id]);setSelectedAnnotationIds([]);},[]);
   const handleSelectToggle=useCallback((id:string)=>setSelectedIds(p=>p.includes(id)?p.filter(i=>i!==id):[...p,id]),[]);
