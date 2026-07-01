@@ -1676,31 +1676,64 @@ function DashboardInner() {
     } catch { addToastRef.current('AIエラー','error'); }
   },[activeFilteredData,statusCounts,todayActionCount]);
 
-  const setQuickDate = useCallback((preset: string) => {
+  // 期間の単位（日/週/月/年）ごとに「今から何個ズレているか」を保持
+  const [periodOffsets, setPeriodOffsets] = useState<{ day: number; week: number; month: number; year: number }>({
+    day: 0, week: 0, month: 0, year: 0,
+  });
+
+  const applyPeriodOffset = useCallback((unit: 'day' | 'week' | 'month' | 'year', offset: number) => {
+    // 未来方向には進めない（0が上限）
+    const clamped = Math.min(0, offset);
     const now = new Date();
     const y = now.getFullYear();
     const m = now.getMonth();
     let start = '', end = '';
-    if (preset === 'today') {
-      const today = formatLocalDate(now);
-      start = today; end = today;
-    } else if (preset === 'thisWeek') {
+
+    if (unit === 'day') {
+      const d = new Date(now); d.setDate(now.getDate() + clamped);
+      const s = formatLocalDate(d);
+      start = s; end = s;
+    } else if (unit === 'week') {
       const day = now.getDay();
-      const mon = new Date(now); mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+      const mon = new Date(now);
+      mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1) + clamped * 7);
       const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
       start = formatLocalDate(mon); end = formatLocalDate(sun);
-    } else if (preset === 'thisMonth') {
-      start = formatLocalDate(new Date(y, m, 1));
-      end = formatLocalDate(new Date(y, m + 1, 0));
-    } else if (preset === 'lastMonth') {
-      start = formatLocalDate(new Date(y, m - 1, 1));
-      end = formatLocalDate(new Date(y, m, 0));
-    } else if (preset === 'thisYear') {
-      start = formatLocalDate(new Date(y, 0, 1));
-      end = formatLocalDate(new Date(y, 11, 31));
+    } else if (unit === 'month') {
+      start = formatLocalDate(new Date(y, m + clamped, 1));
+      end = formatLocalDate(new Date(y, m + clamped + 1, 0));
+    } else if (unit === 'year') {
+      start = formatLocalDate(new Date(y + clamped, 0, 1));
+      end = formatLocalDate(new Date(y + clamped, 11, 31));
     }
+
+    setPeriodOffsets(prev => ({ ...prev, [unit]: clamped }));
     if (start && end) updateDateRange({ start, end });
   }, [updateDateRange]);
+
+  // 各単位の表示ラベルを生成
+  const formatPeriodLabel = useCallback((unit: 'day' | 'week' | 'month' | 'year', offset: number): string => {
+    const now = new Date();
+    if (unit === 'day') {
+      if (offset === 0) return '今日';
+      if (offset === -1) return '昨日';
+      const d = new Date(now); d.setDate(now.getDate() + offset);
+      return `${d.getMonth() + 1}/${d.getDate()}`;
+    }
+    if (unit === 'week') {
+      if (offset === 0) return '今週';
+      if (offset === -1) return '先週';
+      return `${Math.abs(offset)}週間前`;
+    }
+    if (unit === 'month') {
+      const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+      if (offset === 0) return '今月';
+      return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+    }
+    // year
+    if (offset === 0) return '今年';
+    return `${now.getFullYear() + offset}年`;
+  }, []);
 
   const selectedWidgets = layout.filter(w => selectedIds.includes(w.id));
   const isMultiSelected = selectedIds.length > 1;
@@ -2057,16 +2090,27 @@ function DashboardInner() {
         <div className="shrink-0 flex items-center gap-4 px-8 py-3 bg-white border-b border-slate-200 z-20 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest mr-2">Period</span>
-            {[
-              { label: '今日', preset: 'today' },
-              { label: '今週', preset: 'thisWeek' },
-              { label: '今月', preset: 'thisMonth' },
-              { label: '先月', preset: 'lastMonth' },
-              { label: '今年', preset: 'thisYear' },
-            ].map(({ label, preset }) => (
-              <button key={preset} onClick={() => setQuickDate(preset)} className="text-xs font-medium bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all">
-                {label}
-              </button>
+            {(['day', 'week', 'month', 'year'] as const).map((unit) => (
+              <div key={unit} className="flex items-center gap-0.5 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+                <button
+                  onClick={() => applyPeriodOffset(unit, periodOffsets[unit] - 1)}
+                  className="p-1 rounded-md text-slate-500 hover:bg-white hover:text-indigo-600 transition-colors"
+                  aria-label={`前の${unit === 'day' ? '日' : unit === 'week' ? '週' : unit === 'month' ? '月' : '年'}`}
+                >
+                  <Icons.ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-xs font-medium text-slate-600 min-w-[56px] text-center px-1">
+                  {formatPeriodLabel(unit, periodOffsets[unit])}
+                </span>
+                <button
+                  onClick={() => applyPeriodOffset(unit, periodOffsets[unit] + 1)}
+                  disabled={periodOffsets[unit] >= 0}
+                  className="p-1 rounded-md text-slate-500 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+                  aria-label={`次の${unit === 'day' ? '日' : unit === 'week' ? '週' : unit === 'month' ? '月' : '年'}`}
+                >
+                  <Icons.ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             ))}
           </div>
           <div className="h-6 w-px bg-slate-200 mx-2"></div>
