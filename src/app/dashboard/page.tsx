@@ -229,6 +229,20 @@ function removeWidgetById(widgets: Widget[], id: string): Widget[] {
     });
 }
 
+// ★ 追加：グループ／スライドショー内の子ウィジェットも含めて再帰的にフラット化する。
+//   widgetFilteredData 等がトップレベルのウィジェットしか見ていなかったため、
+//   比較ウィジェットや、実績・目標の構成要素ウィジェットがグループ/スライドショー内にある場合、
+//   データが一切見つからずポップアップが機能しない不具合があった。
+function flattenWidgets(widgets: Widget[]): Widget[] {
+  const result: Widget[] = [];
+  for (const w of widgets) {
+    result.push(w);
+    if (w.children && w.children.length > 0) {
+      result.push(...flattenWidgets(w.children));
+    }
+  }
+  return result;
+}
 type DashboardMode = 'view' | 'edit' | 'signage';
 
 function DashboardInner() {
@@ -682,9 +696,10 @@ function DashboardInner() {
   const dateFieldsBySource = useMemo(()=>{ const m:Record<string,string[]>={}; for(const idx of Object.keys(cacheStore)){ const fields = availableFieldsBySource[idx]||[]; const data = cacheStore[idx]||[]; m[idx] = fields.filter(f => data.some(item => /^\d{4}-\d{2}-\d{2}/.test(extractStringValue(item[f])))); } return m; },[cacheStore,availableFieldsBySource]);
 
   // ★ 新規追加：全ウィジェットのデータを保管する（比較ウィジェットでの自動計算に使用）
+  //   ★ 修正：グループ/スライドショー内の子ウィジェットも対象にするため flattenWidgets を使用
   const widgetFilteredData = useMemo(() => {
     const map: Record<string, DBItem[]> = {};
-    layout.forEach(w => {
+    flattenWidgets(layout).forEach(w => {
       const dc = w.dataConfig as DataConfig | undefined;
       if (!dc) return;
 
@@ -745,7 +760,8 @@ function DashboardInner() {
   const allWidgetFilteredData = useMemo(() => {
     const map: Record<string, DBItem[]> = {};
     dashboards.forEach(page => {
-      (page.layout ?? []).forEach(w => {
+      // ★ 修正：グループ/スライドショー内の子ウィジェットも対象にするため flattenWidgets を使用
+      flattenWidgets(page.layout ?? []).forEach(w => {
         const dc = w.dataConfig as DataConfig | undefined;
         if (!dc) return;
 
@@ -1256,7 +1272,9 @@ function DashboardInner() {
     const result: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }> = {};
     const { start, end } = filters.dateRange;
 
-    layout.forEach(w => {
+    // ★ 修正：比較ウィジェット自体がグループ/スライドショー内にネストしていても
+    //   diff エントリが作られるよう flattenWidgets を使用
+    flattenWidgets(layout).forEach(w => {
       if (w.type !== 'comparison') return;
       const dc = w.dataConfig;
       
@@ -1276,7 +1294,11 @@ function DashboardInner() {
           if (it.operator === 'plus') {
             // ★ 修正：ページをまたいだ参照でも差分データを取得できるよう allWidgetFilteredData を使用
             const items = allWidgetFilteredData[it.widgetId] || [];
-            items.forEach(item => { if (item.id) actualMap.set(item.id, item); });
+            items.forEach(item => {
+              // ★ 修正：actualKeyField を実際に使う（従来は item.id 固定で無視されていた）
+              const key = actualKeyField === 'id' ? item.id : extractStringValue(item[actualKeyField]);
+              if (key) actualMap.set(key, item);
+            });
           }
         });
 
@@ -1285,7 +1307,11 @@ function DashboardInner() {
           if (it.operator === 'plus') {
             // ★ 修正：ページをまたいだ参照でも差分データを取得できるよう allWidgetFilteredData を使用
             const items = allWidgetFilteredData[it.widgetId] || [];
-            items.forEach(item => { if (item.id) targetMap.set(item.id, item); });
+            items.forEach(item => {
+              // ★ 修正：targetKeyField を実際に使う（従来は item.id 固定で無視されていた）
+              const key = targetKeyField === 'id' ? item.id : extractStringValue(item[targetKeyField]);
+              if (key) targetMap.set(key, item);
+            });
           }
         });
 
