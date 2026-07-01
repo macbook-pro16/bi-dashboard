@@ -1,7 +1,16 @@
 // src/components/ComparisonWidget.tsx
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import Popup from './dashboard/Popup';
+
+interface DBItemLike {
+  id: string;
+  name?: string;
+  status?: string;
+  date?: string | null;
+  [key: string]: any;
+}
 
 interface ComparisonWidgetProps {
   label: string;
@@ -18,6 +27,9 @@ interface ComparisonWidgetProps {
   target: number;
   actualLabel?: string;
   targetLabel?: string;
+  onlyInActual?: DBItemLike[];
+  onlyInTarget?: DBItemLike[];
+  diffPopupFields?: string[];
 }
 
 // アイコンコンポーネント
@@ -69,10 +81,71 @@ export default function ComparisonWidget({
   target,
   actualLabel = '実績',
   targetLabel = '比較対象',
+  onlyInActual,
+  onlyInTarget,
+  diffPopupFields,
 }: ComparisonWidgetProps) {
   const diff = actual - target;
   const isEqual = diff === 0;
   const isGreater = diff > 0;
+
+  const [hoveredSection, setHoveredSection] = useState<'actual' | 'target' | null>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isPopupHovered = useRef(false);
+
+  const hasDiffData = (onlyInActual && onlyInActual.length > 0) || (onlyInTarget && onlyInTarget.length > 0);
+
+  const scheduleClose = () => {
+    closeTimerRef.current = setTimeout(() => {
+      if (!isPopupHovered.current) setHoveredSection(null);
+    }, 150);
+  };
+  const cancelClose = () => {
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+  };
+  const handleBadgeEnter = () => {
+    if (!hasDiffData) return;
+    cancelClose();
+    isPopupHovered.current = false;
+    if (badgeRef.current) setAnchorRect(badgeRef.current.getBoundingClientRect());
+    setHoveredSection('actual');
+  };
+  const handleBadgeLeave = () => scheduleClose();
+  const handlePopupEnter = () => { isPopupHovered.current = true; cancelClose(); };
+  const handlePopupLeave = () => { isPopupHovered.current = false; scheduleClose(); };
+
+  useEffect(() => {
+    return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); };
+  }, []);
+
+  const renderDiffItem = (item: DBItemLike) => (
+    <div key={item.id} className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+      {diffPopupFields && diffPopupFields.length > 0 ? (
+        <div className="space-y-3">
+          {diffPopupFields.map(field => (
+            <div key={field} className="flex items-start gap-3">
+              <span className="text-sm font-medium text-slate-400 w-24 shrink-0 pt-0.5">{field}</span>
+              <span className="text-sm font-semibold text-slate-700 break-all">
+                {String(item[field] ?? '---')}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <p className="text-base font-semibold text-slate-800 truncate">{item.name || '名称なし'}</p>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-sm px-3 py-1 rounded-full bg-rose-50 text-rose-600 font-medium">
+              {item.status || '---'}
+            </span>
+            {item.date && <span className="text-sm text-slate-400">{item.date}</span>}
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   // 背景色の透過対応
   const bg = bgColor.startsWith('#')
@@ -99,7 +172,7 @@ export default function ComparisonWidget({
       badgeBg: 'bg-rose-50 border border-rose-200',
       badgeColor: 'text-rose-700',
       statusIcon: <AlertIcon />,
-      statusText: `ズレあり (${isGreater ? '+' : ''}${diff.toLocaleString()})`,
+      statusText: `ズレあり (${isGreater ? '+' : ''}${diff.toLocaleString()})${hasDiffData ? ' ・詳細を見る' : ''}`,
     };
   }
 
@@ -161,12 +234,61 @@ export default function ComparisonWidget({
         </div>
 
         {/* 判定バッジ */}
-        <div className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm shadow-sm ${statusConfig.badgeBg} ${statusConfig.badgeColor}`}>
+        <div
+          ref={badgeRef}
+          onMouseEnter={handleBadgeEnter}
+          onMouseLeave={handleBadgeLeave}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm shadow-sm ${statusConfig.badgeBg} ${statusConfig.badgeColor} ${hasDiffData ? 'cursor-pointer' : ''}`}
+        >
           {statusConfig.statusIcon}
           <span>{statusConfig.statusText}</span>
         </div>
 
       </div>
+
+      {hoveredSection && anchorRect && hasDiffData && (
+        <Popup
+          anchorRect={anchorRect}
+          onClose={() => setHoveredSection(null)}
+          onMouseEnterPopup={handlePopupEnter}
+          onMouseLeavePopup={handlePopupLeave}
+        >
+          {onlyInActual && onlyInActual.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+                <p className="text-lg font-bold text-slate-500">
+                  {actualLabel}側にのみ存在 <span className="text-blue-600">{onlyInActual.length}</span> 件
+                </p>
+              </div>
+              <div className="space-y-3">
+                {onlyInActual.map(renderDiffItem)}
+              </div>
+            </div>
+          )}
+          {onlyInTarget && onlyInTarget.length > 0 && (
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
+                </div>
+                <p className="text-lg font-bold text-slate-500">
+                  {targetLabel}側にのみ存在 <span className="text-red-600">{onlyInTarget.length}</span> 件
+                </p>
+              </div>
+              <div className="space-y-3">
+                {onlyInTarget.map(renderDiffItem)}
+              </div>
+            </div>
+          )}
+        </Popup>
+      )}
     </div>
   );
 }

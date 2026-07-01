@@ -1177,6 +1177,63 @@ function DashboardInner() {
     return result;
   }, [cacheStore, layout, filters, evaluateConditions, applyGlobalNonDateFilters]);
 
+  // 比較ウィジェット用：実績側/目標側の生データをキーで突き合わせて差分を抽出
+  const comparisonDiffMap = useMemo(() => {
+    const result: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }> = {};
+
+    layout.forEach(w => {
+      if (w.type !== 'comparison') return;
+      const dc = w.dataConfig;
+      if (!dc?.compareActualSourceIndex || !dc?.compareTargetSourceIndex) return;
+
+      const actualSrc = cacheStore[dc.compareActualSourceIndex] || [];
+      const targetSrc = cacheStore[dc.compareTargetSourceIndex] || [];
+
+      const actualConditions = dc.compareActualFilterConditions || [];
+      const actualLogic = dc.compareActualConditionLogic || 'and';
+      const targetConditions = dc.compareTargetFilterConditions || [];
+      const targetLogic = dc.compareTargetConditionLogic || 'and';
+
+      const actualFiltered = applyGlobalNonDateFilters(
+        actualSrc.filter(item => evaluateConditions(item, actualConditions, actualLogic))
+      );
+      const targetFiltered = applyGlobalNonDateFilters(
+        targetSrc.filter(item => evaluateConditions(item, targetConditions, targetLogic))
+      );
+
+      const actualKeyField = dc.compareActualKeyField || 'id';
+      const targetKeyField = dc.compareTargetKeyField || 'id';
+
+      const targetMap = new Map<string, DBItem>();
+      targetFiltered.forEach(item => {
+        const key = extractStringValue(item[targetKeyField]);
+        if (key) targetMap.set(key, item);
+      });
+
+      const actualMap = new Map<string, DBItem>();
+      actualFiltered.forEach(item => {
+        const key = extractStringValue(item[actualKeyField]);
+        if (key) actualMap.set(key, item);
+      });
+
+      const onlyInActual: DBItem[] = [];
+      actualFiltered.forEach(item => {
+        const key = extractStringValue(item[actualKeyField]);
+        if (!key || !targetMap.has(key)) onlyInActual.push(item);
+      });
+
+      const onlyInTarget: DBItem[] = [];
+      targetFiltered.forEach(item => {
+        const key = extractStringValue(item[targetKeyField]);
+        if (!key || !actualMap.has(key)) onlyInTarget.push(item);
+      });
+
+      result[w.id] = { onlyInActual, onlyInTarget };
+    });
+
+    return result;
+  }, [cacheStore, layout, evaluateConditions, applyGlobalNonDateFilters]);
+
   const handleSelect=useCallback((id:string)=>{setSelectedIds([id]);setSelectedAnnotationIds([]);},[]);
   const handleSelectToggle=useCallback((id:string)=>setSelectedIds(p=>p.includes(id)?p.filter(i=>i!==id):[...p,id]),[]);
   const handleResizeEnd=useCallback((id:string,nw:number,nh:number)=>{ if(mode==='edit') editWidgets(layout.map(w=>w.id===id?{...w,w:nw,h:nh}:w)); },[layout,editWidgets,mode]);
@@ -1831,6 +1888,7 @@ function DashboardInner() {
     computedTargetValues={computedTargetValues}
     computedPreviousValues={computedPreviousValues}
     filteredDataByIndex={filteredDataByIndex}
+    comparisonDiffMap={comparisonDiffMap}
     statusOptions={statusOptions}
     onExit={() => setMode('view')}
     handleStatusChange={handleStatusChange}
@@ -2892,6 +2950,119 @@ function DashboardInner() {
           <Icons.Plus className="w-3 h-3" /> 目標に項目を追加
         </button>
       )}
+    </div>
+
+    <div className="border-t border-slate-100" />
+
+    <div className="space-y-4">
+      <label className="text-xs font-bold text-slate-700">🔍 不一致データの照合設定（任意）</label>
+      <p className="text-[10px] text-slate-400">
+        実績側・目標側それぞれのデータソースと条件、突き合わせキーを指定すると、ズレの原因データを特定できます。
+      </p>
+
+      {/* 実績側の照合設定 */}
+      <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
+        <label className="text-[11px] font-bold text-blue-700">実績側</label>
+        <div>
+          <label className="text-[10px] text-slate-500 mb-1 block">データソース</label>
+          <select
+            value={activeEditorWidget.dataConfig?.compareActualSourceIndex || ''}
+            onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualSourceIndex: e.target.value || undefined })}
+            className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
+          >
+            <option value="">選択してください</option>
+            {Object.keys(cacheStore).map(idx => (
+              <option key={idx} value={idx}>{idx}</option>
+            ))}
+          </select>
+        </div>
+        {activeEditorWidget.dataConfig?.compareActualSourceIndex && (
+          <>
+            <FilterConditionsEditor
+              conditions={activeEditorWidget.dataConfig?.compareActualFilterConditions || []}
+              allFields={availableFieldsBySource[activeEditorWidget.dataConfig.compareActualSourceIndex] || []}
+              fieldUniqueValues={fieldUniqueValuesBySource[activeEditorWidget.dataConfig.compareActualSourceIndex] || {}}
+              sourceIndex={activeEditorWidget.dataConfig.compareActualSourceIndex}
+              onUpdate={(newConds) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualFilterConditions: newConds })}
+              maxConditions={10}
+            />
+            <div>
+              <label className="text-[10px] text-slate-500 mb-1 block">突き合わせキー</label>
+              <SelectWithSearch
+                options={availableFieldsBySource[activeEditorWidget.dataConfig.compareActualSourceIndex] || []}
+                value={activeEditorWidget.dataConfig?.compareActualKeyField || 'id'}
+                onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualKeyField: v })}
+                placeholder="フィールドを選択（未設定はid）"
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 目標側の照合設定 */}
+      <div className="p-3 bg-rose-50/50 rounded-xl border border-rose-100 space-y-2">
+        <label className="text-[11px] font-bold text-rose-700">目標側</label>
+        <div>
+          <label className="text-[10px] text-slate-500 mb-1 block">データソース</label>
+          <select
+            value={activeEditorWidget.dataConfig?.compareTargetSourceIndex || ''}
+            onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetSourceIndex: e.target.value || undefined })}
+            className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
+          >
+            <option value="">選択してください</option>
+            {Object.keys(cacheStore).map(idx => (
+              <option key={idx} value={idx}>{idx}</option>
+            ))}
+          </select>
+        </div>
+        {activeEditorWidget.dataConfig?.compareTargetSourceIndex && (
+          <>
+            <FilterConditionsEditor
+              conditions={activeEditorWidget.dataConfig?.compareTargetFilterConditions || []}
+              allFields={availableFieldsBySource[activeEditorWidget.dataConfig.compareTargetSourceIndex] || []}
+              fieldUniqueValues={fieldUniqueValuesBySource[activeEditorWidget.dataConfig.compareTargetSourceIndex] || {}}
+              sourceIndex={activeEditorWidget.dataConfig.compareTargetSourceIndex}
+              onUpdate={(newConds) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetFilterConditions: newConds })}
+              maxConditions={10}
+            />
+            <div>
+              <label className="text-[10px] text-slate-500 mb-1 block">突き合わせキー</label>
+              <SelectWithSearch
+                options={availableFieldsBySource[activeEditorWidget.dataConfig.compareTargetSourceIndex] || []}
+                value={activeEditorWidget.dataConfig?.compareTargetKeyField || 'id'}
+                onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetKeyField: v })}
+                placeholder="フィールドを選択（未設定はid）"
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ポップアップ表示フィールド */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1 block">ポップアップに表示するフィールド（複数選択、未設定は既定表示）</label>
+        <div className="flex flex-wrap gap-1">
+          {(() => {
+            const srcForFields = activeEditorWidget.dataConfig?.compareActualSourceIndex;
+            const fields = srcForFields ? (availableFieldsBySource[srcForFields] || []) : [];
+            const selected = activeEditorWidget.dataConfig?.compareDiffPopupFields || [];
+            return fields.map(f => (
+              <button
+                key={f}
+                onClick={() => {
+                  const next = selected.includes(f) ? selected.filter(x => x !== f) : [...selected, f];
+                  updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareDiffPopupFields: next.length > 0 ? next : undefined });
+                }}
+                className={`text-[10px] px-2 py-1 rounded-md transition-all ${
+                  selected.includes(f) ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {f}
+              </button>
+            ));
+          })()}
+        </div>
+      </div>
     </div>
   </div>
 )}

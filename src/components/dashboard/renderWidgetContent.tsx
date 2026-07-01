@@ -52,6 +52,7 @@ function SlideshowWidgetContent({
   computedTargetValues: Record<string, number>;
   computedPreviousValues: Record<string, number>;
   filteredDataByIndex: Record<string, DBItem[]>;
+  comparisonDiffMap?: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }>;
   widgetFilteredData: Record<string, DBItem[]>;
   statusOptions: string[];
   handleStatusChange: any;
@@ -152,6 +153,7 @@ function SlideshowWidgetContent({
         computedTargetValues,
         computedPreviousValues,
         filteredDataByIndex,
+        comparisonDiffMap,
         widgetFilteredData,
         statusOptions,
         handleStatusChange,
@@ -642,6 +644,7 @@ onDrilldown(
 
       const actual = calcSum(compDc.compareActualItems);
       const target = calcSum(compDc.compareTargetItems);
+      const diffData = comparisonDiffMap?.[w.id];
 
       return (
         <ComparisonWidget
@@ -659,6 +662,9 @@ onDrilldown(
           target={target}
           actualLabel={compDc.compareActualLabel || '実績'}
           targetLabel={compDc.compareTargetLabel || '目標'}
+          onlyInActual={diffData?.onlyInActual}
+          onlyInTarget={diffData?.onlyInTarget}
+          diffPopupFields={compDc.compareDiffPopupFields}
         />
       );
     }

@@ -135,6 +135,21 @@ export interface DataConfig {
   compareTargetItems?: { widgetId: string; operator: 'plus' | 'minus' }[];  // 目標値の計算要素（最大20）
   compareActualLabel?: string;
   compareTargetLabel?: string;
+
+  // 差分抽出用（実績側）
+  compareActualSourceIndex?: string;
+  compareActualFilterConditions?: FilterCondition[];
+  compareActualConditionLogic?: 'and' | 'or';
+  compareActualKeyField?: string;
+
+  // 差分抽出用（目標側）
+  compareTargetSourceIndex?: string;
+  compareTargetFilterConditions?: FilterCondition[];
+  compareTargetConditionLogic?: 'and' | 'or';
+  compareTargetKeyField?: string;
+
+  // ポップアップに表示するフィールド
+  compareDiffPopupFields?: string[];
 }
 
 export interface OutlineConfig {
