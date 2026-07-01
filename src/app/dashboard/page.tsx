@@ -2494,26 +2494,45 @@ function DashboardInner() {
                             return (
                               <>
                                 <div>
-                                  <div className="flex items-center justify-between mb-1.5">
-                                    <label className="text-xs font-medium text-slate-700">📊 指標フィールド（件数）</label>
-                                    <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">全{allFields.length}件</span>
-                                  </div>
-                                  <SelectWithSearch
-                                    options={fieldsWithLabel}
-                                    value={currentFieldLabel}
-                                    onChange={v => {
-                                      const actualField = v.replace(/\s*\(リレーション\)$/, '') || undefined;
-                                      updateSelectedDesign('dataConfig', { ...dc, field: actualField });
-                                    }}
-                                    placeholder="未選択（全行カウント）"
-                                  />
-                                </div>
-                                {dc.field && (() => {
-                                  const uniqueVals = uniqueValsMap[dc.field] || [];
-                                  return (
-                                    <div>
-                                      <div className="flex items-center justify-between mb-1.5">
-                                        <label className="text-xs font-medium text-slate-700">🎯 指標値フィルター</label>
+  <div className="flex items-center justify-between mb-1.5">
+    <label className="text-xs font-medium text-slate-700">📊 指標フィールド</label>
+    <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">全{allFields.length}件</span>
+  </div>
+  <SelectWithSearch
+    options={fieldsWithLabel}
+    value={currentFieldLabel}
+    onChange={v => {
+      const actualField = v.replace(/\s*\(リレーション\)$/, '') || undefined;
+      updateSelectedDesign('dataConfig', { ...dc, field: actualField });
+    }}
+    placeholder="未選択（全行カウント）"
+  />
+</div>
+
+{/* ★ 集計方法（フィールド選択時のみ表示） */}
+{dc.field && (
+  <div>
+    <label className="text-xs font-medium text-slate-700 mb-1 block">📐 集計方法</label>
+    <select
+      value={dc.aggregation ?? 'count'}
+      onChange={e => updateSelectedDesign('dataConfig', { ...dc, aggregation: e.target.value as any })}
+      className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+    >
+      <option value="count">件数</option>
+      <option value="sum">合計</option>
+      <option value="avg">平均</option>
+      <option value="max">最大</option>
+      <option value="min">最小</option>
+    </select>
+  </div>
+)}
+
+{dc.field && (() => {
+  const uniqueVals = uniqueValsMap[dc.field] || [];
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-medium text-slate-700">🎯 指標値フィルター</label>
                                         {(dc.filterValue || dc.filterOperator) && (
                                           <button onClick={() => updateSelectedDesign('dataConfig', { ...dc, filterValue: undefined, filterOperator: undefined })} className="text-[10px] text-slate-400 hover:text-rose-500">クリア</button>
                                         )}
