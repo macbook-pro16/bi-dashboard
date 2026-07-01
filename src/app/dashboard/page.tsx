@@ -320,38 +320,6 @@ function DashboardInner() {
   });
     const { dashboards, activePageIndex } = state;
 
-  // 公開ページと非公開ページに分割
-  const publishedPages = dashboards.filter(p => p.published !== false);
-  const unpublishedPages = dashboards.filter(p => p.published === false);
-
-  // アクティブページID
-  const activePageId = dashboards[activePageIndex]?.id ?? null;
-
-    // ユーザー権限に応じて表示するページをフィルター（viewer の場合は非公開を隠す）
-  const visibleDashboards = userRole === 'viewer'
-    ? dashboards.filter(p => p.published !== false)
-    : dashboards;
-
-  // visibleDashboards 内でのアクティブページのインデックスを計算
-  const activeInVisible = userRole === 'viewer'
-    ? (() => {
-        const idx = visibleDashboards.findIndex(p => p.id === dashboards[activePageIndex]?.id);
-        return idx >= 0 ? idx : 0;
-      })()
-    : activePageIndex;
-
-      // 閲覧者が非公開ページを表示できないように強制移動
-  useEffect(() => {
-    if (userRole !== 'viewer' || dashboards.length === 0) return;
-    const currentPage = dashboards[activePageIndex];
-    if (currentPage && currentPage.published === false) {
-      const firstPublishedIdx = dashboards.findIndex(p => p.published !== false);
-      if (firstPublishedIdx >= 0) {
-        dispatch({ type: 'SET_ACTIVE_PAGE', payload: firstPublishedIdx });
-      }
-    }
-  }, [userRole, dashboards, activePageIndex, dispatch]);
-
   const layout = dashboards[activePageIndex]?.layout ?? [];
   const annotations = dashboards[activePageIndex]?.annotations ?? [];
 
@@ -1617,10 +1585,6 @@ function DashboardInner() {
     dispatch({ type: 'TOGGLE_PAGE_SIGNAGE', payload: idx });
   }, []);
 
-    const togglePublished = useCallback((pageId: string) => {
-    dispatch({ type: 'TOGGLE_PAGE_PUBLISHED', payload: pageId });
-  }, [dispatch]);
-
   const handleSignageNextPage = useCallback(() => {
     const eligible = dashboards
       .map((p, i) => ({ page: p, index: i }))
@@ -1873,18 +1837,17 @@ function DashboardInner() {
         </div>
 
         <div className={`flex-1 overflow-y-auto ${leftSidebarOpen ? 'p-6' : 'p-3 py-6'} space-y-8 overflow-x-hidden`}>
-                              <section>
+                                        <section>
             <DashboardPageList
-              publishedPages={publishedPages}
-              unpublishedPages={unpublishedPages}
-              activePageId={activePageId}
+              dashboards={dashboards}
+              activePageId={dashboards[activePageIndex]?.id ?? null}
               canEdit={canEdit}
               onSelect={(pageId) => {
                 const realIndex = dashboards.findIndex(p => p.id === pageId);
                 if (realIndex >= 0) dispatch({ type: 'SET_ACTIVE_PAGE', payload: realIndex });
               }}
               onAdd={() => {
-                if (mode === 'edit') {
+                if (mode === 'edit')
                   dispatch({
                     type: 'ADD_PAGE',
                     payload: {
@@ -1893,10 +1856,9 @@ function DashboardInner() {
                       layout: [],
                       annotations: [],
                       includeInSignage: true,
-                      published: true, // デフォルトは公開
+                      published: true,
                     },
                   });
-                }
               }}
               onDelete={(pageId) => {
                 const realIndex = dashboards.findIndex(p => p.id === pageId);
@@ -1911,20 +1873,15 @@ function DashboardInner() {
               }}
               onRename={(pageId, name) => {
                 const realIndex = dashboards.findIndex(p => p.id === pageId);
-                if (realIndex >= 0 && mode === 'edit') {
+                if (realIndex >= 0 && mode === 'edit')
                   dispatch({ type: 'RENAME_PAGE', payload: { index: realIndex, name } });
-                }
               }}
               onToggleSignage={(pageId) => {
                 const realIndex = dashboards.findIndex(p => p.id === pageId);
                 if (realIndex >= 0) toggleSignageInclusion(realIndex);
               }}
               onTogglePublished={(pageId) => {
-                togglePublished(pageId);
-              }}
-              onReorder={(reorderedPublished, reorderedUnpublished) => {
-                const newFullOrder = [...reorderedPublished, ...reorderedUnpublished];
-                dispatch({ type: 'REORDER_PAGES', payload: newFullOrder });
+                dispatch({ type: 'TOGGLE_PAGE_PUBLISHED', payload: pageId });
               }}
               collapsed={!leftSidebarOpen}
             />

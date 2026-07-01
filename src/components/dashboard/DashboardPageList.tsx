@@ -1,27 +1,12 @@
 // src/components/dashboard/DashboardPageList.tsx
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { DashboardPage } from '../../types';
 import Icons from '../Icons';
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 interface DashboardPageListProps {
-  publishedPages: DashboardPage[];
-  unpublishedPages: DashboardPage[];
+  dashboards: DashboardPage[];
   activePageId: string | null;
   canEdit: boolean;
   onSelect: (pageId: string) => void;
@@ -30,158 +15,11 @@ interface DashboardPageListProps {
   onRename: (pageId: string, name: string) => void;
   onToggleSignage: (pageId: string) => void;
   onTogglePublished: (pageId: string) => void;
-  onReorder: (reorderedPublished: DashboardPage[], reorderedUnpublished: DashboardPage[]) => void;
   collapsed?: boolean;
 }
 
-function SortablePageItem({
-  page,
-  isActive,
-  isUnpublished,
-  onSelect,
-  onDoubleClick,
-  onToggleSignage,
-  onTogglePublished,
-  onDelete,
-  isEditing,
-  editName,
-  onEditChange,
-  onEditConfirm,
-  onEditKeyDown,
-  canDelete,
-}: {
-  page: DashboardPage;
-  isActive: boolean;
-  isUnpublished: boolean;
-  onSelect: (id: string) => void;
-  onDoubleClick: (id: string, name: string) => void;
-  onToggleSignage: (id: string) => void;
-  onTogglePublished: (id: string) => void;
-  onDelete: (id: string) => void;
-  isEditing: boolean;
-  editName: string;
-  onEditChange: (val: string) => void;
-  onEditConfirm: () => void;
-  onEditKeyDown: (e: React.KeyboardEvent) => void;
-  canDelete: boolean;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: page.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center justify-between group rounded-lg ${
-        isUnpublished ? 'bg-slate-50/50' : ''
-      }`}
-    >
-      {isEditing ? (
-        <input
-          autoFocus
-          className="text-sm bg-white border border-indigo-400 rounded-md px-3 py-1.5 w-full mr-2 outline-none text-slate-900 shadow-sm"
-          value={editName}
-          onChange={(e) => onEditChange(e.target.value)}
-          onBlur={onEditConfirm}
-          onKeyDown={onEditKeyDown}
-        />
-      ) : (
-        <button
-          onClick={() => onSelect(page.id)}
-          onDoubleClick={() => onDoubleClick(page.id, page.name)}
-          className={`text-left text-sm px-4 py-2 rounded-lg w-full transition-all ${
-            isActive
-              ? 'bg-indigo-50/80 text-indigo-700 font-semibold shadow-sm'
-              : 'text-slate-600 hover:bg-slate-50'
-          } ${isUnpublished ? 'italic text-slate-400' : ''}`}
-        >
-          {page.name}
-        </button>
-      )}
-      <div className="flex items-center gap-1">
-        <button
-          {...attributes}
-          {...listeners}
-          className="p-1 text-slate-400 hover:text-slate-600 cursor-grab"
-          title="ドラッグで並べ替え"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="9" cy="5" r="1"/>
-            <circle cx="9" cy="12" r="1"/>
-            <circle cx="9" cy="19" r="1"/>
-            <circle cx="15" cy="5" r="1"/>
-            <circle cx="15" cy="12" r="1"/>
-            <circle cx="15" cy="19" r="1"/>
-          </svg>
-        </button>
-
-        {/* サイネージ表示トグル */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSignage(page.id);
-          }}
-          title={page.includeInSignage !== false ? 'サイネージに表示中' : 'サイネージから除外'}
-          className={`p-1 rounded transition-colors ${
-            page.includeInSignage !== false ? 'text-indigo-500' : 'text-slate-300'
-          }`}
-        >
-          <Icons.Monitor className="w-3.5 h-3.5" />
-        </button>
-
-        {/* 公開/非公開トグル */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onTogglePublished(page.id);
-          }}
-          title={page.published !== false ? '公開中（クリックで非公開）' : '非公開（クリックで公開）'}
-          className={`p-1 rounded transition-colors ${
-            page.published !== false ? 'text-emerald-500' : 'text-slate-300'
-          }`}
-        >
-          {page.published !== false ? (
-            <Icons.Eye className="w-3.5 h-3.5" />
-          ) : (
-            <Icons.EyeOff className="w-3.5 h-3.5" />
-          )}
-        </button>
-
-        {/* 削除ボタン */}
-        <button
-          onClick={() => {
-            if (canDelete) onDelete(page.id);
-          }}
-          disabled={!canDelete}
-          title={!canDelete ? '最後のページは削除できません' : 'ページを削除'}
-          className={`text-slate-400 hover:text-rose-500 text-sm px-2 transition-colors ${
-            !canDelete
-              ? 'opacity-30 cursor-not-allowed'
-              : 'opacity-0 group-hover:opacity-100'
-          }`}
-        >
-          <Icons.X className="w-4 h-4" />
-        </button>
-      </div>
-    </li>
-  );
-}
-
 export default function DashboardPageList({
-  publishedPages,
-  unpublishedPages,
+  dashboards,
   activePageId,
   canEdit,
   onSelect,
@@ -190,13 +28,13 @@ export default function DashboardPageList({
   onRename,
   onToggleSignage,
   onTogglePublished,
-  onReorder,
   collapsed = false,
 }: DashboardPageListProps) {
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // ★ 閲覧者には公開ページだけを見せる
+  const visiblePages = canEdit ? dashboards : dashboards.filter(p => p.published !== false);
 
   const handleDoubleClick = (id: string, name: string) => {
     setEditingPageId(id);
@@ -210,43 +48,10 @@ export default function DashboardPageList({
     setEditingPageId(null);
   };
 
-  const handleDragEndPublished = useCallback(
-    (event: any) => {
-      const { active, over } = event;
-      if (over && active.id !== over.id) {
-        const oldIndex = publishedPages.findIndex((p) => p.id === active.id);
-        const newIndex = publishedPages.findIndex((p) => p.id === over.id);
-        if (oldIndex !== -1 && newIndex !== -1) {
-          const reordered = arrayMove(publishedPages, oldIndex, newIndex);
-          onReorder(reordered, unpublishedPages);
-        }
-      }
-    },
-    [publishedPages, unpublishedPages, onReorder]
-  );
-
-  const handleDragEndUnpublished = useCallback(
-    (event: any) => {
-      const { active, over } = event;
-      if (over && active.id !== over.id) {
-        const oldIndex = unpublishedPages.findIndex((p) => p.id === active.id);
-        const newIndex = unpublishedPages.findIndex((p) => p.id === over.id);
-        if (oldIndex !== -1 && newIndex !== -1) {
-          const reordered = arrayMove(unpublishedPages, oldIndex, newIndex);
-          onReorder(publishedPages, reordered);
-        }
-      }
-    },
-    [publishedPages, unpublishedPages, onReorder]
-  );
-
-  const totalPages = publishedPages.length + unpublishedPages.length;
-
   if (collapsed) {
-    // 折りたたみ表示（公開ページのみ表示）
     return (
       <div className="flex flex-col items-center gap-2 w-full mt-4">
-        {publishedPages.map((page, idx) => (
+        {visiblePages.map((page, idx) => (
           <button
             key={page.id}
             onClick={() => onSelect(page.id)}
@@ -274,95 +79,113 @@ export default function DashboardPageList({
   }
 
   return (
-    <div className="mb-2 space-y-4">
-      {/* 公開ページセクション */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-semibold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
-            <Icons.Eye className="w-3.5 h-3.5" /> 公開ページ
-          </h3>
-          {canEdit && (
-            <button
-              onClick={onAdd}
-              className="text-slate-400 hover:text-indigo-600 transition-colors p-1"
-              title="ページを追加"
-            >
-              <Icons.Plus className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndPublished}>
-          <SortableContext items={publishedPages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-            <ul className="space-y-1">
-              {publishedPages.map((page) => (
-                <SortablePageItem
-                  key={page.id}
-                  page={page}
-                  isActive={page.id === activePageId}
-                  isUnpublished={false}
-                  onSelect={onSelect}
-                  onDoubleClick={handleDoubleClick}
-                  onToggleSignage={onToggleSignage}
-                  onTogglePublished={onTogglePublished}
-                  onDelete={onDelete}
-                  isEditing={editingPageId === page.id}
-                  editName={editName}
-                  onEditChange={setEditName}
-                  onEditConfirm={handleConfirm}
-                  onEditKeyDown={(e) => {
-                    if (e.key === 'Enter') handleConfirm();
-                  }}
-                  canDelete={totalPages > 1}
-                />
-              ))}
-              {publishedPages.length === 0 && (
-                <li className="text-xs text-slate-400 text-center py-2">公開ページはありません</li>
-              )}
-            </ul>
-          </SortableContext>
-        </DndContext>
+    <div className="mb-2">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pages</h3>
+        {canEdit && (
+          <button
+            onClick={onAdd}
+            className="text-slate-400 hover:text-indigo-600 transition-colors p-1"
+            title="ページを追加"
+          >
+            <Icons.Plus className="w-4 h-4" />
+          </button>
+        )}
       </div>
-
-      {/* 非公開ページセクション（編集者のみ表示） */}
-      {canEdit && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <Icons.EyeOff className="w-3.5 h-3.5" /> 非公開ページ
-            </h3>
-          </div>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndUnpublished}>
-            <SortableContext items={unpublishedPages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-              <ul className="space-y-1">
-                {unpublishedPages.map((page) => (
-                  <SortablePageItem
-                    key={page.id}
-                    page={page}
-                    isActive={page.id === activePageId}
-                    isUnpublished={true}
-                    onSelect={onSelect}
-                    onDoubleClick={handleDoubleClick}
-                    onToggleSignage={onToggleSignage}
-                    onTogglePublished={onTogglePublished}
-                    onDelete={onDelete}
-                    isEditing={editingPageId === page.id}
-                    editName={editName}
-                    onEditChange={setEditName}
-                    onEditConfirm={handleConfirm}
-                    onEditKeyDown={(e) => {
-                      if (e.key === 'Enter') handleConfirm();
+      <ul className="space-y-1">
+        {visiblePages.map((page) => (
+          <li
+            key={page.id}
+            className={`flex items-center justify-between group rounded-lg ${
+              page.published === false ? 'bg-slate-50/50' : ''
+            }`}
+          >
+            {editingPageId === page.id ? (
+              <input
+                autoFocus
+                className="text-sm bg-white border border-indigo-400 rounded-md px-3 py-1.5 w-full mr-2 outline-none text-slate-900 shadow-sm"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onBlur={handleConfirm}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleConfirm();
+                }}
+              />
+            ) : (
+              <button
+                onClick={() => onSelect(page.id)}
+                onDoubleClick={() => handleDoubleClick(page.id, page.name)}
+                className={`text-left text-sm px-4 py-2 rounded-lg w-full transition-all ${
+                  page.id === activePageId
+                    ? 'bg-indigo-50/80 text-indigo-700 font-semibold shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50'
+                } ${page.published === false ? 'italic text-slate-400' : ''}`}
+              >
+                {page.name}
+              </button>
+            )}
+            <div className="flex items-center gap-1">
+              {canEdit && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleSignage(page.id);
                     }}
-                    canDelete={totalPages > 1}
-                  />
-                ))}
-                {unpublishedPages.length === 0 && (
-                  <li className="text-xs text-slate-400 text-center py-2">非公開ページはありません</li>
-                )}
-              </ul>
-            </SortableContext>
-          </DndContext>
-        </div>
-      )}
+                    title={
+                      page.includeInSignage !== false
+                        ? 'サイネージに表示中'
+                        : 'サイネージから除外'
+                    }
+                    className={`p-1 rounded transition-colors ${
+                      page.includeInSignage !== false ? 'text-indigo-500' : 'text-slate-300'
+                    }`}
+                  >
+                    <Icons.Monitor className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTogglePublished(page.id);
+                    }}
+                    title={
+                      page.published !== false
+                        ? '公開中（クリックで非公開）'
+                        : '非公開（クリックで公開）'
+                    }
+                    className={`p-1 rounded transition-colors ${
+                      page.published !== false ? 'text-emerald-500' : 'text-slate-300'
+                    }`}
+                  >
+                    {page.published !== false ? (
+                      <Icons.Eye className="w-3.5 h-3.5" />
+                    ) : (
+                      <Icons.EyeOff className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (dashboards.length > 1) onDelete(page.id);
+                    }}
+                    disabled={dashboards.length <= 1}
+                    title={
+                      dashboards.length <= 1
+                        ? '最後のページは削除できません'
+                        : 'ページを削除'
+                    }
+                    className="text-slate-400 hover:text-rose-500 text-sm px-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <Icons.X className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+          </li>
+        ))}
+        {visiblePages.length === 0 && (
+          <li className="text-xs text-slate-400 text-center py-2">ページがありません</li>
+        )}
+      </ul>
     </div>
   );
 }
