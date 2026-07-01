@@ -355,6 +355,7 @@ function DashboardInner() {
             layout: stripFormula(page.layout || []),
             annotations: page.annotations || [],
             includeInSignage: page.includeInSignage,
+            published: page.published, // ★ 追加：DBに保存された公開状態を読み込み時に保持する
           })), SCHEMA_VERSION);
           dispatch({
             type: 'SET_DASHBOARDS',
