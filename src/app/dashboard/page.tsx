@@ -3030,177 +3030,88 @@ function DashboardInner() {
     <div className="border-t border-slate-100" />
 
     <div className="space-y-4">
-      <label className="text-xs font-bold text-slate-700">🔍 不一致データの照合設定（任意）</label>
+      <label className="text-xs font-bold text-slate-700">🔍 不一致データのポップアップ設定</label>
       <p className="text-[10px] text-slate-400">
-        実績側・目標側それぞれのデータソースと条件、突き合わせキーを指定すると、ズレの原因データを特定できます。
+        ポップアップに表示される差分データは、上記の「実績の計算要素」「目標の計算要素」で選んだウィジェットから自動的に作られます。
+        別々のデータソースを比較する場合は、下記の「突き合わせキー」に両方に共通する項目（例：車体番号など）を指定してください。
       </p>
 
-      {/* ★ 追加：計算要素（ウィジェット結合）で組んでいる場合の突き合わせキー設定 */}
-      {(!activeEditorWidget.dataConfig?.compareActualSourceIndex && !activeEditorWidget.dataConfig?.compareTargetSourceIndex) && (
-        <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 space-y-3">
-          <label className="text-[11px] font-bold text-amber-700">計算要素（ウィジェット結合）の突き合わせキー</label>
-          <p className="text-[10px] text-slate-400">
-            上の「実績の計算要素」「目標の計算要素」で選んだウィジェットのデータを、どのフィールドで1件ずつ突き合わせるか指定します（未設定は id）。
-          </p>
-          <div>
-            <label className="text-[10px] text-slate-500 mb-1 block">実績側キー</label>
-            <SelectWithSearch
-              options={(() => {
-                const ids = (activeEditorWidget.dataConfig?.compareActualItems || []).map(it => it.widgetId).filter(Boolean);
-                const allWidgets = dashboards.flatMap(page => page.layout);
-                const fieldSet = new Set<string>();
-                ids.forEach(id => {
-                  const w = allWidgets.find(w => w.id === id);
-                  const srcIdx = w?.dataConfig?.sourceIndex || w?.dataSourceIndex;
-                  if (srcIdx) (availableFieldsBySource[srcIdx] || []).forEach(f => fieldSet.add(f));
-                });
-                return Array.from(fieldSet);
-              })()}
-              value={activeEditorWidget.dataConfig?.compareActualKeyField || 'id'}
-              onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualKeyField: v })}
-              placeholder="フィールドを選択（未設定はid）"
-            />
-          </div>
-          <div>
-            <label className="text-[10px] text-slate-500 mb-1 block">目標側キー</label>
-            <SelectWithSearch
-              options={(() => {
-                const ids = (activeEditorWidget.dataConfig?.compareTargetItems || []).map(it => it.widgetId).filter(Boolean);
-                const allWidgets = dashboards.flatMap(page => page.layout);
-                const fieldSet = new Set<string>();
-                ids.forEach(id => {
-                  const w = allWidgets.find(w => w.id === id);
-                  const srcIdx = w?.dataConfig?.sourceIndex || w?.dataSourceIndex;
-                  if (srcIdx) (availableFieldsBySource[srcIdx] || []).forEach(f => fieldSet.add(f));
-                });
-                return Array.from(fieldSet);
-              })()}
-              value={activeEditorWidget.dataConfig?.compareTargetKeyField || 'id'}
-              onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetKeyField: v })}
-              placeholder="フィールドを選択（未設定はid）"
-            />
-          </div>
-        </div>
-      )}
+      {(() => {
+        // ★ 追加：計算要素として選ばれているウィジェットのソースから、利用可能なフィールド一覧を動的に算出する
+        const allWidgetsFlat = dashboards.flatMap(page => flattenWidgets(page.layout ?? []));
+        const getFieldsForItems = (items: { widgetId: string; operator: 'plus' | 'minus' }[]) => {
+          const srcIndexes = new Set<string>();
+          items.forEach(it => {
+            const w = allWidgetsFlat.find(x => x.id === it.widgetId);
+            const srcIdx = w?.dataConfig?.sourceIndex || w?.dataSourceIndex;
+            if (srcIdx) srcIndexes.add(srcIdx);
+          });
+          const fieldSet = new Set<string>();
+          srcIndexes.forEach(idx => (availableFieldsBySource[idx] || []).forEach(f => fieldSet.add(f)));
+          return Array.from(fieldSet);
+        };
 
-      {/* 実績側の照合設定（手動データソース指定モード） */}
-      <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
-        <label className="text-[11px] font-bold text-blue-700">実績側</label>
-        <div>
-          <label className="text-[10px] text-slate-500 mb-1 block">データソース</label>
-          <select
-            value={activeEditorWidget.dataConfig?.compareActualSourceIndex || ''}
-            onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualSourceIndex: e.target.value || undefined })}
-            className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
-          >
-            <option value="">選択してください</option>
-            {Object.keys(cacheStore).map(idx => (
-              <option key={idx} value={idx}>{idx}</option>
-            ))}
-          </select>
-        </div>
-        {activeEditorWidget.dataConfig?.compareActualSourceIndex && (
+        const actualItems = activeEditorWidget.dataConfig?.compareActualItems || [];
+        const targetItems = activeEditorWidget.dataConfig?.compareTargetItems || [];
+        const actualFields = getFieldsForItems(actualItems);
+        const targetFields = getFieldsForItems(targetItems);
+        const combinedFields = Array.from(new Set([...actualFields, ...targetFields]));
+
+        return (
           <>
-            <FilterConditionsEditor
-              conditions={activeEditorWidget.dataConfig?.compareActualFilterConditions || []}
-              allFields={availableFieldsBySource[activeEditorWidget.dataConfig.compareActualSourceIndex] || []}
-              fieldUniqueValues={fieldUniqueValuesBySource[activeEditorWidget.dataConfig.compareActualSourceIndex] || {}}
-              sourceIndex={activeEditorWidget.dataConfig.compareActualSourceIndex}
-              onUpdate={(newConds) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualFilterConditions: newConds })}
-              maxConditions={10}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-500 mb-1 block">実績側の突き合わせキー</label>
+                <SelectWithSearch
+                  options={actualFields}
+                  value={activeEditorWidget.dataConfig?.compareActualKeyField || 'id'}
+                  onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualKeyField: v || 'id' })}
+                  placeholder={actualFields.length > 0 ? 'フィールドを選択（未設定はid）' : '計算要素を先に選択してください'}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 mb-1 block">目標側の突き合わせキー</label>
+                <SelectWithSearch
+                  options={targetFields}
+                  value={activeEditorWidget.dataConfig?.compareTargetKeyField || 'id'}
+                  onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetKeyField: v || 'id' })}
+                  placeholder={targetFields.length > 0 ? 'フィールドを選択（未設定はid）' : '計算要素を先に選択してください'}
+                />
+              </div>
+            </div>
+            <p className="text-[9px] text-slate-400">
+              同じデータソース同士を比較する場合は未設定のまま（id）で問題ありません。異なるデータソース同士を比較する場合のみ指定してください。
+            </p>
+
+            {/* ポップアップ表示フィールド */}
             <div>
-              <label className="text-[10px] text-slate-500 mb-1 block">突き合わせキー</label>
-              <SelectWithSearch
-                options={availableFieldsBySource[activeEditorWidget.dataConfig.compareActualSourceIndex] || []}
-                value={activeEditorWidget.dataConfig?.compareActualKeyField || 'id'}
-                onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualKeyField: v })}
-                placeholder="フィールドを選択（未設定はid）"
-              />
+              <label className="text-[10px] text-slate-500 mb-1 block">ポップアップに表示するフィールド（複数選択、未設定は既定表示）</label>
+              <div className="flex flex-wrap gap-1">
+                {combinedFields.length === 0 && (
+                  <span className="text-[10px] text-slate-400">計算要素を選択すると候補が表示されます</span>
+                )}
+                {combinedFields.map(f => {
+                  const selected = activeEditorWidget.dataConfig?.compareDiffPopupFields || [];
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => {
+                        const next = selected.includes(f) ? selected.filter(x => x !== f) : [...selected, f];
+                        updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareDiffPopupFields: next.length > 0 ? next : undefined });
+                      }}
+                      className={`text-[10px] px-2 py-1 rounded-md transition-all ${
+                        selected.includes(f) ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </>
-        )}
-      </div>
-
-      {/* 目標側の照合設定（手動データソース指定モード） */}
-      <div className="p-3 bg-rose-50/50 rounded-xl border border-rose-100 space-y-2">
-        <label className="text-[11px] font-bold text-rose-700">目標側</label>
-        <div>
-          <label className="text-[10px] text-slate-500 mb-1 block">データソース</label>
-          <select
-            value={activeEditorWidget.dataConfig?.compareTargetSourceIndex || ''}
-            onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetSourceIndex: e.target.value || undefined })}
-            className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
-          >
-            <option value="">選択してください</option>
-            {Object.keys(cacheStore).map(idx => (
-              <option key={idx} value={idx}>{idx}</option>
-            ))}
-          </select>
-        </div>
-        {activeEditorWidget.dataConfig?.compareTargetSourceIndex && (
-          <>
-            <FilterConditionsEditor
-              conditions={activeEditorWidget.dataConfig?.compareTargetFilterConditions || []}
-              allFields={availableFieldsBySource[activeEditorWidget.dataConfig.compareTargetSourceIndex] || []}
-              fieldUniqueValues={fieldUniqueValuesBySource[activeEditorWidget.dataConfig.compareTargetSourceIndex] || {}}
-              sourceIndex={activeEditorWidget.dataConfig.compareTargetSourceIndex}
-              onUpdate={(newConds) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetFilterConditions: newConds })}
-              maxConditions={10}
-            />
-            <div>
-              <label className="text-[10px] text-slate-500 mb-1 block">突き合わせキー</label>
-              <SelectWithSearch
-                options={availableFieldsBySource[activeEditorWidget.dataConfig.compareTargetSourceIndex] || []}
-                value={activeEditorWidget.dataConfig?.compareTargetKeyField || 'id'}
-                onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetKeyField: v })}
-                placeholder="フィールドを選択（未設定はid）"
-              />
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ポップアップ表示フィールド */}
-      <div>
-        <label className="text-[10px] text-slate-500 mb-1 block">ポップアップに表示するフィールド（複数選択、未設定は既定表示）</label>
-        <div className="flex flex-wrap gap-1">
-          {(() => {
-            // ★ 修正：手動ソース未設定時は計算要素ウィジェットのフィールドから候補を出す
-            const srcForFields = activeEditorWidget.dataConfig?.compareActualSourceIndex;
-            let fields: string[] = srcForFields ? (availableFieldsBySource[srcForFields] || []) : [];
-            if (fields.length === 0) {
-              const ids = [
-                ...(activeEditorWidget.dataConfig?.compareActualItems || []).map(it => it.widgetId),
-                ...(activeEditorWidget.dataConfig?.compareTargetItems || []).map(it => it.widgetId),
-              ].filter(Boolean);
-              const allWidgets = dashboards.flatMap(page => page.layout);
-              const fieldSet = new Set<string>();
-              ids.forEach(id => {
-                const w = allWidgets.find(w => w.id === id);
-                const srcIdx = w?.dataConfig?.sourceIndex || w?.dataSourceIndex;
-                if (srcIdx) (availableFieldsBySource[srcIdx] || []).forEach(f => fieldSet.add(f));
-              });
-              fields = Array.from(fieldSet);
-            }
-            const selected = activeEditorWidget.dataConfig?.compareDiffPopupFields || [];
-            return fields.map(f => (
-              <button
-                key={f}
-                onClick={() => {
-                  const next = selected.includes(f) ? selected.filter(x => x !== f) : [...selected, f];
-                  updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareDiffPopupFields: next.length > 0 ? next : undefined });
-                }}
-                className={`text-[10px] px-2 py-1 rounded-md transition-all ${
-                  selected.includes(f) ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                }`}
-              >
-                {f}
-              </button>
-            ));
-          })()}
-        </div>
-      </div>
+        );
+      })()}
     </div>
   </div>
 )}

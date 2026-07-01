@@ -1,7 +1,8 @@
 // src/components/SelectWithSearch.tsx
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Icons from './Icons';
 
 interface SelectWithSearchProps {
@@ -19,7 +20,10 @@ export default function SelectWithSearch({
 }: SelectWithSearchProps) {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
+  // ★ 修正：ドロップダウンの位置とサイズをポータル表示用に保持
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const safeOptions = (Array.isArray(options) ? options : [])
     .map((opt: any) => {
@@ -43,6 +47,38 @@ export default function SelectWithSearch({
     onChange('');
     setSearch('');
   };
+
+  // ★ 修正：ドロップダウンの位置を計算する（親要素の overflow に隠れないよう、
+  //   document.body へポータル表示するための座標を算出する）
+  const updatePosition = () => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    const viewportH = window.innerHeight;
+    const estimatedListHeight = Math.min(filtered.length, 6) * 36 + 16;
+    const spaceBelow = viewportH - rect.bottom;
+    const openUp = spaceBelow < estimatedListHeight && rect.top > estimatedListHeight;
+    setPos({
+      top: openUp ? rect.top : rect.bottom,
+      left: rect.left,
+      width: rect.width,
+      openUp,
+    });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const onScroll = () => updatePosition();
+    const onResize = () => updatePosition();
+    // capture: true で、内側のスクロール可能なパネル（プロパティパネル等）のスクロールも検知する
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, filtered.length]);
 
   return (
     <div className="relative">
@@ -72,8 +108,17 @@ export default function SelectWithSearch({
           </button>
         )}
       </div>
-      {open && (
-        <div className="absolute z-20 top-full left-0 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto mt-1">
+      {open && pos && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={listRef}
+          className="fixed z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto"
+          style={{
+            top: pos.openUp ? undefined : pos.top + 4,
+            bottom: pos.openUp ? window.innerHeight - pos.top + 4 : undefined,
+            left: pos.left,
+            width: pos.width,
+          }}
+        >
           {filtered.map(o => (
             <div
               key={o}
@@ -91,7 +136,8 @@ export default function SelectWithSearch({
           {filtered.length === 0 && (
             <div className="px-3 py-2 text-sm text-slate-400">該当なし</div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
