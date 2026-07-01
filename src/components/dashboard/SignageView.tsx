@@ -37,7 +37,7 @@ interface SignageViewProps {
   setDrilldown: any;
   signageInterval: number;
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>;
-  comparisonDiffMap?: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }>; // ★ 追加: これが不足していました
+  comparisonDiffMap?: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }>;
   availableFields?: string[];
   handleDiffFilter?: (ids: string[], label: string) => void;
   allWidgetValues?: Record<string, number>;
@@ -67,7 +67,7 @@ export default function SignageView({
   setDrilldown,
   signageInterval,
   todayDiffMap,
-  comparisonDiffMap, // ★ 追加
+  comparisonDiffMap,
   availableFields,
   handleDiffFilter,
   allWidgetValues,
@@ -388,8 +388,7 @@ export default function SignageView({
               availableFields,
               handleDiffFilter,
               allWidgetValues,
-              setDrilldown,
-              comparisonDiffMap, // ★ 追加: renderWidgetContentへ渡す（必要であれば）
+              setDrilldown
             )}
          </CanvasWidgetComponent>
         ))}
