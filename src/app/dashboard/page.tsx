@@ -276,7 +276,7 @@ function DashboardInner() {
   widgetTitle: string;
   data?: any[];
   columns?: string[];
-  images?: string[];  // ★ 追加
+  images?: string[];
 } | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [showAiDrawer, setShowAiDrawer] = useState(false);
@@ -355,7 +355,7 @@ function DashboardInner() {
             layout: stripFormula(page.layout || []),
             annotations: page.annotations || [],
             includeInSignage: page.includeInSignage,
-            published: page.published, // ★ 追加：DBに保存された公開状態を読み込み時に保持する
+            published: page.published, 
           })), SCHEMA_VERSION);
           dispatch({
             type: 'SET_DASHBOARDS',
@@ -390,7 +390,7 @@ function DashboardInner() {
               layout: page.layout ?? [],
               annotations: page.annotations ?? [],
               includeInSignage: page.includeInSignage,
-              published: page.published, // ★ 追加：非公開状態を保存対象に含める
+              published: page.published, 
             })),
             canvasBgColor,
           }),
@@ -404,9 +404,6 @@ function DashboardInner() {
   }, [dashboards, isMounted, dbLoaded, status, canvasBgColor]);
 
   const addToastRef = useRef(addToast); useEffect(() => { addToastRef.current = addToast; }, [addToast]);
-
-  // ★ 共有機能の無効化に伴い、?layout= URLパラメータからのレイアウト読み込み処理も削除
-  //   （これが残っていると、外部から任意のレイアウトJSONを注入されてしまうため）
 
   const canvasSensors = useSensors(useSensor(PointerSensor,{activationConstraint:{distance:8}}));
   const layerSensors = useSensors(useSensor(PointerSensor,{activationConstraint:{distance:8}}));
@@ -607,7 +604,7 @@ function DashboardInner() {
       ...layout.map(w => w.dataConfig?.sourceIndex || w.dataSourceIndex || '001'),
       ...layout.map(w => w.dataConfig?.barSourceIndex).filter(Boolean) as string[],
       ...layout.map(w => w.dataConfig?.lineSourceIndex).filter(Boolean) as string[],
-      'wp_inventory', // ★ 追加
+      'wp_inventory',
     ])],
     [layout]
   );
@@ -1177,32 +1174,53 @@ function DashboardInner() {
     return result;
   }, [cacheStore, layout, filters, evaluateConditions, applyGlobalNonDateFilters]);
 
-  // 比較ウィジェット用：実績側/目標側の生データをキーで突き合わせて差分を抽出
+  // ★ 比較ウィジェット用：実績側/目標側の生データをキーで突き合わせて差分を抽出
+  // ★ 修正点: 期間フィルターを正しく適用し、片方だけの設定でも動作するように改善
   const comparisonDiffMap = useMemo(() => {
     const result: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }> = {};
+    const { start, end } = filters.dateRange;
 
     layout.forEach(w => {
       if (w.type !== 'comparison') return;
       const dc = w.dataConfig;
-      if (!dc?.compareActualSourceIndex || !dc?.compareTargetSourceIndex) return;
+      
+      const actualSrcIndex = dc?.compareActualSourceIndex;
+      const targetSrcIndex = dc?.compareTargetSourceIndex;
 
-      const actualSrc = cacheStore[dc.compareActualSourceIndex] || [];
-      const targetSrc = cacheStore[dc.compareTargetSourceIndex] || [];
+      // どちらも未設定の場合は処理をスキップ（計算不可）
+      if (!actualSrcIndex && !targetSrcIndex) return;
 
-      const actualConditions = dc.compareActualFilterConditions || [];
-      const actualLogic = dc.compareActualConditionLogic || 'and';
-      const targetConditions = dc.compareTargetFilterConditions || [];
-      const targetLogic = dc.compareTargetConditionLogic || 'and';
+      const actualSrc = actualSrcIndex ? (cacheStore[actualSrcIndex] || []) : [];
+      const targetSrc = targetSrcIndex ? (cacheStore[targetSrcIndex] || []) : [];
 
+      // ★ 照合設定には日付設定がないため、基本の 'date' フィールドでダッシュボードの期間を適用
+      const dateField = resolveDateFilterField(w);
+      const filterByDate = (data: DBItem[]) => {
+        return data.filter(item => {
+          const d = item[dateField];
+          if (!d) return false;
+          return d >= start && d <= end;
+        });
+      };
+
+      const actualDateFiltered = filterByDate(actualSrc);
+      const targetDateFiltered = filterByDate(targetSrc);
+
+      const actualConditions = dc?.compareActualFilterConditions || [];
+      const actualLogic = dc?.compareActualConditionLogic || 'and';
+      const targetConditions = dc?.compareTargetFilterConditions || [];
+      const targetLogic = dc?.compareTargetConditionLogic || 'and';
+
+      // 期間適用済みのデータに対して、各条件とグローバルフィルターを適用する
       const actualFiltered = applyGlobalNonDateFilters(
-        actualSrc.filter(item => evaluateConditions(item, actualConditions, actualLogic))
+        actualDateFiltered.filter(item => evaluateConditions(item, actualConditions, actualLogic))
       );
       const targetFiltered = applyGlobalNonDateFilters(
-        targetSrc.filter(item => evaluateConditions(item, targetConditions, targetLogic))
+        targetDateFiltered.filter(item => evaluateConditions(item, targetConditions, targetLogic))
       );
 
-      const actualKeyField = dc.compareActualKeyField || 'id';
-      const targetKeyField = dc.compareTargetKeyField || 'id';
+      const actualKeyField = dc?.compareActualKeyField || 'id';
+      const targetKeyField = dc?.compareTargetKeyField || 'id';
 
       const targetMap = new Map<string, DBItem>();
       targetFiltered.forEach(item => {
@@ -1219,12 +1237,14 @@ function DashboardInner() {
       const onlyInActual: DBItem[] = [];
       actualFiltered.forEach(item => {
         const key = extractStringValue(item[actualKeyField]);
+        // キーが存在しない、またはターゲット側にない場合に「実績のみ」とする
         if (!key || !targetMap.has(key)) onlyInActual.push(item);
       });
 
       const onlyInTarget: DBItem[] = [];
       targetFiltered.forEach(item => {
         const key = extractStringValue(item[targetKeyField]);
+        // キーが存在しない、または実績側にない場合に「目標のみ」とする
         if (!key || !actualMap.has(key)) onlyInTarget.push(item);
       });
 
@@ -1232,7 +1252,7 @@ function DashboardInner() {
     });
 
     return result;
-  }, [cacheStore, layout, evaluateConditions, applyGlobalNonDateFilters]);
+  }, [cacheStore, layout, filters.dateRange, evaluateConditions, applyGlobalNonDateFilters]);
 
   const handleSelect=useCallback((id:string)=>{setSelectedIds([id]);setSelectedAnnotationIds([]);},[]);
   const handleSelectToggle=useCallback((id:string)=>setSelectedIds(p=>p.includes(id)?p.filter(i=>i!==id):[...p,id]),[]);
@@ -1541,15 +1561,6 @@ function DashboardInner() {
     reader.readAsText(file);
   };
 
-  // ★ 共有機能は無効化済み（handleShareは未使用）
-  // const handleShare=useCallback(()=>{
-  //   const pageData = { layout, annotations };
-  //   const json=JSON.stringify(pageData);
-  //   const encoded=safeBase64Encode(json);
-  //   const url=`${window.location.origin}${window.location.pathname}?layout=${encodeURIComponent(encoded)}`;
-  //   navigator.clipboard.writeText(url).then(()=>addToastRef.current('共有URLをコピーしました','success'));
-  // },[layout, annotations]);
-
   const handleExportPDF = useCallback(async () => {
     const canvasDiv = wrapperRef.current?.querySelector('[style*="translate"]') as HTMLElement;
     if (!canvasDiv) return;
@@ -1733,13 +1744,11 @@ function DashboardInner() {
     } catch { addToastRef.current('AIエラー','error'); }
   },[activeFilteredData,statusCounts,todayActionCount]);
 
-  // 期間の単位（日/週/月/年）ごとに「今から何個ズレているか」を保持
   const [periodOffsets, setPeriodOffsets] = useState<{ day: number; week: number; month: number; year: number }>({
     day: 0, week: 0, month: 0, year: 0,
   });
 
   const applyPeriodOffset = useCallback((unit: 'day' | 'week' | 'month' | 'year', offset: number) => {
-    // 未来方向には進めない（0が上限）
     const clamped = Math.min(0, offset);
     const now = new Date();
     const y = now.getFullYear();
@@ -1768,7 +1777,6 @@ function DashboardInner() {
     if (start && end) updateDateRange({ start, end });
   }, [updateDateRange]);
 
-  // 各単位の表示ラベルを生成
   const formatPeriodLabel = useCallback((unit: 'day' | 'week' | 'month' | 'year', offset: number): string => {
     const now = new Date();
     if (unit === 'day') {
@@ -1787,7 +1795,6 @@ function DashboardInner() {
       if (offset === 0) return '今月';
       return `${d.getFullYear()}年${d.getMonth() + 1}月`;
     }
-    // year
     if (offset === 0) return '今年';
     return `${now.getFullYear() + offset}年`;
   }, []);
@@ -1909,7 +1916,7 @@ function DashboardInner() {
     availableFields={availableFieldsBySource['001'] || []}
     handleDiffFilter={handleDiffFilter}
     allWidgetValues={allWidgetValues}
-    CanvasWidgetComponent={CanvasWidget}  // ★ これを追加
+    CanvasWidgetComponent={CanvasWidget}
   />
 );
 
@@ -1974,7 +1981,6 @@ function DashboardInner() {
                 const realIndex = dashboards.findIndex(p => p.id === pageId);
                 if (realIndex >= 0) toggleSignageInclusion(realIndex);
               }}
-              // ★ onTogglePublished は廃止。公開状態はエリア間ドラッグで onReorder 経由で更新される
               onReorder={(reordered) => dispatch({ type: 'REORDER_PAGES', payload: reordered })}
               collapsed={!leftSidebarOpen}
             />
@@ -2064,7 +2070,7 @@ function DashboardInner() {
                 <div className="border-b border-slate-100"/>
               </>
             )}
-                                                <section className="space-y-4">
+                                                        <section className="space-y-4">
               <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Icons.Settings className="w-4 h-4"/> システム設定</h3>
               {canEdit && (
                 <div>
@@ -2121,7 +2127,6 @@ function DashboardInner() {
                 <button onClick={handleExport} className="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center gap-1.5" title="JSONファイルとして保存"><Icons.Download className="w-4 h-4"/>書出</button>
                 <button onClick={handleExportPDF} className="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center gap-1.5" title="PDFとして保存"><Icons.FileText className="w-4 h-4"/>PDF</button>
                 <label className="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1.5" title="JSONファイルから読み込み"><Icons.Upload className="w-4 h-4"/>読込 <input type="file" accept=".json" onChange={handleImport} className="hidden"/></label>
-                {/* ★ 共有機能は無効化のためボタンを削除 */}
               </div>
             )}
             {canEdit && (
@@ -2340,7 +2345,7 @@ function DashboardInner() {
                       setDrilldown({ field, value, widgetTitle, data, columns, images });
                     },
                     cacheStore,
-                    comparisonDiffMap // ★ ここに追加（カンマを忘れずに！）
+                    comparisonDiffMap
                   );
                   const flashClass = editModeFlash ? 'ring-1 ring-slate-300 transition-all duration-300' : '';
                   return (
@@ -2645,7 +2650,6 @@ function DashboardInner() {
   />
 </div>
 
-{/* ★ 集計方法（フィールド選択時のみ表示） */}
 {dc.field && (
   <div>
     <label className="text-xs font-medium text-slate-700 mb-1 block">📐 集計方法</label>
@@ -4066,547 +4070,6 @@ function DashboardInner() {
                               </>
                             );
                           })()}
-                        </div>
-                      </details>
-
-                      <details open className="bg-white rounded-xl border border-slate-200 shadow-sm">
-                        <summary className="text-xs font-bold text-slate-500 uppercase tracking-widest p-3 cursor-pointer flex items-center justify-between">
-                          <span className="flex items-center gap-2"><Icons.Settings className="w-4 h-4"/> デザイン・スタイル</span>
-                        </summary>
-                        <div className="p-3 space-y-4">
-                          <div>
-                            <label className="text-xs font-medium text-slate-500 mb-1 block">形状</label>
-                            <select value={activeEditorWidget.shape} onChange={e=>updateSelectedDesign('shape',e.target.value)} className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-slate-50 text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none shadow-sm cursor-pointer">
-                              <option value="rectangle">四角形</option>
-                              <option value="rounded">角丸四角</option>
-                              <option value="pill">カプセル</option>
-                              <option value="circle">真円</option>
-                              <option value="text-only">テキストのみ</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-slate-500 mb-1 block">文字横位置</label>
-                            <div className="flex bg-slate-100 rounded-lg p-1 gap-1">
-                              <button onClick={()=>updateSelectedDesign('textAlign','left')} className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${activeEditorWidget.textAlign==='left'?'bg-white text-indigo-600 shadow-sm':'text-slate-500'}`}>左</button>
-                              <button onClick={()=>updateSelectedDesign('textAlign','center')} className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${activeEditorWidget.textAlign==='center'?'bg-white text-indigo-600 shadow-sm':'text-slate-500'}`}>中央</button>
-                              <button onClick={()=>updateSelectedDesign('textAlign','right')} className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${activeEditorWidget.textAlign==='right'?'bg-white text-indigo-600 shadow-sm':'text-slate-500'}`}>右</button>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-slate-500 mb-1 block">カラー</label>
-                            <div className="grid grid-cols-3 gap-2">
-                              <div className="flex flex-col gap-1"><span className="text-[10px] text-slate-400">背景</span><input type="color" value={activeEditorWidget.bgColor} onChange={e=>updateSelectedDesign('bgColor',e.target.value)} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/></div>
-                              <div className="flex flex-col gap-1"><span className="text-[10px] text-slate-400">文字</span><input type="color" value={activeEditorWidget.textColor} onChange={e=>updateSelectedDesign('textColor',e.target.value)} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/></div>
-                              <div className="flex flex-col gap-1"><span className="text-[10px] text-slate-400">枠線</span><input type="color" value={activeEditorWidget.borderColor} onChange={e=>updateSelectedDesign('borderColor',e.target.value)} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/></div>
-                            </div>
-                          </div>
-                          <div>
-                            <div className="flex justify-between items-center mb-1">
-                              <label className="text-xs font-medium text-slate-700">背景透明度</label>
-                              <span className="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{Math.round((activeEditorWidget.bgAlpha ?? 1) * 100)}%</span>
-                            </div>
-                            <input type="range" min="0" max="1" step="0.01" value={activeEditorWidget.bgAlpha ?? 1} onChange={e=>updateSelectedDesign('bgAlpha',parseFloat(e.target.value))} className="w-full accent-indigo-500"/>
-                          </div>
-                          <div>
-                            <div className="flex justify-between items-center mb-1">
-                              <label className="text-xs font-medium text-slate-700">枠線の太さ</label>
-                              <span className="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{activeEditorWidget.borderWidth}px</span>
-                            </div>
-                            <input type="range" min="0" max="20" value={activeEditorWidget.borderWidth} onChange={e=>updateSelectedDesign('borderWidth',parseInt(e.target.value))} className="w-full accent-indigo-500"/>
-                          </div>
-                          <div>
-                            <div className="flex justify-between items-center mb-1">
-                              <label className="text-xs font-medium text-slate-700">文字サイズ</label>
-                              <span className="text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{activeEditorWidget.fontSize}px</span>
-                            </div>
-                            <input type="range" min="8" max="120" value={activeEditorWidget.fontSize} onChange={e=>updateSelectedDesign('fontSize',parseInt(e.target.value))} className="w-full accent-indigo-500"/>
-                          </div>
-
-                          {activeEditorWidget.type === 'outline' && (
-                            <div>
-                              <label className="text-xs font-medium text-slate-500 mb-1 block">線の種類</label>
-                              <select
-                                value={activeEditorWidget.outlineConfig?.borderStyle || 'solid'}
-                                onChange={(e) => {
-                                  const current = activeEditorWidget.outlineConfig || {};
-                                  updateSelectedDesign('outlineConfig', { ...current, borderStyle: e.target.value });
-                                }}
-                                className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white outline-none focus:ring-2 focus:ring-indigo-500/20"
-                              >
-                                <option value="solid">実線</option>
-                                <option value="dashed">破線</option>
-                                <option value="dotted">点線</option>
-                              </select>
-                            </div>
-                          )}
-
-                          {activeEditorWidget.type === 'table-details' && (
-                            <div className="space-y-3 pt-4 border-t border-slate-100">
-                              <label className="text-xs font-bold text-slate-700">🎨 ヘッダーカラー</label>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-[10px] font-medium text-slate-500 mb-1 block">背景色</label>
-                                  <input
-                                    type="color"
-                                    value={activeEditorWidget.tableConfig?.headerBgColor || '#f8fafc'}
-                                    onChange={e => {
-                                      const current = activeEditorWidget.tableConfig || {};
-                                      updateSelectedDesign('_multi', {
-                                        tableConfig: { ...current, headerBgColor: e.target.value }
-                                      });
-                                    }}
-                                    className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-medium text-slate-500 mb-1 block">文字色</label>
-                                  <input
-                                    type="color"
-                                    value={activeEditorWidget.tableConfig?.headerTextColor || '#64748b'}
-                                    onChange={e => {
-                                      const current = activeEditorWidget.tableConfig || {};
-                                      updateSelectedDesign('_multi', {
-                                        tableConfig: { ...current, headerTextColor: e.target.value }
-                                      });
-                                    }}
-                                    className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {activeEditorWidget.type === 'table-details' && (
-                            <div className="space-y-3 pt-4 border-t border-slate-100">
-                              <label className="text-xs font-bold text-slate-700">📐 ヘッダーテキストサイズ</label>
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="range"
-                                  min="8"
-                                  max="24"
-                                  step="1"
-                                  value={activeEditorWidget.tableConfig?.headerFontSize || 11}
-                                  onChange={e => {
-                                    const current = activeEditorWidget.tableConfig || {};
-                                    updateSelectedDesign('_multi', {
-                                      tableConfig: { ...current, headerFontSize: Number(e.target.value) }
-                                    });
-                                  }}
-                                  className="flex-1 accent-indigo-500"
-                                />
-                                <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg min-w-[48px] text-center">
-                                  {activeEditorWidget.tableConfig?.headerFontSize || 11}px
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          {activeEditorWidget.type === 'table-details' && (
-                            <div className="space-y-3 pt-4 border-t border-slate-100">
-                              <label className="text-xs font-bold text-slate-700">📏 罫線設定</label>
-
-                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-bold text-slate-500">横線（行の区切り）</span>
-                                </div>
-                                <div className="flex gap-2">
-                                  <div className="flex-1">
-                                    <span className="text-[10px] text-slate-400 block mb-0.5">カラー</span>
-                                    <input
-                                      type="color"
-                                      value={activeEditorWidget.tableConfig?.horizontalBorderColor || activeEditorWidget.tableConfig?.borderColor || '#e2e8f0'}
-                                      onChange={e => {
-                                        const current = activeEditorWidget.tableConfig || {};
-                                        updateSelectedDesign('_multi', { tableConfig: { ...current, horizontalBorderColor: e.target.value } });
-                                      }}
-                                      className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
-                                    />
-                                  </div>
-                                  <div className="flex-1">
-                                    <span className="text-[10px] text-slate-400 block mb-0.5">太さ (px)</span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="10"
-                                      value={activeEditorWidget.tableConfig?.horizontalBorderWidth ?? activeEditorWidget.tableConfig?.borderWidth ?? 1}
-                                      onChange={e => {
-                                        const current = activeEditorWidget.tableConfig || {};
-                                        updateSelectedDesign('_multi', { tableConfig: { ...current, horizontalBorderWidth: Number(e.target.value) } });
-                                      }}
-                                      className="w-full h-8 text-xs border border-slate-200 rounded px-2 outline-none bg-white"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-bold text-slate-500">縦線（列の区切り）</span>
-                                </div>
-                                <div className="flex gap-2">
-                                  <div className="flex-1">
-                                    <span className="text-[10px] text-slate-400 block mb-0.5">カラー</span>
-                                    <input
-                                      type="color"
-                                      value={activeEditorWidget.tableConfig?.verticalBorderColor || activeEditorWidget.tableConfig?.borderColor || '#e2e8f0'}
-                                      onChange={e => {
-                                        const current = activeEditorWidget.tableConfig || {};
-                                        updateSelectedDesign('_multi', { tableConfig: { ...current, verticalBorderColor: e.target.value } });
-                                      }}
-                                      className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
-                                    />
-                                  </div>
-                                  <div className="flex-1">
-                                    <span className="text-[10px] text-slate-400 block mb-0.5">太さ (px)</span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="10"
-                                      value={activeEditorWidget.tableConfig?.verticalBorderWidth ?? activeEditorWidget.tableConfig?.borderWidth ?? 1}
-                                      onChange={e => {
-                                        const current = activeEditorWidget.tableConfig || {};
-                                        updateSelectedDesign('_multi', { tableConfig: { ...current, verticalBorderWidth: Number(e.target.value) } });
-                                      }}
-                                      className="w-full h-8 text-xs border border-slate-200 rounded px-2 outline-none bg-white"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <button
-                                onClick={() => {
-                                  const current = activeEditorWidget.tableConfig || {};
-                                  updateSelectedDesign('_multi', {
-                                    tableConfig: {
-                                      ...current,
-                                      horizontalBorderColor: undefined,
-                                      horizontalBorderWidth: undefined,
-                                      verticalBorderColor: undefined,
-                                      verticalBorderWidth: undefined,
-                                      borderColor: undefined,
-                                      borderWidth: undefined,
-                                    }
-                                  });
-                                }}
-                                className="text-xs text-slate-400 hover:text-rose-500 transition-colors underline"
-                              >
-                                罫線設定をリセット
-                              </button>
-                            </div>
-                          )}
-
-                          {activeEditorWidget.type === 'table-details' && (
-                            <div className="space-y-3 pt-4 border-t border-slate-100">
-                              <label className="text-xs font-bold text-slate-700">👁️ 表示制御</label>
-                              <div className="flex gap-6">
-                                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={activeEditorWidget.tableConfig?.showHeader !== false}
-                                    onChange={e => {
-                                      const current = activeEditorWidget.tableConfig || {};
-                                      updateSelectedDesign('_multi', {
-                                        tableConfig: { ...current, showHeader: e.target.checked }
-                                      });
-                                    }}
-                                    className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                                  />
-                                  <span className="text-xs font-medium text-slate-700">ヘッダーを表示</span>
-                                </label>
-                                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={activeEditorWidget.tableConfig?.showFooter !== false}
-                                    onChange={e => {
-                                      const current = activeEditorWidget.tableConfig || {};
-                                      updateSelectedDesign('_multi', {
-                                        tableConfig: { ...current, showFooter: e.target.checked }
-                                      });
-                                    }}
-                                    className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                                  />
-                                  <span className="text-xs font-medium text-slate-700">フッターを表示</span>
-                                </label>
-                              </div>
-                            </div>
-                          )}
-
-                          {activeEditorWidget.type === 'scorecard' || activeEditorWidget.type.startsWith('kpi-') ? (
-                            <>
-                              <div>
-                                <label className="text-xs font-medium text-slate-500 mb-1 block">メイン数値 横位置 (X軸)</label>
-                                <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.valueX || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, valueX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-slate-500 mb-1 block">メイン数値 縦位置 (Y軸)</label>
-                                <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.valueY || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, valueY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                              </div>
-                            </>
-                          ) : null}
-
-                          <div className="pt-2 flex flex-col gap-3">
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                              <input type="checkbox" checked={activeEditorWidget.hasShadow} onChange={e=>updateSelectedDesign('hasShadow',e.target.checked)} className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 transition-all cursor-pointer"/>
-                              <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900">ドロップシャドウ</span>
-                            </label>
-                          </div>
-
-                          {activeEditorWidget.type === 'chart' && (
-                            <div className="pt-4 border-t border-slate-100 space-y-3">
-                              <label className="text-xs font-bold text-slate-700">🎨 チャートデザイン</label>
-                              <div>
-                                <label className="text-xs font-medium text-slate-500 mb-1 block">カラースキーム</label>
-                                <select
-                                  value={activeEditorWidget.dataConfig?.colorScheme || 'default'}
-                                  onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, colorScheme: e.target.value })}
-                                  className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-slate-50 text-slate-900 outline-none"
-                                >
-                                  <option value="default">デフォルト (カラフル)</option>
-                                  <option value="brand">ブランド (ピンク系)</option>
-                                  <option value="warm">ウォーム (赤・オレンジ系)</option>
-                                  <option value="cool">クール (青・紫系)</option>
-                                </select>
-                              </div>
-                              <label className="flex items-center space-x-3 cursor-pointer group">
-                                <input type="checkbox" checked={activeEditorWidget.dataConfig?.showDataLabels || false} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, showDataLabels: e.target.checked })} className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 transition-all cursor-pointer"/>
-                                <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900">データラベルを表示（棒グラフのみ）</span>
-                              </label>
-                            </div>
-                          )}
-
-                          <div className="pt-4 border-t border-slate-100 space-y-3">
-                            <label className="text-xs font-bold text-slate-700">📌 タイトル詳細設定</label>
-                            <label className="flex items-center space-x-3 cursor-pointer group">
-                              <input type="checkbox" checked={activeEditorWidget.showTitle !== false} onChange={e=>updateSelectedDesign('showTitle',e.target.checked)} className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 transition-all cursor-pointer"/>
-                              <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900">タイトルを表示</span>
-                            </label>
-                            {activeEditorWidget.showTitle !== false && (
-                              <>
-                                <div>
-                                  <div className="flex justify-between items-center mb-1">
-                                    <label className="text-xs font-medium text-slate-700">タイトルテキスト</label>
-                                  </div>
-                                  <textarea
-                                    value={activeEditorWidget.title}
-                                    onChange={e => updateSelectedDesign('title', e.target.value)}
-                                    className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white outline-none resize-y min-h-[60px]"
-                                    placeholder="Shift + Enter で改行"
-                                  />
-                                </div>
-                                <div>
-                                  <div className="flex justify-between items-center mb-1">
-                                    <label className="text-xs font-medium text-slate-700">フォントサイズ</label>
-                                    <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{activeEditorWidget.dataConfig?.titleFontSize || 12}px</span>
-                                  </div>
-                                  <input type="range" min="8" max="72" value={activeEditorWidget.dataConfig?.titleFontSize || 12} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, titleFontSize: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                </div>
-                                <div>
-                                  <label className="text-xs font-medium text-slate-500 mb-1 block">文字色</label>
-                                  <input type="color" value={activeEditorWidget.dataConfig?.titleColor || activeEditorWidget.textColor || '#64748b'} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, titleColor: e.target.value })} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/>
-                                </div>
-                                <div>
-                                  <label className="text-xs font-medium text-slate-500 mb-1 block">横位置 (X軸調整)</label>
-                                  <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.titleX || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, titleX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                </div>
-                                <div>
-                                  <label className="text-xs font-medium text-slate-500 mb-1 block">縦位置 (Y軸調整)</label>
-                                  <input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.titleY || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, titleY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                </div>
-                                <div>
-                                  <label className="text-xs font-medium text-slate-500 mb-1 block">配置</label>
-                                  <div className="flex bg-slate-100 rounded-lg p-1 gap-1">
-                                    <button onClick={()=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, titleAlign: 'left' })} className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${activeEditorWidget.dataConfig?.titleAlign === 'left' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>左</button>
-                                    <button onClick={()=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, titleAlign: 'center' })} className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${(!activeEditorWidget.dataConfig?.titleAlign || activeEditorWidget.dataConfig?.titleAlign === 'center') ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>中央</button>
-                                    <button onClick={()=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, titleAlign: 'right' })} className={`flex-1 py-1 text-xs font-medium rounded-md transition-all ${activeEditorWidget.dataConfig?.titleAlign === 'right' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>右</button>
-                                  </div>
-                                </div>
-                              </>
-                            )}
-                          </div>
-
-                          {activeEditorWidget.type === 'scorecard' && (
-                            <>
-                              <div className="pt-4 border-t border-slate-100 space-y-3">
-                                <label className="text-xs font-bold text-slate-700">📅 今日の実績表示</label>
-                                <label className="flex items-center space-x-3 cursor-pointer group">
-                                  <input
-                                    type="checkbox"
-                                    checked={activeEditorWidget.dataConfig?.showTodayValue || false}
-                                    onChange={e=>updateSelectedDesign('dataConfig',{ ...activeEditorWidget.dataConfig, showTodayValue: e.target.checked})}
-                                    className="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 transition-all cursor-pointer"
-                                  />
-                                  <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900">今日の実績（増加分）を表示</span>
-                                </label>
-                                {activeEditorWidget.dataConfig?.showTodayValue && (
-                                  <>
-                                    <div>
-                                      <label className="text-xs font-medium text-slate-500 mb-1 block">照合フィールド（デフォルト: ページID）</label>
-                                      <SelectWithSearch
-                                        options={['id', ...availableFieldsBySource[activeEditorWidget.dataConfig?.sourceIndex || '001'] || []]}
-                                        value={activeEditorWidget.dataConfig?.todayDiffMatchField || 'id'}
-                                        onChange={v => {
-                                          updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayDiffMatchField: v === 'id' ? undefined : v });
-                                        }}
-                                        placeholder="ページID"
-                                      />
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <div className="flex-1"><label className="text-[10px] font-medium text-slate-500 mb-1 block">増加時の色</label><input type="color" value={activeEditorWidget.dataConfig?.colorDelta || '#06b6d4'} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, colorDelta: e.target.value })} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/></div>
-                                      <div className="flex-1"><label className="text-[10px] font-medium text-slate-500 mb-1 block">減少時の色</label><input type="color" value={activeEditorWidget.dataConfig?.colorDeltaMinus || '#ef4444'} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, colorDeltaMinus: e.target.value })} className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"/></div>
-                                    </div>
-                                    <div>
-                                      <div className="flex justify-between items-center mb-1"><label className="text-xs font-medium text-slate-700">文字サイズ</label><span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{activeEditorWidget.dataConfig?.todayFontSize || Math.max(16, activeEditorWidget.fontSize * 0.25)}px</span></div>
-                                      <input type="range" min="8" max="72" value={activeEditorWidget.dataConfig?.todayFontSize || Math.max(16, activeEditorWidget.fontSize * 0.25)} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayFontSize: parseInt(e.target.value) })} className="w-full accent-indigo-500"/>
-                                    </div>
-                                    <div><label className="text-xs font-medium text-slate-500 mb-1 block">横位置 (X軸調整)</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.todayX || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
-                                    <div><label className="text-xs font-medium text-slate-500 mb-1 block">縦位置 (Y軸調整)</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.todayY || 0} onChange={e=>updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
-                                  </>
-                                )}
-                                {activeEditorWidget.dataConfig?.showTodayValue && (
-                                  <div className="space-y-3 pt-3 border-t border-slate-100">
-                                    <label className="text-xs font-bold text-slate-700">📐 増加/減少 位置調整</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <div><label className="text-[10px] text-slate-500">増加 X</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.addedX || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, addedX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
-                                      <div><label className="text-[10px] text-slate-500">増加 Y</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.addedY || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, addedY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <div><label className="text-[10px] text-slate-500">減少 X</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.removedX || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, removedX: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
-                                      <div><label className="text-[10px] text-slate-500">減少 Y</label><input type="range" min="-200" max="200" value={activeEditorWidget.dataConfig?.removedY || 0} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, removedY: parseInt(e.target.value) })} className="w-full accent-indigo-500"/></div>
-                                    </div>
-                                  </div>
-                                )}
-                                {activeEditorWidget.dataConfig?.showTodayValue && (
-                                  <div className="space-y-2 pt-3 border-t border-slate-100">
-                                    <label className="text-xs font-bold text-slate-700">📋 ポップアップ表示フィールド（最大10件）</label>
-                                    <p className="text-[10px] text-slate-400">ホバー時に表示するフィールドを選択してください</p>
-                                    {[0,1,2,3,4,5,6,7,8,9].map(idx => {
-                                      const currentFields = activeEditorWidget.dataConfig?.todayPopupFields || [];
-                                      const srcIdx = activeEditorWidget.dataConfig?.sourceIndex || '001';
-                                      return (
-                                        <div key={idx} className="flex items-center gap-2">
-                                          <span className="text-[10px] text-slate-400 w-4">{idx+1}</span>
-                                          <div className="flex-1">
-                                            <SelectWithSearch
-                                              options={availableFieldsBySource[srcIdx] || []}
-                                              value={currentFields[idx] || ''}
-                                              onChange={v => {
-                                                const updated = [...currentFields];
-                                                if (v) { updated[idx] = v; } else { updated.splice(idx, 1); }
-                                                const filtered = updated.filter(Boolean).slice(0, 10);
-                                                updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayPopupFields: filtered.length > 0 ? filtered : undefined });
-                                              }}
-                                              placeholder="未設定"
-                                            />
-                                          </div>
-                                          {(activeEditorWidget.dataConfig?.todayPopupFields || [])[idx] && (
-                                            <button onClick={() => { const updated = [...(activeEditorWidget.dataConfig?.todayPopupFields || [])]; updated.splice(idx, 1); updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, todayPopupFields: updated.length > 0 ? updated : undefined }); }} className="text-slate-400 hover:text-rose-500 p-1"><Icons.X className="w-3 h-3"/></button>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                                                              {/* ★ ドリルダウン表示フィールド（独立） */}
-                                {activeEditorWidget.type === 'scorecard' && (
-                                  <div className="space-y-2 pt-3 border-t border-slate-100">
-                                    <label className="text-xs font-bold text-slate-700">🔍 ドリルダウン表示フィールド（最大10件）</label>
-                                    <p className="text-[10px] text-slate-400">メイン数値クリック時に表示するフィールド（未設定の場合は全フィールド）</p>
-                                    {[0,1,2,3,4,5,6,7,8,9].map(idx => {
-                                      const currentFields = activeEditorWidget.dataConfig?.drilldownFields || [];
-                                      const srcIdx = activeEditorWidget.dataConfig?.sourceIndex || '001';
-                                      const allFields = availableFieldsBySource[srcIdx] || [];
-                                      return (
-                                        <div key={idx} className="flex items-center gap-2">
-                                          <span className="text-[10px] text-slate-400 w-4">{idx+1}</span>
-                                          <div className="flex-1">
-                                            <SelectWithSearch
-                                              options={allFields}
-                                              value={currentFields[idx] || ''}
-                                              onChange={v => {
-                                                const updated = [...currentFields];
-                                                if (v) { updated[idx] = v; } else { updated.splice(idx, 1); }
-                                                const filtered = updated.filter(Boolean).slice(0, 10);
-                                                updateSelectedDesign('dataConfig', { 
-                                                  ...activeEditorWidget.dataConfig, 
-                                                  drilldownFields: filtered.length > 0 ? filtered : undefined 
-                                                });
-                                              }}
-                                              placeholder="未設定"
-                                            />
-                                          </div>
-                                          {(activeEditorWidget.dataConfig?.drilldownFields || [])[idx] && (
-                                            <button 
-                                              onClick={() => { 
-                                                const updated = [...(activeEditorWidget.dataConfig?.drilldownFields || [])]; 
-                                                updated.splice(idx, 1); 
-                                                updateSelectedDesign('dataConfig', { 
-                                                  ...activeEditorWidget.dataConfig, 
-                                                  drilldownFields: updated.length > 0 ? updated : undefined 
-                                                }); 
-                                              }} 
-                                              className="text-slate-400 hover:text-rose-500 p-1"
-                                            >
-                                              <Icons.X className="w-3 h-3"/>
-                                            </button>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-
-                              <div className="space-y-3 pt-4 border-t border-slate-100">
-                                <label className="text-xs font-bold text-slate-700">🎨 条件付き文字色</label>
-                                {(activeEditorWidget.dataConfig?.conditionalTextRules || []).map((rule, idx) => (
-                                  <div key={idx} className="flex gap-2 items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                    <select value={rule.operator} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])]; newRules[idx] = { ...newRules[idx], operator: e.target.value as any }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="text-xs border border-slate-200 rounded px-1 py-1 bg-white outline-none">
-                                      <option value="gt">＞</option><option value="lt">＜</option><option value="gte">≧</option><option value="lte">≦</option><option value="eq">＝</option>
-                                    </select>
-                                    <input type="number" value={rule.value} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])]; newRules[idx] = { ...newRules[idx], value: Number(e.target.value) }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="w-20 text-xs border border-slate-200 rounded px-2 py-1 bg-white outline-none" placeholder="値"/>
-                                    <input type="color" value={rule.textColor} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || [])]; newRules[idx] = { ...newRules[idx], textColor: e.target.value }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="w-10 h-7 rounded border p-0.5 bg-white cursor-pointer"/>
-                                    <button onClick={() => { const newRules = (activeEditorWidget.dataConfig?.conditionalTextRules || []).filter((_, i) => i !== idx); updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="text-slate-400 hover:text-rose-500 p-1"><Icons.X className="w-3 h-3"/></button>
-                                  </div>
-                                ))}
-                                {(!activeEditorWidget.dataConfig?.conditionalTextRules || activeEditorWidget.dataConfig.conditionalTextRules.length < 10) && (
-                                  <button onClick={() => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalTextRules || []), { operator: 'gt' as const, value: 0, textColor: '#ef4444' }]; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalTextRules: newRules }); }} className="w-full text-xs py-2 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1"><Icons.Plus className="w-3 h-3"/> 条件を追加（最大10）</button>
-                                )}
-                              </div>
-
-                              <div className="space-y-3 pt-4 border-t border-slate-100">
-                                <label className="text-xs font-bold text-slate-700">🎨 条件付き背景色</label>
-                                {(activeEditorWidget.dataConfig?.conditionalBgRules || []).map((rule, idx) => (
-                                  <div key={idx} className="flex gap-2 items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                    <select value={rule.operator} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])]; newRules[idx] = { ...newRules[idx], operator: e.target.value as any }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="text-xs border border-slate-200 rounded px-1 py-1 bg-white outline-none">
-                                      <option value="gt">＞</option><option value="lt">＜</option><option value="gte">≧</option><option value="lte">≦</option><option value="eq">＝</option>
-                                    </select>
-                                    <input type="number" value={rule.value} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])]; newRules[idx] = { ...newRules[idx], value: Number(e.target.value) }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="w-20 text-xs border border-slate-200 rounded px-2 py-1 bg-white outline-none" placeholder="値"/>
-                                    <input type="color" value={rule.bgColor} onChange={e => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || [])]; newRules[idx] = { ...newRules[idx], bgColor: e.target.value }; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="w-10 h-7 rounded border p-0.5 bg-white cursor-pointer"/>
-                                    <button onClick={() => { const newRules = (activeEditorWidget.dataConfig?.conditionalBgRules || []).filter((_, i) => i !== idx); updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="text-slate-400 hover:text-rose-500 p-1"><Icons.X className="w-3 h-3"/></button>
-                                  </div>
-                                ))}
-                                {(!activeEditorWidget.dataConfig?.conditionalBgRules || activeEditorWidget.dataConfig.conditionalBgRules.length < 10) && (
-                                  <button onClick={() => { const newRules = [...(activeEditorWidget.dataConfig?.conditionalBgRules || []), { operator: 'gt' as const, value: 0, bgColor: '#fef2f2' }]; updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, conditionalBgRules: newRules }); }} className="w-full text-xs py-2 border-2 border-dashed border-slate-200 bg-slate-50 rounded-lg text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all flex items-center justify-center gap-1"><Icons.Plus className="w-3 h-3"/> 背景色条件を追加（最大10）</button>
-                                )}
-                              </div>
-
-                              <div className="space-y-3 pt-4 border-t border-slate-100">
-                                <label className="text-xs font-bold text-slate-700">📈 トレンドアイコン</label>
-                                <div className="flex items-center gap-3">
-                                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                    <input type="checkbox" checked={activeEditorWidget.dataConfig?.showTrendIcon === true} onChange={e => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, showTrendIcon: e.target.checked })} className="w-4 h-4 rounded text-indigo-600"/>
-                                    <span className="text-xs text-slate-600">アイコンを表示</span>
-                                  </label>
-                                </div>
-                                {activeEditorWidget.dataConfig?.showTrendIcon && (
-                                  <div className="flex gap-3">
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" checked={activeEditorWidget.dataConfig?.trendTarget === 'previous'} onChange={() => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, trendTarget: 'previous' })} className="w-4 h-4 text-indigo-600"/><span className="text-xs text-slate-600">前期比</span></label>
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" checked={activeEditorWidget.dataConfig?.trendTarget === 'target'} onChange={() => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, trendTarget: 'target' })} className="w-4 h-4 text-indigo-600"/><span className="text-xs text-slate-600">目標比</span></label>
-                                  </div>
-                                )}
-                              </div>
-                            </>
-                          )}
                         </div>
                       </details>
 
