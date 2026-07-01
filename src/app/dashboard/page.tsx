@@ -1205,31 +1205,38 @@ function DashboardInner() {
       if (!actualSrcIndex || !targetSrcIndex) {
         const actualItems = dc?.compareActualItems || [];
         const targetItems = dc?.compareTargetItems || [];
+        // ★ 修正：ウィジェット結合モードでも突き合わせキー設定を反映する（未設定時のみ id）
+        const actualKeyField = dc?.compareActualKeyField || 'id';
+        const targetKeyField = dc?.compareTargetKeyField || 'id';
 
         const actualMap = new Map<string, DBItem>();
         actualItems.forEach(it => {
-          if (it.operator === 'plus') {
-            const items = widgetFilteredData[it.widgetId] || [];
-            items.forEach(item => { if (item.id) actualMap.set(item.id, item); });
-          }
+          // ★ 修正：plus/minus に関わらず構成要素データは差分抽出の対象に含める
+          //   （数値計算では引き算に使われる項目でも、差分特定のためには表示が必要なため）
+          const items = widgetFilteredData[it.widgetId] || [];
+          items.forEach(item => {
+            const key = extractStringValue(item[actualKeyField]);
+            if (key) actualMap.set(key, item);
+          });
         });
 
         const targetMap = new Map<string, DBItem>();
         targetItems.forEach(it => {
-          if (it.operator === 'plus') {
-            const items = widgetFilteredData[it.widgetId] || [];
-            items.forEach(item => { if (item.id) targetMap.set(item.id, item); });
-          }
+          const items = widgetFilteredData[it.widgetId] || [];
+          items.forEach(item => {
+            const key = extractStringValue(item[targetKeyField]);
+            if (key) targetMap.set(key, item);
+          });
         });
 
         const onlyInActual: DBItem[] = [];
-        actualMap.forEach((item, id) => {
-          if (!targetMap.has(id)) onlyInActual.push(item);
+        actualMap.forEach((item, key) => {
+          if (!targetMap.has(key)) onlyInActual.push(item);
         });
 
         const onlyInTarget: DBItem[] = [];
-        targetMap.forEach((item, id) => {
-          if (!actualMap.has(id)) onlyInTarget.push(item);
+        targetMap.forEach((item, key) => {
+          if (!actualMap.has(key)) onlyInTarget.push(item);
         });
 
         result[w.id] = { onlyInActual, onlyInTarget };
@@ -3010,7 +3017,55 @@ function DashboardInner() {
         実績側・目標側それぞれのデータソースと条件、突き合わせキーを指定すると、ズレの原因データを特定できます。
       </p>
 
-      {/* 実績側の照合設定 */}
+      {/* ★ 追加：計算要素（ウィジェット結合）で組んでいる場合の突き合わせキー設定 */}
+      {(!activeEditorWidget.dataConfig?.compareActualSourceIndex && !activeEditorWidget.dataConfig?.compareTargetSourceIndex) && (
+        <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 space-y-3">
+          <label className="text-[11px] font-bold text-amber-700">計算要素（ウィジェット結合）の突き合わせキー</label>
+          <p className="text-[10px] text-slate-400">
+            上の「実績の計算要素」「目標の計算要素」で選んだウィジェットのデータを、どのフィールドで1件ずつ突き合わせるか指定します（未設定は id）。
+          </p>
+          <div>
+            <label className="text-[10px] text-slate-500 mb-1 block">実績側キー</label>
+            <SelectWithSearch
+              options={(() => {
+                const ids = (activeEditorWidget.dataConfig?.compareActualItems || []).map(it => it.widgetId).filter(Boolean);
+                const allWidgets = dashboards.flatMap(page => page.layout);
+                const fieldSet = new Set<string>();
+                ids.forEach(id => {
+                  const w = allWidgets.find(w => w.id === id);
+                  const srcIdx = w?.dataConfig?.sourceIndex || w?.dataSourceIndex;
+                  if (srcIdx) (availableFieldsBySource[srcIdx] || []).forEach(f => fieldSet.add(f));
+                });
+                return Array.from(fieldSet);
+              })()}
+              value={activeEditorWidget.dataConfig?.compareActualKeyField || 'id'}
+              onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareActualKeyField: v })}
+              placeholder="フィールドを選択（未設定はid）"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 mb-1 block">目標側キー</label>
+            <SelectWithSearch
+              options={(() => {
+                const ids = (activeEditorWidget.dataConfig?.compareTargetItems || []).map(it => it.widgetId).filter(Boolean);
+                const allWidgets = dashboards.flatMap(page => page.layout);
+                const fieldSet = new Set<string>();
+                ids.forEach(id => {
+                  const w = allWidgets.find(w => w.id === id);
+                  const srcIdx = w?.dataConfig?.sourceIndex || w?.dataSourceIndex;
+                  if (srcIdx) (availableFieldsBySource[srcIdx] || []).forEach(f => fieldSet.add(f));
+                });
+                return Array.from(fieldSet);
+              })()}
+              value={activeEditorWidget.dataConfig?.compareTargetKeyField || 'id'}
+              onChange={(v) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, compareTargetKeyField: v })}
+              placeholder="フィールドを選択（未設定はid）"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 実績側の照合設定（手動データソース指定モード） */}
       <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
         <label className="text-[11px] font-bold text-blue-700">実績側</label>
         <div>
@@ -3049,7 +3104,7 @@ function DashboardInner() {
         )}
       </div>
 
-      {/* 目標側の照合設定 */}
+      {/* 目標側の照合設定（手動データソース指定モード） */}
       <div className="p-3 bg-rose-50/50 rounded-xl border border-rose-100 space-y-2">
         <label className="text-[11px] font-bold text-rose-700">目標側</label>
         <div>
@@ -3093,8 +3148,23 @@ function DashboardInner() {
         <label className="text-[10px] text-slate-500 mb-1 block">ポップアップに表示するフィールド（複数選択、未設定は既定表示）</label>
         <div className="flex flex-wrap gap-1">
           {(() => {
+            // ★ 修正：手動ソース未設定時は計算要素ウィジェットのフィールドから候補を出す
             const srcForFields = activeEditorWidget.dataConfig?.compareActualSourceIndex;
-            const fields = srcForFields ? (availableFieldsBySource[srcForFields] || []) : [];
+            let fields: string[] = srcForFields ? (availableFieldsBySource[srcForFields] || []) : [];
+            if (fields.length === 0) {
+              const ids = [
+                ...(activeEditorWidget.dataConfig?.compareActualItems || []).map(it => it.widgetId),
+                ...(activeEditorWidget.dataConfig?.compareTargetItems || []).map(it => it.widgetId),
+              ].filter(Boolean);
+              const allWidgets = dashboards.flatMap(page => page.layout);
+              const fieldSet = new Set<string>();
+              ids.forEach(id => {
+                const w = allWidgets.find(w => w.id === id);
+                const srcIdx = w?.dataConfig?.sourceIndex || w?.dataSourceIndex;
+                if (srcIdx) (availableFieldsBySource[srcIdx] || []).forEach(f => fieldSet.add(f));
+              });
+              fields = Array.from(fieldSet);
+            }
             const selected = activeEditorWidget.dataConfig?.compareDiffPopupFields || [];
             return fields.map(f => (
               <button
