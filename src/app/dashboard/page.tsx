@@ -2015,20 +2015,16 @@ function DashboardInner() {
                 <div className="border-b border-slate-100"/>
               </>
             )}
-                        <section className="space-y-4">
+                                    <section className="space-y-4">
               <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Icons.Settings className="w-4 h-4"/> システム設定</h3>
-              <div>
-                <label className="text-xs font-medium text-slate-500 mb-2 block">自動更新間隔</label>
-                {isEditor ? (
+              {isEditor && (
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-2 block">自動更新間隔</label>
                   <select value={refreshInterval} onChange={e=>setRefreshInterval(Number(e.target.value))} className="w-full text-sm border border-slate-200 px-3 py-2 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none shadow-sm cursor-pointer">
                     <option value={60000}>1分</option><option value={180000}>3分</option><option value={300000}>5分</option><option value={600000}>10分</option><option value={0}>手動のみ</option>
                   </select>
-                ) : (
-                  <p className="text-sm text-slate-400 bg-slate-100 rounded-xl px-3 py-2">
-                    {refreshInterval === 0 ? '手動のみ' : `${refreshInterval / 60000}分`}（編集権限が必要です）
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-medium text-slate-500 mb-2 block">サイネージ切り替え間隔</label>
                 <select
@@ -2041,28 +2037,22 @@ function DashboardInner() {
                   <option value={30000}>30秒</option>
                   <option value={60000}>1分</option>
                   <option value={120000}>2分</option>
+                  <option value={180000}>3分</option>
+                  <option value={240000}>4分</option>
                   <option value={300000}>5分</option>
                 </select>
               </div>
-              <div>
-                <label className="text-xs font-medium text-slate-500 mb-2 block">アートボード背景色</label>
-                {isEditor ? (
+              {isEditor && (
+                <div>
+                  <label className="text-xs font-medium text-slate-500 mb-2 block">アートボード背景色</label>
                   <input
                     type="color"
                     value={canvasBgColor}
                     onChange={(e) => setCanvasBgColor(e.target.value)}
                     className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
                   />
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-8 h-8 rounded border border-slate-200"
-                      style={{ backgroundColor: canvasBgColor }}
-                    />
-                    <span className="text-sm text-slate-400">編集権限が必要です</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
               <button onClick={() => toggleMode('signage')} className="w-full py-3 bg-slate-800 text-white text-sm font-semibold rounded-xl hover:bg-slate-900 shadow-md transition-all flex justify-center items-center gap-2">
                 <Icons.Monitor className="w-4 h-4" /> サイネージモードを開始
               </button>
