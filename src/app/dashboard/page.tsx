@@ -389,6 +389,7 @@ function DashboardInner() {
               layout: page.layout ?? [],
               annotations: page.annotations ?? [],
               includeInSignage: page.includeInSignage,
+              published: page.published, // ★ 追加：非公開状態を保存対象に含める
             })),
             canvasBgColor,
           }),
@@ -403,8 +404,8 @@ function DashboardInner() {
 
   const addToastRef = useRef(addToast); useEffect(() => { addToastRef.current = addToast; }, [addToast]);
 
-  const didApplyUrlLayout = useRef(false);
-  useEffect(()=>{ if(didApplyUrlLayout.current)return; const p=new URLSearchParams(window.location.search); const enc=p.get('layout'); if(enc){ try{ const dec=JSON.parse(safeBase64Decode(decodeURIComponent(enc))); if (Array.isArray(dec)) { editWidgets(stripFormula(dec)); } else if (dec.layout) { dispatch({ type: 'COMMIT_STATE', payload: { layout: stripFormula(dec.layout), annotations: dec.annotations || [] } }); } addToastRef.current('共有レイアウトを読み込みました','success'); }catch{addToastRef.current('レイアウトの読み込みに失敗しました','error');} window.history.replaceState(null,'',window.location.pathname); } didApplyUrlLayout.current=true; },[editWidgets]);
+  // ★ 共有機能の無効化に伴い、?layout= URLパラメータからのレイアウト読み込み処理も削除
+  //   （これが残っていると、外部から任意のレイアウトJSONを注入されてしまうため）
 
   const canvasSensors = useSensors(useSensor(PointerSensor,{activationConstraint:{distance:8}}));
   const layerSensors = useSensors(useSensor(PointerSensor,{activationConstraint:{distance:8}}));
@@ -1482,13 +1483,14 @@ function DashboardInner() {
     reader.readAsText(file);
   };
 
-  const handleShare=useCallback(()=>{
-    const pageData = { layout, annotations };
-    const json=JSON.stringify(pageData);
-    const encoded=safeBase64Encode(json);
-    const url=`${window.location.origin}${window.location.pathname}?layout=${encodeURIComponent(encoded)}`;
-    navigator.clipboard.writeText(url).then(()=>addToastRef.current('共有URLをコピーしました','success'));
-  },[layout, annotations]);
+  // ★ 共有機能は無効化済み（handleShareは未使用）
+  // const handleShare=useCallback(()=>{
+  //   const pageData = { layout, annotations };
+  //   const json=JSON.stringify(pageData);
+  //   const encoded=safeBase64Encode(json);
+  //   const url=`${window.location.origin}${window.location.pathname}?layout=${encodeURIComponent(encoded)}`;
+  //   navigator.clipboard.writeText(url).then(()=>addToastRef.current('共有URLをコピーしました','success'));
+  // },[layout, annotations]);
 
   const handleExportPDF = useCallback(async () => {
     const canvasDiv = wrapperRef.current?.querySelector('[style*="translate"]') as HTMLElement;
@@ -2027,7 +2029,7 @@ function DashboardInner() {
                 <button onClick={handleExport} className="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center gap-1.5" title="JSONファイルとして保存"><Icons.Download className="w-4 h-4"/>書出</button>
                 <button onClick={handleExportPDF} className="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center gap-1.5" title="PDFとして保存"><Icons.FileText className="w-4 h-4"/>PDF</button>
                 <label className="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all cursor-pointer flex items-center gap-1.5" title="JSONファイルから読み込み"><Icons.Upload className="w-4 h-4"/>読込 <input type="file" accept=".json" onChange={handleImport} className="hidden"/></label>
-                <button onClick={handleShare} className="px-3 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all flex items-center gap-1.5" title="共有URLをコピー"><Icons.Share className="w-4 h-4"/>共有</button>
+                {/* ★ 共有機能は無効化のためボタンを削除 */}
               </div>
             )}
             {canEdit && (

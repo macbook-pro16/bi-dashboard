@@ -1,45 +1,10 @@
 // src/app/api/share/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
-import { Widget, Annotation } from '@/types';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
-  const session = await getServerSession();
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  try {
-    const body = await request.json();
-    const { layout, annotations } = body;
-
-    if (!layout || !Array.isArray(layout)) {
-      return NextResponse.json({ error: 'Invalid format' }, { status: 400 });
-    }
-
-    // ユーザーの現在のダッシュボードIDを取得（存在する場合）
-    const dashboard = await prisma.dashboard.findUnique({
-  where: { id: 'global' },  // グローバル共有ダッシュボードを使用
-  select: { id: true },
-});
-
-    // スナップショットを作成
-    const snapshot = await prisma.sharedSnapshot.create({
-      data: {
-        dashboardId: dashboard?.id || 'unknown',
-                layout: JSON.parse(JSON.stringify(layout)),
-        annotations: JSON.parse(JSON.stringify(annotations || [])),
-        expiresAt: null, // 無期限
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      sharedId: snapshot.id,
-    });
-  } catch (error) {
-    console.error('Share POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
+// ★ 共有機能は無効化。エンドポイントは410 Goneを返すのみとし、DB書き込みは一切行わない。
+export async function POST() {
+  return NextResponse.json(
+    { error: 'この機能は無効化されています。' },
+    { status: 410 }
+  );
 }
