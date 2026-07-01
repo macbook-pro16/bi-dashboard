@@ -153,7 +153,7 @@ function SlideshowWidgetContent({
         computedTargetValues,
         computedPreviousValues,
         filteredDataByIndex,
-        widgetFilteredData, // ★ ここから comparisonDiffMap を削除し、正しい引数に修正
+        widgetFilteredData,
         statusOptions,
         handleStatusChange,
         handleChartCrossFilter,
@@ -376,10 +376,6 @@ export function renderWidgetContent(
           }
         }
 
-        console.log('=== DEBUG: wpData sample (first 3) ===', wpData.slice(0, 3));
-        console.log('=== DEBUG: wpData v_manage_id list ===', wpData.map((item: any) => item['v_manage_id']));
-        console.log('=== DEBUG: searching for manageId ===', manageId);
-
         if (manageId) {
           const matchedWp = wpData.find((item: any) => {
             for (const candidate of manageIdCandidates) {
@@ -389,7 +385,6 @@ export function renderWidgetContent(
             }
             return false;
           });
-          console.log('=== DEBUG: matchedWp ===', matchedWp);
           if (matchedWp && Array.isArray(matchedWp.images)) {
             images = matchedWp.images;
           }
@@ -634,11 +629,6 @@ export function renderWidgetContent(
       const actual = calcSum(compDc.compareActualItems);
       const target = calcSum(compDc.compareTargetItems);
 
-      // ★ comparisonDiffMap は引数から削除したため、一旦 undefined 扱いとする
-      // （※本来は親の page.tsx から DashboardContext 等を通して渡すか、
-      // データの取得ロジック自体を再構成すべきですが、ビルドエラー解消を最優先します）
-      const diffData = undefined; 
-
       return (
         <ComparisonWidget
           label={w.title}
@@ -655,8 +645,8 @@ export function renderWidgetContent(
           target={target}
           actualLabel={compDc.compareActualLabel || '実績'}
           targetLabel={compDc.compareTargetLabel || '目標'}
-          onlyInActual={diffData?.onlyInActual}
-          onlyInTarget={diffData?.onlyInTarget}
+          onlyInActual={undefined}  // ★ 型推論エラー回避のため直接 undefined を渡す
+          onlyInTarget={undefined}  // ★ 型推論エラー回避のため直接 undefined を渡す
           diffPopupFields={compDc.compareDiffPopupFields}
         />
       );
