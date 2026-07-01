@@ -341,6 +341,18 @@ function DashboardInner() {
       })()
     : activePageIndex;
 
+      // 閲覧者が非公開ページを表示できないように強制移動
+  useEffect(() => {
+    if (userRole !== 'viewer' || dashboards.length === 0) return;
+    const currentPage = dashboards[activePageIndex];
+    if (currentPage && currentPage.published === false) {
+      const firstPublishedIdx = dashboards.findIndex(p => p.published !== false);
+      if (firstPublishedIdx >= 0) {
+        dispatch({ type: 'SET_ACTIVE_PAGE', payload: firstPublishedIdx });
+      }
+    }
+  }, [userRole, dashboards, activePageIndex, dispatch]);
+
   const layout = dashboards[activePageIndex]?.layout ?? [];
   const annotations = dashboards[activePageIndex]?.annotations ?? [];
 
