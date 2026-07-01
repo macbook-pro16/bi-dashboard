@@ -10,6 +10,10 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // ★ 追加：ロールを確認し、編集権限がなければ非公開ページを配信しない
+  const role = (session.user as any).role || 'viewer';
+  const canEdit = role === 'admin' || role === 'editor';
+
   try {
     const dashboard = await withConnection(() =>
       prisma.dashboard.findUnique({ where: { id: 'global' } })
@@ -23,8 +27,14 @@ export async function GET() {
     }
 
     const layoutData = dashboardData.layout;
-    const pages = layoutData?.pages || [];
+    const allPages = layoutData?.pages || [];
     const canvasBgColor = layoutData?.canvasBgColor || '#ffffff';
+
+    // ★ 追加：編集権限がないユーザーには published !== false のページのみ返す
+    //         非公開ページのレイアウト・ウィジェット設定はサーバーから一切送信しない
+    const pages = canEdit
+      ? allPages
+      : allPages.filter((p: any) => p.published !== false);
 
     return NextResponse.json({ dashboards: pages, canvasBgColor });
   } catch (error) {

@@ -10,6 +10,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -28,7 +29,7 @@ interface DashboardPageListProps {
   onDelete: (pageId: string) => void;
   onRename: (pageId: string, name: string) => void;
   onToggleSignage: (pageId: string) => void;
-  onTogglePublished: (pageId: string) => void;
+  // ★ onTogglePublished は廃止（公開状態はドラッグでエリア移動して変更する）
   onReorder?: (reordered: DashboardPage[]) => void;
   collapsed?: boolean;
 }
@@ -41,7 +42,6 @@ function SortablePageItem({
   onSelect,
   onDoubleClick,
   onToggleSignage,
-  onTogglePublished,
   onDelete,
   canDelete,
   isEditing,
@@ -57,7 +57,6 @@ function SortablePageItem({
   onSelect: (id: string) => void;
   onDoubleClick: (id: string, name: string) => void;
   onToggleSignage: (id: string) => void;
-  onTogglePublished: (id: string) => void;
   onDelete: (id: string) => void;
   canDelete: boolean;
   isEditing: boolean;
@@ -135,18 +134,8 @@ function SortablePageItem({
               <Icons.Monitor className="w-3.5 h-3.5" />
             </button>
 
-            {/* 公開/非公開トグル */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onTogglePublished(page.id); }}
-              title={page.published !== false ? '公開中（クリックで非公開）' : '非公開（クリックで公開）'}
-              className={`p-1 rounded transition-colors ${page.published !== false ? 'text-emerald-500' : 'text-slate-300'}`}
-            >
-              {page.published !== false ? (
-                <Icons.Eye className="w-3.5 h-3.5" />
-              ) : (
-                <Icons.EyeOff className="w-3.5 h-3.5" />
-              )}
-            </button>
+            {/* ★ 公開/非公開トグル（目のアイコン）は廃止。
+                公開状態は「公開エリア／非公開エリア」間のドラッグ操作で切り替える */}
 
             {/* 削除ボタン */}
             <button
@@ -164,6 +153,50 @@ function SortablePageItem({
   );
 }
 
+// ★ 空のエリアにもドロップできるようにするための領域コンポーネント
+function AreaDropZone({
+  id,
+  label,
+  count,
+  accentColor,
+  children,
+}: {
+  id: string;
+  label: string;
+  count: number;
+  accentColor: string;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h4
+          className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+          style={{ color: accentColor }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: accentColor }} />
+          {label}
+        </h4>
+        <span className="text-[10px] text-slate-400">{count}</span>
+      </div>
+      <ul
+        ref={setNodeRef}
+        className={`space-y-1 min-h-[40px] rounded-lg transition-colors ${
+          isOver ? 'bg-indigo-50/60 ring-2 ring-indigo-300 ring-inset' : ''
+        }`}
+      >
+        {children}
+        {count === 0 && (
+          <li className="text-[11px] text-slate-300 text-center py-3 border border-dashed border-slate-200 rounded-lg">
+            ここにドラッグして移動
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
 export default function DashboardPageList({
   dashboards,
   activePageId,
@@ -173,7 +206,6 @@ export default function DashboardPageList({
   onDelete,
   onRename,
   onToggleSignage,
-  onTogglePublished,
   onReorder,
   collapsed = false,
 }: DashboardPageListProps) {
@@ -184,10 +216,16 @@ export default function DashboardPageList({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  // ★ 閲覧者には公開ページだけを見せる（非公開は完全非表示）
+  // ★ サーバー側(load API)で既にフィルタ済みだが、念のためクライアントでも防御的にフィルタ
   const visiblePages = canEdit
     ? dashboards
     : dashboards.filter((p) => p.published !== false);
+
+  // ★ 公開エリア／非公開エリアの2グループに分割
+  const publishedPages = visiblePages.filter((p) => p.published !== false);
+  const unpublishedPages = visiblePages.filter((p) => p.published === false);
+
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
   const handleDoubleClick = (id: string, name: string) => {
     setEditingPageId(id);
@@ -201,18 +239,53 @@ export default function DashboardPageList({
     setEditingPageId(null);
   };
 
+  // ドラッグ先のエリアID（'area-published' | 'area-unpublished'）を判定
+  const resolveAreaId = (overId: string | number | null): 'published' | 'unpublished' | null => {
+    if (overId === 'area-published') return 'published';
+    if (overId === 'area-unpublished') return 'unpublished';
+    const overPage = dashboards.find((p) => p.id === overId);
+    if (overPage) return overPage.published === false ? 'unpublished' : 'published';
+    return null;
+  };
+
+  const handleDragStart = useCallback((event: any) => {
+    setActiveDragId(event.active.id);
+  }, []);
+
   const handleDragEnd = useCallback(
     (event: any) => {
+      setActiveDragId(null);
       if (!canEdit || !onReorder) return;
       const { active, over } = event;
-      if (over && active.id !== over.id) {
-        const oldIndex = dashboards.findIndex((p) => p.id === active.id);
-        const newIndex = dashboards.findIndex((p) => p.id === over.id);
+      if (!over) return;
+
+      const draggedPage = dashboards.find((p) => p.id === active.id);
+      if (!draggedPage) return;
+
+      const targetArea = resolveAreaId(over.id);
+      if (!targetArea) return;
+
+      const targetPublished = targetArea === 'published';
+
+      // ★ ドラッグしたページの published を移動先エリアに合わせて更新
+      const updatedDashboards = dashboards.map((p) =>
+        p.id === draggedPage.id ? { ...p, published: targetPublished } : p
+      );
+
+      // 同一エリア内での並び替え（over が実ページの場合のみ並び順を調整）
+      const overPage = dashboards.find((p) => p.id === over.id);
+      if (overPage && overPage.id !== draggedPage.id) {
+        const oldIndex = updatedDashboards.findIndex((p) => p.id === active.id);
+        const newIndex = updatedDashboards.findIndex((p) => p.id === over.id);
         if (oldIndex !== -1 && newIndex !== -1) {
-          const reordered = arrayMove(dashboards, oldIndex, newIndex);
+          const reordered = arrayMove(updatedDashboards, oldIndex, newIndex);
           onReorder(reordered);
+          return;
         }
       }
+
+      // over がエリア自体（空エリアへのドロップ等）の場合は published 変更のみ反映
+      onReorder(updatedDashboards);
     },
     [dashboards, canEdit, onReorder]
   );
@@ -263,20 +336,25 @@ export default function DashboardPageList({
       </div>
 
       {canEdit ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={visiblePages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-            <ul className="space-y-1">
-              {visiblePages.map((page) => (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {/* 公開エリア */}
+          <AreaDropZone id="area-published" label="公開エリア" count={publishedPages.length} accentColor="#10b981">
+            <SortableContext items={publishedPages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+              {publishedPages.map((page) => (
                 <SortablePageItem
                   key={page.id}
                   page={page}
                   isActive={page.id === activePageId}
-                  isUnpublished={page.published === false}
+                  isUnpublished={false}
                   canEdit={canEdit}
                   onSelect={onSelect}
                   onDoubleClick={handleDoubleClick}
                   onToggleSignage={onToggleSignage}
-                  onTogglePublished={onTogglePublished}
                   onDelete={onDelete}
                   canDelete={dashboards.length > 1}
                   isEditing={editingPageId === page.id}
@@ -288,26 +366,49 @@ export default function DashboardPageList({
                   }}
                 />
               ))}
-              {visiblePages.length === 0 && (
-                <li className="text-xs text-slate-400 text-center py-2">ページがありません</li>
-              )}
-            </ul>
-          </SortableContext>
+            </SortableContext>
+          </AreaDropZone>
+
+          {/* 非公開エリア */}
+          <AreaDropZone id="area-unpublished" label="非公開エリア（編集者のみ閲覧可）" count={unpublishedPages.length} accentColor="#94a3b8">
+            <SortableContext items={unpublishedPages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+              {unpublishedPages.map((page) => (
+                <SortablePageItem
+                  key={page.id}
+                  page={page}
+                  isActive={page.id === activePageId}
+                  isUnpublished={true}
+                  canEdit={canEdit}
+                  onSelect={onSelect}
+                  onDoubleClick={handleDoubleClick}
+                  onToggleSignage={onToggleSignage}
+                  onDelete={onDelete}
+                  canDelete={dashboards.length > 1}
+                  isEditing={editingPageId === page.id}
+                  editName={editName}
+                  onEditChange={setEditName}
+                  onEditConfirm={handleConfirm}
+                  onEditKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConfirm();
+                  }}
+                />
+              ))}
+            </SortableContext>
+          </AreaDropZone>
         </DndContext>
       ) : (
-        // 閲覧者用（ドラッグ不可）
+        // 閲覧者用（ドラッグ不可、公開ページのみ・サーバー側で既にフィルタ済み）
         <ul className="space-y-1">
-          {visiblePages.map((page) => (
+          {publishedPages.map((page) => (
             <SortablePageItem
               key={page.id}
               page={page}
               isActive={page.id === activePageId}
-              isUnpublished={page.published === false}
+              isUnpublished={false}
               canEdit={false}
               onSelect={onSelect}
               onDoubleClick={handleDoubleClick}
               onToggleSignage={onToggleSignage}
-              onTogglePublished={onTogglePublished}
               onDelete={onDelete}
               canDelete={false}
               isEditing={false}
@@ -317,7 +418,7 @@ export default function DashboardPageList({
               onEditKeyDown={() => {}}
             />
           ))}
-          {visiblePages.length === 0 && (
+          {publishedPages.length === 0 && (
             <li className="text-xs text-slate-400 text-center py-2">ページがありません</li>
           )}
         </ul>
