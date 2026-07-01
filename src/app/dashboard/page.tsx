@@ -236,7 +236,6 @@ function DashboardInner() {
   const userRole = session?.user?.role || 'viewer';
   const canEdit = userRole === 'admin' || userRole === 'editor';
   const isAdmin = userRole === 'admin';
-  const isEditor = canEdit; // ← この行を追加する
 
   const router = useRouter();
   const { filters, updateDateRange, applyFilters, toggleCrossFilter, setCrossFilterValues } = useFilter();
@@ -1879,7 +1878,7 @@ function DashboardInner() {
               publishedPages={publishedPages}
               unpublishedPages={unpublishedPages}
               activePageId={activePageId}
-              isEditor={isEditor}
+              canEdit={canEdit}
               onSelect={(pageId) => {
                 const realIndex = dashboards.findIndex(p => p.id === pageId);
                 if (realIndex >= 0) dispatch({ type: 'SET_ACTIVE_PAGE', payload: realIndex });
@@ -2015,9 +2014,9 @@ function DashboardInner() {
                 <div className="border-b border-slate-100"/>
               </>
             )}
-                                    <section className="space-y-4">
+                                                <section className="space-y-4">
               <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Icons.Settings className="w-4 h-4"/> システム設定</h3>
-              {isEditor && (
+              {canEdit && (
                 <div>
                   <label className="text-xs font-medium text-slate-500 mb-2 block">自動更新間隔</label>
                   <select value={refreshInterval} onChange={e=>setRefreshInterval(Number(e.target.value))} className="w-full text-sm border border-slate-200 px-3 py-2 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none shadow-sm cursor-pointer">
@@ -2032,7 +2031,7 @@ function DashboardInner() {
                   onChange={e => setSignageInterval(Number(e.target.value))}
                   className="w-full text-sm border border-slate-200 px-3 py-2 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none shadow-sm cursor-pointer"
                 >
-                  <option value={10000}>10秒</option>
+                 <option value={10000}>10秒</option>
                   <option value={15000}>15秒</option>
                   <option value={30000}>30秒</option>
                   <option value={60000}>1分</option>
@@ -2042,7 +2041,7 @@ function DashboardInner() {
                   <option value={300000}>5分</option>
                 </select>
               </div>
-              {isEditor && (
+              {canEdit && (
                 <div>
                   <label className="text-xs font-medium text-slate-500 mb-2 block">アートボード背景色</label>
                   <input

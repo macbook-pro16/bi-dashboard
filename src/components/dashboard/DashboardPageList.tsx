@@ -23,7 +23,7 @@ interface DashboardPageListProps {
   publishedPages: DashboardPage[];
   unpublishedPages: DashboardPage[];
   activePageId: string | null;
-  isEditor: boolean; // 編集権限（adminまたはeditor）
+  canEdit: boolean;
   onSelect: (pageId: string) => void;
   onAdd: () => void;
   onDelete: (pageId: string) => void;
