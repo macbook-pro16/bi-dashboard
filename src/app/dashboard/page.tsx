@@ -738,6 +738,68 @@ function DashboardInner() {
     return map;
   }, [layout, cacheStore, filters.dateRange, todayStr, evaluateConditions, applyGlobalNonDateFilters]);
 
+  // ★ 追加：比較ウィジェットの差分ポップアップ用に、全ページを横断してウィジェット単位のデータを保持する。
+  //   widgetFilteredData は「現在アクティブなページ」のみが対象のため、
+  //   比較ウィジェットが参照する実績・目標の構成要素ウィジェットが別ページにある場合、
+  //   数値上は差異が出るのに差分ポップアップの中身が空になる不具合があった。これを解消する。
+  const allWidgetFilteredData = useMemo(() => {
+    const map: Record<string, DBItem[]> = {};
+    dashboards.forEach(page => {
+      (page.layout ?? []).forEach(w => {
+        const dc = w.dataConfig as DataConfig | undefined;
+        if (!dc) return;
+
+        const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
+        const allSrc = cacheStore[srcIdx] || [];
+
+        if (w.type === 'flow-node') {
+          const field = dc.filterField ?? w.targetField ?? 'status';
+          const value = dc.filterValue ?? w.statusTarget ?? '';
+          map[w.id] = allSrc.filter(item => extractStringValue(item[field]) === value);
+          return;
+        }
+
+        if (!['table-details', 'scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered', 'gauge'].includes(w.type)) return;
+
+        const dateField = resolveDateFilterField(w);
+        const dateFilter = dc.dateFilter ?? (w.type === 'kpi-today' ? 'today' : 'range');
+        const { start, end } = filters.dateRange;
+
+        let baseData = allSrc;
+        if (dateFilter === 'range') {
+          baseData = allSrc.filter(item => {
+            const d = item[dateField];
+            if (!d) return false;
+            return d >= start && d <= end;
+          });
+        } else if (dateFilter === 'today') {
+          baseData = allSrc.filter(item => item[dateField] === todayStr);
+        } else if (dateFilter === 'none') {
+          baseData = allSrc;
+        }
+
+        const crossFiltered = applyGlobalNonDateFilters(baseData);
+        const conditions = dc.filterConditions || [];
+        const logic = dc.conditionLogic || 'and';
+
+        map[w.id] = crossFiltered.filter(item => {
+          const passCross = evaluateConditions(item, conditions, logic);
+          const passIndicator = (() => {
+            if (!dc.field) return true;
+            const val = extractStringValue(item[dc.field]);
+            if (dc.filterOperator === 'empty') return !val || val === '' || val === 'undefined';
+            if (dc.filterOperator === 'not_empty') return !!val && val !== '' && val !== 'undefined';
+            if (!dc.filterValue) return true;
+            if (dc.filterOperator === 'neq') return val !== dc.filterValue;
+            return val === dc.filterValue;
+          })();
+          return passCross && passIndicator;
+        });
+      });
+    });
+    return map;
+  }, [dashboards, cacheStore, filters.dateRange, todayStr, evaluateConditions, applyGlobalNonDateFilters]);
+
   const allWidgetValues = useMemo(() => {
     const map: Record<string, number> = {};
     dashboards.forEach(page => {
@@ -1211,22 +1273,20 @@ function DashboardInner() {
 
         const actualMap = new Map<string, DBItem>();
         actualItems.forEach(it => {
-          // ★ 修正：plus/minus に関わらず構成要素データは差分抽出の対象に含める
-          //   （数値計算では引き算に使われる項目でも、差分特定のためには表示が必要なため）
-          const items = widgetFilteredData[it.widgetId] || [];
-          items.forEach(item => {
-            const key = extractStringValue(item[actualKeyField]);
-            if (key) actualMap.set(key, item);
-          });
+          if (it.operator === 'plus') {
+            // ★ 修正：ページをまたいだ参照でも差分データを取得できるよう allWidgetFilteredData を使用
+            const items = allWidgetFilteredData[it.widgetId] || [];
+            items.forEach(item => { if (item.id) actualMap.set(item.id, item); });
+          }
         });
 
         const targetMap = new Map<string, DBItem>();
         targetItems.forEach(it => {
-          const items = widgetFilteredData[it.widgetId] || [];
-          items.forEach(item => {
-            const key = extractStringValue(item[targetKeyField]);
-            if (key) targetMap.set(key, item);
-          });
+          if (it.operator === 'plus') {
+            // ★ 修正：ページをまたいだ参照でも差分データを取得できるよう allWidgetFilteredData を使用
+            const items = allWidgetFilteredData[it.widgetId] || [];
+            items.forEach(item => { if (item.id) targetMap.set(item.id, item); });
+          }
         });
 
         const onlyInActual: DBItem[] = [];
@@ -1306,7 +1366,7 @@ function DashboardInner() {
     });
 
     return result;
-  }, [cacheStore, layout, filters.dateRange, evaluateConditions, applyGlobalNonDateFilters, widgetFilteredData]);
+  }, [cacheStore, layout, filters.dateRange, evaluateConditions, applyGlobalNonDateFilters, allWidgetFilteredData]);
 
   const handleSelect=useCallback((id:string)=>{setSelectedIds([id]);setSelectedAnnotationIds([]);},[]);
   const handleSelectToggle=useCallback((id:string)=>setSelectedIds(p=>p.includes(id)?p.filter(i=>i!==id):[...p,id]),[]);
