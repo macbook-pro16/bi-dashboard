@@ -37,10 +37,11 @@ interface SignageViewProps {
   setDrilldown: any;
   signageInterval: number;
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>;
+  comparisonDiffMap?: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }>; // ★ 追加: これが不足していました
   availableFields?: string[];
   handleDiffFilter?: (ids: string[], label: string) => void;
   allWidgetValues?: Record<string, number>;
-  CanvasWidgetComponent: React.ComponentType<any>;  // ★ これを追加
+  CanvasWidgetComponent: React.ComponentType<any>;
 }
 
 export default function SignageView({
@@ -66,6 +67,7 @@ export default function SignageView({
   setDrilldown,
   signageInterval,
   todayDiffMap,
+  comparisonDiffMap, // ★ 追加
   availableFields,
   handleDiffFilter,
   allWidgetValues,
@@ -352,20 +354,20 @@ export default function SignageView({
         </svg>
         {layout.map((w: Widget, idx: number) => (
           <CanvasWidgetComponent
-  key={w.id}
-  widget={w}
-  isEditMode={false}
-  isSignageMode={true}
-  zoom={scale}
-  zIndex={idx}
-  isSelected={false}
-  onSelect={() => {}}
-  onSelectToggle={() => {}}
-  onResizeEnd={() => {}}
-  onChangeSize={() => {}}
-  computedValue={computedValues[w.id]}
-  selectedCount={0}
->
+            key={w.id}
+            widget={w}
+            isEditMode={false}
+            isSignageMode={true}
+            zoom={scale}
+            zIndex={idx}
+            isSelected={false}
+            onSelect={() => {}}
+            onSelectToggle={() => {}}
+            onResizeEnd={() => {}}
+            onChangeSize={() => {}}
+            computedValue={computedValues[w.id]}
+            selectedCount={0}
+          >
             {renderWidgetContent(
               w,
               computedValues,
@@ -387,21 +389,22 @@ export default function SignageView({
               handleDiffFilter,
               allWidgetValues,
               setDrilldown,
+              comparisonDiffMap, // ★ 追加: renderWidgetContentへ渡す（必要であれば）
             )}
          </CanvasWidgetComponent>
         ))}
       </div>
       {drilldown && (
         <DrilldownModal
-  open={!!drilldown}
-  onClose={() => setDrilldown(null)}
-  title={drilldown.widgetTitle}
-  data={drilldown.data ?? filteredDataByIndex['001']}
-  filterField={drilldown.field}
-  filterValue={drilldown.value}
-  columns={drilldown.columns}
-  images={drilldown.images}  // ★ 追加
-/>
+          open={!!drilldown}
+          onClose={() => setDrilldown(null)}
+          title={drilldown.widgetTitle}
+          data={drilldown.data ?? filteredDataByIndex['001']}
+          filterField={drilldown.field}
+          filterValue={drilldown.value}
+          columns={drilldown.columns}
+          images={drilldown.images}
+        />
       )}
     </div>
   );
