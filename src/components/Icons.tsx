@@ -25,6 +25,8 @@ import {
   Grid,
   Play,
   Pause,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 // page.tsx で使われている Icons.xxx の形式をそのまま維持する
@@ -54,6 +56,8 @@ export const Icons = {
   Grid,
   Play,
   Pause,
+  ChevronLeft,
+  ChevronRight,
 };
 
 // デフォルトエクスポートも維持（どちらのインポート方法でも使えるように）
