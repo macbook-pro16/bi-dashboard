@@ -2317,32 +2317,31 @@ function DashboardInner() {
               <DndContext id="canvas-dnd" sensors={canvasSensors} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
                 {layout.map((w, idx) => {
                   const content = renderWidgetContent(
-  w,
-  computedValues,
-  computedTargetValues,
-  computedPreviousValues,
-  filteredDataByIndex,
-  widgetFilteredData,
-  statusOptions,
-  handleStatusChange,
-  handleChartCrossFilter,
-  filters,
-  toggleCrossFilter,
-  filters.dateRange,
-  mode,
-  editWidgets,
-  layout,
-  todayDiffByWidget,
-  availableFieldsBySource['001'] || [],
-  handleDiffFilter,
-  allWidgetValues,
-  
-  (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
-  setDrilldown({ field, value, widgetTitle, data, columns, images });
-  },
-  
-  cacheStore  // ★ 追加（カンマ忘れずに）
-);
+                    w,
+                    computedValues,
+                    computedTargetValues,
+                    computedPreviousValues,
+                    filteredDataByIndex,
+                    widgetFilteredData,
+                    statusOptions,
+                    handleStatusChange,
+                    handleChartCrossFilter,
+                    filters,
+                    toggleCrossFilter,
+                    filters.dateRange,
+                    mode,
+                    editWidgets,
+                    layout,
+                    todayDiffByWidget,
+                    availableFieldsBySource['001'] || [],
+                    handleDiffFilter,
+                    allWidgetValues,
+                    (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
+                      setDrilldown({ field, value, widgetTitle, data, columns, images });
+                    },
+                    cacheStore,
+                    comparisonDiffMap // ★ ここに追加（カンマを忘れずに！）
+                  );
                   const flashClass = editModeFlash ? 'ring-1 ring-slate-300 transition-all duration-300' : '';
                   return (
                     <div key={w.id} className={flashClass}>

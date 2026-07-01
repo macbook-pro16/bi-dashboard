@@ -46,6 +46,9 @@ function SlideshowWidgetContent({
   availableFields,
   handleDiffFilter,
   allWidgetValues,
+  onDrilldown,
+  cacheStore,
+  comparisonDiffMap,
 }: {
   widget: Widget;
   mode: 'view' | 'edit' | 'signage';
@@ -67,6 +70,9 @@ function SlideshowWidgetContent({
   availableFields?: string[];
   handleDiffFilter?: (ids: string[], label: string) => void;
   allWidgetValues?: Record<string, number>;
+  onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => void;
+  cacheStore?: Record<string, DBItem[]>;
+  comparisonDiffMap?: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }>;
 }) {
   const dc = widget.dataConfig || ({} as DataConfig);
   const children = widget.children || [];
@@ -130,6 +136,9 @@ function SlideshowWidgetContent({
               availableFields,
               handleDiffFilter,
               allWidgetValues,
+              onDrilldown,
+              cacheStore,
+              comparisonDiffMap
             )}
           </div>
         ))}
@@ -167,6 +176,9 @@ function SlideshowWidgetContent({
         availableFields,
         handleDiffFilter,
         allWidgetValues,
+        onDrilldown,
+        cacheStore,
+        comparisonDiffMap
       )}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-30">
         {children.map((_, idx) => (
@@ -208,6 +220,7 @@ export function renderWidgetContent(
   allWidgetValues?: Record<string, number>,
   onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => void,
   cacheStore?: Record<string, DBItem[]>,
+  comparisonDiffMap?: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }> // ★ 追加
 ) {
   const dc = w.dataConfig || ({} as DataConfig);
   const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
@@ -261,6 +274,9 @@ export function renderWidgetContent(
         availableFields={availableFields}
         handleDiffFilter={handleDiffFilter}
         allWidgetValues={allWidgetValues}
+        onDrilldown={onDrilldown}
+        cacheStore={cacheStore}
+        comparisonDiffMap={comparisonDiffMap}
       />
     );
   }
@@ -350,11 +366,9 @@ export function renderWidgetContent(
         let wpData = filteredDataByIndex['wp_inventory'] || [];
         if (wpData.length === 0 && cacheStore && cacheStore['wp_inventory']) {
           wpData = cacheStore['wp_inventory'];
-          console.warn('⚠️ filterDataByIndex が空のため、cacheStore から wp_inventory を使用します');
         }
 
         let images: string[] = [];
-
         const manageIdCandidates = ['v_manage_id', '管理番号', 'manage_id', 'vehicle_id', 'name'];
         let manageId: string | null = null;
 
@@ -628,6 +642,7 @@ export function renderWidgetContent(
 
       const actual = calcSum(compDc.compareActualItems);
       const target = calcSum(compDc.compareTargetItems);
+      const diffData = comparisonDiffMap?.[w.id]; // ★ バケツリレーで渡されたデータを取得
 
       return (
         <ComparisonWidget
@@ -645,8 +660,8 @@ export function renderWidgetContent(
           target={target}
           actualLabel={compDc.compareActualLabel || '実績'}
           targetLabel={compDc.compareTargetLabel || '目標'}
-          onlyInActual={undefined}  // ★ 型推論エラー回避のため直接 undefined を渡す
-          onlyInTarget={undefined}  // ★ 型推論エラー回避のため直接 undefined を渡す
+          onlyInActual={diffData?.onlyInActual} // ★ 復活
+          onlyInTarget={diffData?.onlyInTarget} // ★ 復活
           diffPopupFields={compDc.compareDiffPopupFields}
         />
       );
@@ -724,6 +739,9 @@ export function renderWidgetContent(
                     availableFields,
                     handleDiffFilter,
                     allWidgetValues,
+                    onDrilldown,
+                    cacheStore,
+                    comparisonDiffMap
                   )}
                 </WidgetErrorBoundary>
               </div>

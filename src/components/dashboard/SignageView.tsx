@@ -388,7 +388,9 @@ export default function SignageView({
               availableFields,
               handleDiffFilter,
               allWidgetValues,
-              setDrilldown
+              setDrilldown,
+              undefined, // cacheStore
+              comparisonDiffMap // ★ ここで正しく comparisonDiffMap を渡す
             )}
          </CanvasWidgetComponent>
         ))}
