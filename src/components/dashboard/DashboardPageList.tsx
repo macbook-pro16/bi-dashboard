@@ -183,7 +183,7 @@ export default function DashboardPageList({
   publishedPages,
   unpublishedPages,
   activePageId,
-  isEditor,
+  canEdit,
   onSelect,
   onAdd,
   onDelete,
@@ -260,7 +260,7 @@ export default function DashboardPageList({
             {idx + 1}
           </button>
         ))}
-        {isEditor && (
+        {canEdit && (
           <button
             onClick={onAdd}
             className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-dashed border-slate-300 transition-colors mt-2"
@@ -281,7 +281,7 @@ export default function DashboardPageList({
           <h3 className="text-xs font-semibold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
             <Icons.Eye className="w-3.5 h-3.5" /> 公開ページ
           </h3>
-          {isEditor && (
+          {canEdit && (
             <button
               onClick={onAdd}
               className="text-slate-400 hover:text-indigo-600 transition-colors p-1"
@@ -324,7 +324,7 @@ export default function DashboardPageList({
       </div>
 
       {/* 非公開ページセクション（編集者のみ表示） */}
-      {isEditor && (
+      {canEdit && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
