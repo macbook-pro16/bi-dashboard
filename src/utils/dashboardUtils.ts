@@ -138,7 +138,11 @@ export function migrateDashboardData(data: DashboardPage[], fromVersion: number)
   if (fromVersion < 3) data = data.map(p => ({ ...p, layout: p.layout.map(w => ({ ...w, targetValue: undefined, previousValue: undefined })) }));
   data = data.map(p => ({ ...p, layout: migrateChartTypes(p.layout) }));
   if (fromVersion < 4) {
-  data = data.map(p => ({ ...p, includeInSignage: p.includeInSignage !== false }));
+  data = data.map(p => ({
+    ...p,
+    includeInSignage: p.includeInSignage !== false,
+    published: p.published !== false, // デフォルト true
+  }));
 }
 // ★ バージョン5: published プロパティを追加（なければ true）
 data = data.map(p => ({ ...p, published: p.published !== false }));
