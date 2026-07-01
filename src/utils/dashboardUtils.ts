@@ -141,7 +141,7 @@ export function migrateDashboardData(data: DashboardPage[], fromVersion: number)
   data = data.map(p => ({
     ...p,
     includeInSignage: p.includeInSignage !== false,
-    published: p.published !== false, // デフォルト true
+    published: p.published !== false, 
   }));
 }
 // ★ バージョン5: published プロパティを追加（なければ true）

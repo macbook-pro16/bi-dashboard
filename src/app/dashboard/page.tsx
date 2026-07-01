@@ -1837,7 +1837,7 @@ function DashboardInner() {
         </div>
 
         <div className={`flex-1 overflow-y-auto ${leftSidebarOpen ? 'p-6' : 'p-3 py-6'} space-y-8 overflow-x-hidden`}>
-                                        <section>
+                                                  <section>
             <DashboardPageList
               dashboards={dashboards}
               activePageId={dashboards[activePageIndex]?.id ?? null}
@@ -1883,6 +1883,7 @@ function DashboardInner() {
               onTogglePublished={(pageId) => {
                 dispatch({ type: 'TOGGLE_PAGE_PUBLISHED', payload: pageId });
               }}
+              onReorder={(reordered) => dispatch({ type: 'REORDER_PAGES', payload: reordered })}
               collapsed={!leftSidebarOpen}
             />
           </section>
