@@ -27,6 +27,7 @@ interface DashboardPageListProps {
   onDelete: (idx: number) => void;
   onRename: (idx: number, name: string) => void;
   onToggleSignage: (idx: number) => void;
+  onTogglePublished: (idx: number) => void; // ★ 追加
   onReorder: (newOrder: DashboardPage[]) => void;
   collapsed?: boolean;
 }
@@ -38,6 +39,7 @@ function SortablePageItem({
   onSelect,
   onDoubleClick,
   onToggleSignage,
+  onTogglePublished,
   onDelete,
   isEditing,
   editName,
@@ -52,6 +54,7 @@ function SortablePageItem({
   onSelect: (idx: number) => void;
   onDoubleClick: (idx: number, name: string) => void;
   onToggleSignage: (idx: number) => void;
+  onTogglePublished: (idx: number) => void;
   onDelete: (idx: number) => void;
   isEditing: boolean;
   editName: string;
@@ -104,6 +107,7 @@ function SortablePageItem({
         </button>
       )}
       <div className="flex items-center gap-1">
+        {/* ドラッグハンドル */}
         <button
           {...attributes}
           {...listeners}
@@ -119,6 +123,8 @@ function SortablePageItem({
             <circle cx="15" cy="19" r="1"/>
           </svg>
         </button>
+
+        {/* サイネージ表示トグル */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -131,6 +137,26 @@ function SortablePageItem({
         >
           <Icons.Monitor className="w-3.5 h-3.5" />
         </button>
+
+        {/* ★ 公開/非公開トグル */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePublished(idx);
+          }}
+          title={page.published !== false ? '公開中' : '非公開'}
+          className={`p-1 rounded transition-colors ${
+            page.published !== false ? 'text-emerald-500' : 'text-slate-300'
+          }`}
+        >
+          {page.published !== false ? (
+            <Icons.Eye className="w-3.5 h-3.5" />
+          ) : (
+            <Icons.EyeOff className="w-3.5 h-3.5" />
+          )}
+        </button>
+
+        {/* 削除ボタン */}
         <button
           onClick={() => {
             if (dashboardsCount > 1) onDelete(idx);
@@ -158,6 +184,7 @@ export default function DashboardPageList({
   onDelete,
   onRename,
   onToggleSignage,
+  onTogglePublished,
   onReorder,
   collapsed = false,
 }: DashboardPageListProps) {
@@ -179,19 +206,19 @@ export default function DashboardPageList({
   };
 
   const handleDragEnd = useCallback(
-  (event: any) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      const oldIndex = dashboards.findIndex((p) => p.id === active.id);
-      const newIndex = dashboards.findIndex((p) => p.id === over.id);
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const reordered = arrayMove(dashboards, oldIndex, newIndex);
-        onReorder(reordered);
+    (event: any) => {
+      const { active, over } = event;
+      if (over && active.id !== over.id) {
+        const oldIndex = dashboards.findIndex((p) => p.id === active.id);
+        const newIndex = dashboards.findIndex((p) => p.id === over.id);
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const reordered = arrayMove(dashboards, oldIndex, newIndex);
+          onReorder(reordered);
+        }
       }
-    }
-  },
-  [dashboards, onReorder]
-);
+    },
+    [dashboards, onReorder]
+  );
 
   if (collapsed) {
     return (
@@ -245,6 +272,7 @@ export default function DashboardPageList({
                 onSelect={onSelect}
                 onDoubleClick={handleDoubleClick}
                 onToggleSignage={onToggleSignage}
+                onTogglePublished={onTogglePublished}
                 onDelete={onDelete}
                 isEditing={editingIdx === idx}
                 editName={editName}

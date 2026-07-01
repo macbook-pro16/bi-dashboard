@@ -112,6 +112,7 @@ type DashboardAction =
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'TOGGLE_PAGE_SIGNAGE', payload: number }
+  | { type: 'TOGGLE_PAGE_PUBLISHED', payload: number }
   | { type: 'REORDER_PAGES', payload: DashboardPage[] };
 
 interface PageState {
@@ -183,7 +184,14 @@ function dashboardReducer(
           i === action.payload ? { ...p, includeInSignage: p.includeInSignage === false ? true : false } : p
         ),
       };
-    case 'REORDER_PAGES':
+    case 'TOGGLE_PAGE_PUBLISHED':
+  return {
+    ...state,
+    dashboards: state.dashboards.map((p, i) =>
+      i === action.payload ? { ...p, published: p.published === false ? true : false } : p
+    ),
+  };
+      case 'REORDER_PAGES':
       return { ...state, dashboards: action.payload };
     default: return state;
   }
@@ -311,6 +319,19 @@ function DashboardInner() {
     future: [],
   });
   const { dashboards, activePageIndex } = state;
+
+    // ユーザー権限に応じて表示するページをフィルター（viewer の場合は非公開を隠す）
+  const visibleDashboards = userRole === 'viewer'
+    ? dashboards.filter(p => p.published !== false)
+    : dashboards;
+
+  // visibleDashboards 内でのアクティブページのインデックスを計算
+  const activeInVisible = userRole === 'viewer'
+    ? (() => {
+        const idx = visibleDashboards.findIndex(p => p.id === dashboards[activePageIndex]?.id);
+        return idx >= 0 ? idx : 0;
+      })()
+    : activePageIndex;
 
   const layout = dashboards[activePageIndex]?.layout ?? [];
   const annotations = dashboards[activePageIndex]?.annotations ?? [];
@@ -1829,28 +1850,48 @@ function DashboardInner() {
         </div>
 
         <div className={`flex-1 overflow-y-auto ${leftSidebarOpen ? 'p-6' : 'p-3 py-6'} space-y-8 overflow-x-hidden`}>
-          <section>
+                    <section>
             <DashboardPageList
-              dashboards={dashboards}
-              activeIndex={activePageIndex}
-              onSelect={(i)=>dispatch({type:'SET_ACTIVE_PAGE',payload:i})}
+              dashboards={visibleDashboards}
+              activeIndex={activeInVisible}
+              onSelect={(i)=>{
+                // visibleDashboards[i] の id を元に、dashboards 全体のインデックスを取得
+                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
+                if (realIndex >= 0) dispatch({type:'SET_ACTIVE_PAGE',payload:realIndex});
+              }}
               onAdd={()=>{
-                if(mode==='edit') dispatch({type:'ADD_PAGE',payload:{id:`page_${Date.now()}`,name:`ページ ${dashboards.length+1}`,layout:[],annotations:[],includeInSignage:true}});
+                if(mode==='edit') dispatch({type:'ADD_PAGE',payload:{id:`page_${Date.now()}`,name:`ページ ${dashboards.length+1}`,layout:[],annotations:[],includeInSignage:true, published: true}});
               }}
               onDelete={(i)=>{
+                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
+                if (realIndex < 0) return;
                 setConfirmState({
-                  message: `ページ「${dashboards[i]?.name || `ページ ${i+1}`}」を完全に削除しますか？この操作は元に戻せません。`,
+                  message: `ページ「${dashboards[realIndex]?.name || `ページ ${realIndex+1}`}」を完全に削除しますか？この操作は元に戻せません。`,
                   onConfirm: () => {
-                    dispatch({type:'DELETE_PAGE',payload:i});
+                    dispatch({type:'DELETE_PAGE',payload:realIndex});
                     setConfirmState(null);
                   }
                 });
               }}
               onRename={(i,n)=>{
-                if(mode==='edit') dispatch({type:'RENAME_PAGE',payload:{index:i,name:n}});
+                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
+                if (realIndex >= 0 && mode==='edit') dispatch({type:'RENAME_PAGE',payload:{index:realIndex,name:n}});
               }}
-              onToggleSignage={toggleSignageInclusion}
-              onReorder={(newOrder) => dispatch({ type: 'REORDER_PAGES', payload: newOrder })}
+              onToggleSignage={(i)=>{
+                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
+                if (realIndex >= 0) toggleSignageInclusion(realIndex);
+              }}
+              onTogglePublished={(i)=>{
+                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
+                if (realIndex >= 0) dispatch({type:'TOGGLE_PAGE_PUBLISHED',payload:realIndex});
+              }}
+              onReorder={(newOrder) => {
+                // newOrder は visibleDashboards の並べ替え配列（元の要素）
+                const publishedPages = newOrder;
+                const unpublishedPages = dashboards.filter(p => p.published === false);
+                const newFullOrder = [...publishedPages, ...unpublishedPages];
+                dispatch({ type: 'REORDER_PAGES', payload: newFullOrder });
+              }}
               collapsed={!leftSidebarOpen}
             />
           </section>

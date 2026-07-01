@@ -273,4 +273,5 @@ export type CacheStore = Record<string, DBItem[]>;
 export interface DashboardPage {
   id: string; name: string; layout: Widget[]; annotations?: Annotation[];
   includeInSignage?: boolean;
+  published?: boolean; // ★ 追加（デフォルトは true 扱い）
 }
