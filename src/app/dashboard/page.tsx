@@ -112,7 +112,7 @@ type DashboardAction =
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'TOGGLE_PAGE_SIGNAGE', payload: number }
-  | { type: 'TOGGLE_PAGE_PUBLISHED', payload: number }
+  | { type: 'TOGGLE_PAGE_PUBLISHED', payload: string }
   | { type: 'REORDER_PAGES', payload: DashboardPage[] };
 
 interface PageState {
@@ -184,13 +184,13 @@ function dashboardReducer(
           i === action.payload ? { ...p, includeInSignage: p.includeInSignage === false ? true : false } : p
         ),
       };
-    case 'TOGGLE_PAGE_PUBLISHED':
-  return {
-    ...state,
-    dashboards: state.dashboards.map((p, i) =>
-      i === action.payload ? { ...p, published: p.published === false ? true : false } : p
-    ),
-  };
+        case 'TOGGLE_PAGE_PUBLISHED':
+      return {
+        ...state,
+        dashboards: state.dashboards.map((p) =>
+          p.id === action.payload ? { ...p, published: p.published === false ? true : false } : p
+        ),
+      };
       case 'REORDER_PAGES':
       return { ...state, dashboards: action.payload };
     default: return state;
@@ -236,6 +236,7 @@ function DashboardInner() {
   const userRole = session?.user?.role || 'viewer';
   const canEdit = userRole === 'admin' || userRole === 'editor';
   const isAdmin = userRole === 'admin';
+  const isEditor = canEdit; // ← この行を追加する
 
   const router = useRouter();
   const { filters, updateDateRange, applyFilters, toggleCrossFilter, setCrossFilterValues } = useFilter();
@@ -318,7 +319,17 @@ function DashboardInner() {
     history: [],
     future: [],
   });
-  const { dashboards, activePageIndex } = state;
+    const { dashboards, activePageIndex } = state;
+
+  // 公開ページと非公開ページに分割
+  const publishedPages = dashboards.filter(p => p.published !== false);
+  const unpublishedPages = dashboards.filter(p => p.published === false);
+
+  // アクティブページID
+  const activePageId = dashboards[activePageIndex]?.id ?? null;
+
+  // 編集権限
+  const isEditor = userRole === 'admin' || userRole === 'editor';
 
     // ユーザー権限に応じて表示するページをフィルター（viewer の場合は非公開を隠す）
   const visibleDashboards = userRole === 'viewer'
@@ -1598,6 +1609,10 @@ function DashboardInner() {
     dispatch({ type: 'TOGGLE_PAGE_SIGNAGE', payload: idx });
   }, []);
 
+    const togglePublished = useCallback((pageId: string) => {
+    dispatch({ type: 'TOGGLE_PAGE_PUBLISHED', payload: pageId });
+  }, [dispatch]);
+
   const handleSignageNextPage = useCallback(() => {
     const eligible = dashboards
       .map((p, i) => ({ page: p, index: i }))
@@ -1850,46 +1865,57 @@ function DashboardInner() {
         </div>
 
         <div className={`flex-1 overflow-y-auto ${leftSidebarOpen ? 'p-6' : 'p-3 py-6'} space-y-8 overflow-x-hidden`}>
-                    <section>
+                              <section>
             <DashboardPageList
-              dashboards={visibleDashboards}
-              activeIndex={activeInVisible}
-              onSelect={(i)=>{
-                // visibleDashboards[i] の id を元に、dashboards 全体のインデックスを取得
-                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
-                if (realIndex >= 0) dispatch({type:'SET_ACTIVE_PAGE',payload:realIndex});
+              publishedPages={publishedPages}
+              unpublishedPages={unpublishedPages}
+              activePageId={activePageId}
+              isEditor={isEditor}
+              onSelect={(pageId) => {
+                const realIndex = dashboards.findIndex(p => p.id === pageId);
+                if (realIndex >= 0) dispatch({ type: 'SET_ACTIVE_PAGE', payload: realIndex });
               }}
-              onAdd={()=>{
-                if(mode==='edit') dispatch({type:'ADD_PAGE',payload:{id:`page_${Date.now()}`,name:`ページ ${dashboards.length+1}`,layout:[],annotations:[],includeInSignage:true, published: true}});
+              onAdd={() => {
+                if (mode === 'edit') {
+                  dispatch({
+                    type: 'ADD_PAGE',
+                    payload: {
+                      id: `page_${Date.now()}`,
+                      name: `ページ ${dashboards.length + 1}`,
+                      layout: [],
+                      annotations: [],
+                      includeInSignage: true,
+                      published: true, // デフォルトは公開
+                    },
+                  });
+                }
               }}
-              onDelete={(i)=>{
-                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
+              onDelete={(pageId) => {
+                const realIndex = dashboards.findIndex(p => p.id === pageId);
                 if (realIndex < 0) return;
                 setConfirmState({
-                  message: `ページ「${dashboards[realIndex]?.name || `ページ ${realIndex+1}`}」を完全に削除しますか？この操作は元に戻せません。`,
+                  message: `ページ「${dashboards[realIndex]?.name || `ページ ${realIndex + 1}`}」を完全に削除しますか？この操作は元に戻せません。`,
                   onConfirm: () => {
-                    dispatch({type:'DELETE_PAGE',payload:realIndex});
+                    dispatch({ type: 'DELETE_PAGE', payload: realIndex });
                     setConfirmState(null);
-                  }
+                  },
                 });
               }}
-              onRename={(i,n)=>{
-                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
-                if (realIndex >= 0 && mode==='edit') dispatch({type:'RENAME_PAGE',payload:{index:realIndex,name:n}});
+              onRename={(pageId, name) => {
+                const realIndex = dashboards.findIndex(p => p.id === pageId);
+                if (realIndex >= 0 && mode === 'edit') {
+                  dispatch({ type: 'RENAME_PAGE', payload: { index: realIndex, name } });
+                }
               }}
-              onToggleSignage={(i)=>{
-                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
+              onToggleSignage={(pageId) => {
+                const realIndex = dashboards.findIndex(p => p.id === pageId);
                 if (realIndex >= 0) toggleSignageInclusion(realIndex);
               }}
-              onTogglePublished={(i)=>{
-                const realIndex = dashboards.findIndex(p => p.id === visibleDashboards[i]?.id);
-                if (realIndex >= 0) dispatch({type:'TOGGLE_PAGE_PUBLISHED',payload:realIndex});
+              onTogglePublished={(pageId) => {
+                togglePublished(pageId);
               }}
-              onReorder={(newOrder) => {
-                // newOrder は visibleDashboards の並べ替え配列（元の要素）
-                const publishedPages = newOrder;
-                const unpublishedPages = dashboards.filter(p => p.published === false);
-                const newFullOrder = [...publishedPages, ...unpublishedPages];
+              onReorder={(reorderedPublished, reorderedUnpublished) => {
+                const newFullOrder = [...reorderedPublished, ...reorderedUnpublished];
                 dispatch({ type: 'REORDER_PAGES', payload: newFullOrder });
               }}
               collapsed={!leftSidebarOpen}
@@ -1980,18 +2006,19 @@ function DashboardInner() {
                 <div className="border-b border-slate-100"/>
               </>
             )}
-            <section>
-              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Icons.FileText className="w-4 h-4"/> フィルター</h3>
-              <FilterPanel statusOptions={statusOptions} statusCounts={statusCounts}/>
-            </section>
-            <div className="border-b border-slate-100"/>
-            <section className="space-y-4">
+                        <section className="space-y-4">
               <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Icons.Settings className="w-4 h-4"/> システム設定</h3>
               <div>
                 <label className="text-xs font-medium text-slate-500 mb-2 block">自動更新間隔</label>
-                <select value={refreshInterval} onChange={e=>setRefreshInterval(Number(e.target.value))} className="w-full text-sm border border-slate-200 px-3 py-2 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none shadow-sm cursor-pointer">
-                  <option value={60000}>1分</option><option value={180000}>3分</option><option value={300000}>5分</option><option value={600000}>10分</option><option value={0}>手動のみ</option>
-                </select>
+                {isEditor ? (
+                  <select value={refreshInterval} onChange={e=>setRefreshInterval(Number(e.target.value))} className="w-full text-sm border border-slate-200 px-3 py-2 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none shadow-sm cursor-pointer">
+                    <option value={60000}>1分</option><option value={180000}>3分</option><option value={300000}>5分</option><option value={600000}>10分</option><option value={0}>手動のみ</option>
+                  </select>
+                ) : (
+                  <p className="text-sm text-slate-400 bg-slate-100 rounded-xl px-3 py-2">
+                    {refreshInterval === 0 ? '手動のみ' : `${refreshInterval / 60000}分`}（編集権限が必要です）
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500 mb-2 block">サイネージ切り替え間隔</label>
@@ -2010,12 +2037,22 @@ function DashboardInner() {
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500 mb-2 block">アートボード背景色</label>
-                <input
-                  type="color"
-                  value={canvasBgColor}
-                  onChange={(e) => setCanvasBgColor(e.target.value)}
-                  className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
-                />
+                {isEditor ? (
+                  <input
+                    type="color"
+                    value={canvasBgColor}
+                    onChange={(e) => setCanvasBgColor(e.target.value)}
+                    className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-8 h-8 rounded border border-slate-200"
+                      style={{ backgroundColor: canvasBgColor }}
+                    />
+                    <span className="text-sm text-slate-400">編集権限が必要です</span>
+                  </div>
+                )}
               </div>
               <button onClick={() => toggleMode('signage')} className="w-full py-3 bg-slate-800 text-white text-sm font-semibold rounded-xl hover:bg-slate-900 shadow-md transition-all flex justify-center items-center gap-2">
                 <Icons.Monitor className="w-4 h-4" /> サイネージモードを開始
