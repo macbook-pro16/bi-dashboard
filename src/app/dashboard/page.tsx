@@ -1292,10 +1292,9 @@ function DashboardInner() {
         const actualMap = new Map<string, DBItem>();
         actualItems.forEach(it => {
           if (it.operator === 'plus') {
-            // ★ 修正：ページをまたいだ参照でも差分データを取得できるよう allWidgetFilteredData を使用
             const items = allWidgetFilteredData[it.widgetId] || [];
+            console.log('[比較Widget診断] 実績側', it.widgetId, '→', items.length, '件', items);
             items.forEach(item => {
-              // ★ 修正：actualKeyField を実際に使う（従来は item.id 固定で無視されていた）
               const key = actualKeyField === 'id' ? item.id : extractStringValue(item[actualKeyField]);
               if (key) actualMap.set(key, item);
             });
