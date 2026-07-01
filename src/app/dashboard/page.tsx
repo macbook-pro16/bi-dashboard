@@ -328,9 +328,6 @@ function DashboardInner() {
   // アクティブページID
   const activePageId = dashboards[activePageIndex]?.id ?? null;
 
-  // 編集権限
-  const isEditor = userRole === 'admin' || userRole === 'editor';
-
     // ユーザー権限に応じて表示するページをフィルター（viewer の場合は非公開を隠す）
   const visibleDashboards = userRole === 'viewer'
     ? dashboards.filter(p => p.published !== false)
