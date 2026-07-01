@@ -1880,7 +1880,7 @@ function DashboardInner() {
                 const realIndex = dashboards.findIndex(p => p.id === pageId);
                 if (realIndex >= 0) toggleSignageInclusion(realIndex);
               }}
-              {/* ★ onTogglePublished は廃止。公開状態はエリア間ドラッグで onReorder 経由で更新される */}
+              // ★ onTogglePublished は廃止。公開状態はエリア間ドラッグで onReorder 経由で更新される
               onReorder={(reordered) => dispatch({ type: 'REORDER_PAGES', payload: reordered })}
               collapsed={!leftSidebarOpen}
             />
