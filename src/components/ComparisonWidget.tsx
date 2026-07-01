@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import Popup from './dashboard/Popup';
+import { createPortal } from 'react-dom';
 
 interface DBItemLike {
   id: string;
@@ -65,6 +65,69 @@ const AlertIcon = () => (
     <line x1="12" y1="16" x2="12.01" y2="16"></line>
   </svg>
 );
+
+// KpiWidget.tsxから移植したPopupコンポーネント
+function Popup({
+  children,
+  anchorRect,
+  onClose,
+  onMouseEnterPopup,
+  onMouseLeavePopup,
+}: {
+  children: React.ReactNode;
+  anchorRect: DOMRect | null;
+  onClose: () => void;
+  onMouseEnterPopup: () => void;
+  onMouseLeavePopup: () => void;
+}) {
+  if (!anchorRect) return null;
+
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!popupRef.current) return;
+    const rect = popupRef.current.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+
+    let top = anchorRect.top + anchorRect.height + 8;
+    let left = anchorRect.left;
+
+    if (left + rect.width > viewportW - 10) {
+      left = viewportW - rect.width - 10;
+    }
+    if (top + rect.height > viewportH - 10) {
+      top = anchorRect.top - rect.height - 8;
+    }
+    if (left < 0) left = 0;
+    if (top < 0) top = 0;
+
+    setPos({ top, left });
+  }, [anchorRect, children]);
+
+  return createPortal(
+    <div
+      ref={popupRef}
+      className="fixed z-[9999] bg-white border border-slate-100 rounded-2xl shadow-2xl p-5 animate-in fade-in zoom-in-95 duration-200"
+      style={{
+        top: pos.top,
+        left: pos.left,
+        boxShadow: '0 20px 40px -8px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06)',
+        minWidth: '380px',
+        maxWidth: '480px',
+        maxHeight: '380px',
+        overflowY: 'auto',
+        pointerEvents: 'auto',
+      }}
+      onMouseEnter={onMouseEnterPopup}
+      onMouseLeave={onMouseLeavePopup}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
 
 export default function ComparisonWidget({
   label,
