@@ -681,15 +681,27 @@ function DashboardInner() {
 
   const dateFieldsBySource = useMemo(()=>{ const m:Record<string,string[]>={}; for(const idx of Object.keys(cacheStore)){ const fields = availableFieldsBySource[idx]||[]; const data = cacheStore[idx]||[]; m[idx] = fields.filter(f => data.some(item => /^\d{4}-\d{2}-\d{2}/.test(extractStringValue(item[f])))); } return m; },[cacheStore,availableFieldsBySource]);
 
+  // ★ 新規追加：全ウィジェットのデータを保管する（比較ウィジェットでの自動計算に使用）
   const widgetFilteredData = useMemo(() => {
     const map: Record<string, DBItem[]> = {};
     layout.forEach(w => {
       const dc = w.dataConfig as DataConfig | undefined;
-      if (!dc || w.type !== 'table-details') return;
+      if (!dc) return;
+
       const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
       const allSrc = cacheStore[srcIdx] || [];
+
+      if (w.type === 'flow-node') {
+        const field = dc.filterField ?? w.targetField ?? 'status';
+        const value = dc.filterValue ?? w.statusTarget ?? '';
+        map[w.id] = allSrc.filter(item => extractStringValue(item[field]) === value);
+        return;
+      }
+
+      if (!['table-details', 'scorecard', 'kpi-total', 'kpi-today', 'kpi-filtered', 'gauge'].includes(w.type)) return;
+
       const dateField = resolveDateFilterField(w);
-      const dateFilter = dc.dateFilter ?? 'range';
+      const dateFilter = dc.dateFilter ?? (w.type === 'kpi-today' ? 'today' : 'range');
       const { start, end } = filters.dateRange;
 
       let baseData = allSrc;
@@ -701,12 +713,15 @@ function DashboardInner() {
         });
       } else if (dateFilter === 'today') {
         baseData = allSrc.filter(item => item[dateField] === todayStr);
+      } else if (dateFilter === 'none') {
+        baseData = allSrc;
       }
 
+      const crossFiltered = applyGlobalNonDateFilters(baseData);
       const conditions = dc.filterConditions || [];
       const logic = dc.conditionLogic || 'and';
 
-      map[w.id] = baseData.filter(item => {
+      map[w.id] = crossFiltered.filter(item => {
         const passCross = evaluateConditions(item, conditions, logic);
         const passIndicator = (() => {
           if (!dc.field) return true;
@@ -1175,7 +1190,6 @@ function DashboardInner() {
   }, [cacheStore, layout, filters, evaluateConditions, applyGlobalNonDateFilters]);
 
   // ★ 比較ウィジェット用：実績側/目標側の生データをキーで突き合わせて差分を抽出
-  // ★ 修正点: 期間フィルターを正しく適用し、片方だけの設定でも動作するように改善
   const comparisonDiffMap = useMemo(() => {
     const result: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }> = {};
     const { start, end } = filters.dateRange;
@@ -1187,11 +1201,44 @@ function DashboardInner() {
       const actualSrcIndex = dc?.compareActualSourceIndex;
       const targetSrcIndex = dc?.compareTargetSourceIndex;
 
-      // どちらも未設定の場合は処理をスキップ（計算不可）
-      if (!actualSrcIndex && !targetSrcIndex) return;
+      // ★ 新機能: 照合データソースが「未設定」の場合は、構成要素のウィジェットからデータを自動結合する
+      if (!actualSrcIndex || !targetSrcIndex) {
+        const actualItems = dc?.compareActualItems || [];
+        const targetItems = dc?.compareTargetItems || [];
 
-      const actualSrc = actualSrcIndex ? (cacheStore[actualSrcIndex] || []) : [];
-      const targetSrc = targetSrcIndex ? (cacheStore[targetSrcIndex] || []) : [];
+        const actualMap = new Map<string, DBItem>();
+        actualItems.forEach(it => {
+          if (it.operator === 'plus') {
+            const items = widgetFilteredData[it.widgetId] || [];
+            items.forEach(item => { if (item.id) actualMap.set(item.id, item); });
+          }
+        });
+
+        const targetMap = new Map<string, DBItem>();
+        targetItems.forEach(it => {
+          if (it.operator === 'plus') {
+            const items = widgetFilteredData[it.widgetId] || [];
+            items.forEach(item => { if (item.id) targetMap.set(item.id, item); });
+          }
+        });
+
+        const onlyInActual: DBItem[] = [];
+        actualMap.forEach((item, id) => {
+          if (!targetMap.has(id)) onlyInActual.push(item);
+        });
+
+        const onlyInTarget: DBItem[] = [];
+        targetMap.forEach((item, id) => {
+          if (!actualMap.has(id)) onlyInTarget.push(item);
+        });
+
+        result[w.id] = { onlyInActual, onlyInTarget };
+        return;
+      }
+
+      // 以下は従来の手動設定がされている場合のロジック
+      const actualSrc = cacheStore[actualSrcIndex] || [];
+      const targetSrc = cacheStore[targetSrcIndex] || [];
 
       // ★ 照合設定には日付設定がないため、基本の 'date' フィールドでダッシュボードの期間を適用
       const dateField = resolveDateFilterField(w);
@@ -1252,7 +1299,7 @@ function DashboardInner() {
     });
 
     return result;
-  }, [cacheStore, layout, filters.dateRange, evaluateConditions, applyGlobalNonDateFilters]);
+  }, [cacheStore, layout, filters.dateRange, evaluateConditions, applyGlobalNonDateFilters, widgetFilteredData]);
 
   const handleSelect=useCallback((id:string)=>{setSelectedIds([id]);setSelectedAnnotationIds([]);},[]);
   const handleSelectToggle=useCallback((id:string)=>setSelectedIds(p=>p.includes(id)?p.filter(i=>i!==id):[...p,id]),[]);
@@ -1895,7 +1942,6 @@ function DashboardInner() {
     computedTargetValues={computedTargetValues}
     computedPreviousValues={computedPreviousValues}
     filteredDataByIndex={filteredDataByIndex}
-    comparisonDiffMap={comparisonDiffMap}
     statusOptions={statusOptions}
     onExit={() => setMode('view')}
     handleStatusChange={handleStatusChange}
@@ -1913,6 +1959,7 @@ function DashboardInner() {
     setDrilldown={setDrilldown}
     signageInterval={signageInterval}
     todayDiffMap={todayDiffByWidget}
+    comparisonDiffMap={comparisonDiffMap}
     availableFields={availableFieldsBySource['001'] || []}
     handleDiffFilter={handleDiffFilter}
     allWidgetValues={allWidgetValues}
