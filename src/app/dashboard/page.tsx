@@ -2639,8 +2639,160 @@ function DashboardInner() {
                     activeEditorWidget.type.startsWith('kpi-') ||
                     activeEditorWidget.type === 'group' ||
                     activeEditorWidget.type === 'comparison'
-                  ) ? (
+                                    ) ? (
                     <>
+                      {/* ★★★ 追加：基本デザイン（単一ウィジェット選択時） ★★★ */}
+                      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-4 mb-4">
+                        <h4 className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">🎨 基本デザイン</h4>
+                        
+                        {/* 形状 */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">形状</label>
+                          <div className="flex gap-2">
+                            {(['rectangle', 'rounded', 'pill', 'circle'] as ShapeType[]).map(s => (
+                              <button
+                                key={s}
+                                onClick={() => {
+                                  let newW = activeEditorWidget.w;
+                                  let newH = activeEditorWidget.h;
+                                  if (s === 'circle') {
+                                    const max = Math.max(activeEditorWidget.w, activeEditorWidget.h);
+                                    newW = max; newH = max;
+                                  }
+                                  updateSelectedDesign('_multi', { shape: s, w: newW, h: newH });
+                                }}
+                                className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                  activeEditorWidget.shape === s ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'bg-white border-slate-200 text-slate-600'
+                                }`}
+                              >
+                                {s === 'rectangle' ? '四角' : s === 'rounded' ? '角丸' : s === 'pill' ? 'ピル' : '真円'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 背景色・文字色・枠線色 */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-0.5">背景</label>
+                            <input
+                              type="color"
+                              value={activeEditorWidget.bgColor || '#ffffff'}
+                              onChange={e => updateSelectedDesign('bgColor', e.target.value)}
+                              className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-0.5">文字</label>
+                            <input
+                              type="color"
+                              value={activeEditorWidget.textColor || '#0f172a'}
+                              onChange={e => updateSelectedDesign('textColor', e.target.value)}
+                              className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400 block mb-0.5">枠線</label>
+                            <input
+                              type="color"
+                              value={activeEditorWidget.borderColor || '#e2e8f0'}
+                              onChange={e => updateSelectedDesign('borderColor', e.target.value)}
+                              className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer"
+                            />
+                          </div>
+                        </div>
+
+                        {/* 枠線の太さ */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">枠線の太さ</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="range"
+                              min="0"
+                              max="20"
+                              value={activeEditorWidget.borderWidth ?? 1}
+                              onChange={e => updateSelectedDesign('borderWidth', parseInt(e.target.value))}
+                              className="flex-1 accent-indigo-500"
+                            />
+                            <span className="text-xs font-bold bg-slate-100 px-2 py-0.5 rounded">{activeEditorWidget.borderWidth ?? 1}px</span>
+                          </div>
+                        </div>
+
+                        {/* 文字サイズ */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">文字サイズ</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="range"
+                              min="8"
+                              max="120"
+                              value={activeEditorWidget.fontSize ?? 48}
+                              onChange={e => updateSelectedDesign('fontSize', parseInt(e.target.value))}
+                              className="flex-1 accent-indigo-500"
+                            />
+                            <span className="text-xs font-bold bg-slate-100 px-2 py-0.5 rounded">{activeEditorWidget.fontSize ?? 48}px</span>
+                          </div>
+                        </div>
+
+                        {/* フォントファミリー */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">フォント</label>
+                          <div className="flex gap-2">
+                            {(['sans', 'serif', 'mono'] as const).map(f => (
+                              <button
+                                key={f}
+                                onClick={() => updateSelectedDesign('fontFamily', f)}
+                                className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                                  activeEditorWidget.fontFamily === f ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'bg-white border-slate-200 text-slate-600'
+                                }`}
+                              >
+                                {f === 'sans' ? 'ゴシック' : f === 'serif' ? '明朝' : '等幅'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 背景透明度 */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">背景透明度</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.01"
+                              value={activeEditorWidget.bgAlpha ?? 1}
+                              onChange={e => updateSelectedDesign('bgAlpha', parseFloat(e.target.value))}
+                              className="flex-1 accent-indigo-500"
+                            />
+                            <span className="text-xs font-bold bg-slate-100 px-2 py-0.5 rounded">{(activeEditorWidget.bgAlpha ?? 1).toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        {/* その他トグル */}
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center gap-2 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={activeEditorWidget.hasShadow ?? false}
+                              onChange={e => updateSelectedDesign('hasShadow', e.target.checked)}
+                              className="w-4 h-4 rounded text-indigo-600"
+                            />
+                            <span className="text-slate-700">影を表示</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={activeEditorWidget.showTitle !== false}
+                              onChange={e => updateSelectedDesign('showTitle', e.target.checked)}
+                              className="w-4 h-4 rounded text-indigo-600"
+                            />
+                            <span className="text-slate-700">タイトルを表示</span>
+                          </label>
+                        </div>
+                      </div>
+                      {/* ★★★ 追加ここまで ★★★ */}
+
                       <details open className="bg-white rounded-xl border border-slate-200 shadow-sm">
                         <summary className="text-xs font-bold text-slate-500 uppercase tracking-widest p-3 cursor-pointer flex items-center justify-between">
                           <span className="flex items-center gap-2"><Icons.FileText className="w-4 h-4"/> データ設定</span>
