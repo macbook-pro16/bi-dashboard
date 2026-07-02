@@ -2734,24 +2734,6 @@ function DashboardInner() {
                           </div>
                         </div>
 
-                        {/* フォントファミリー */}
-                        <div>
-                          <label className="text-xs font-medium text-slate-500 mb-1 block">フォント</label>
-                          <div className="flex gap-2">
-                            {(['sans', 'serif', 'mono'] as const).map(f => (
-                              <button
-                                key={f}
-                                onClick={() => updateSelectedDesign('fontFamily', f)}
-                                className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                                  activeEditorWidget.fontFamily === f ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'bg-white border-slate-200 text-slate-600'
-                                }`}
-                              >
-                                {f === 'sans' ? 'ゴシック' : f === 'serif' ? '明朝' : '等幅'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
                         {/* 背景透明度 */}
                         <div>
                           <label className="text-xs font-medium text-slate-500 mb-1 block">背景透明度</label>
@@ -4685,7 +4667,7 @@ function DashboardInner() {
           const w = findWidgetById(layout, ctxMenu.id);
           if (w) {
             // ★ スタイルのみコピー（dataConfig のデータ取得設定は除外）
-            const styleData = {
+                        const styleData = {
               shape: w.shape,
               w: w.w,
               h: w.h,
@@ -4739,6 +4721,15 @@ function DashboardInner() {
               removedY: w.dataConfig?.removedY,
               todayPopupFields: w.dataConfig?.todayPopupFields,
               drilldownFields: w.dataConfig?.drilldownFields,
+              // ★ 追加：タイトル関連
+              titleFontSize: w.dataConfig?.titleFontSize,
+              titleColor: w.dataConfig?.titleColor,
+              titleAlign: w.dataConfig?.titleAlign,
+              titleX: w.dataConfig?.titleX,
+              titleY: w.dataConfig?.titleY,
+              // ★ 追加：メイン数値位置
+              valueX: w.dataConfig?.valueX,
+              valueY: w.dataConfig?.valueY,
             };
             setStyleClipboard(styleData);
             addToastRef.current('スタイルをコピーしました（データソースは除く）', 'success');
@@ -4749,7 +4740,7 @@ function DashboardInner() {
         label: '📋 スタイルを貼り付け',
         action: () => {
           if (styleClipboard) {
-            const {
+                        const {
               shape,
               w: width,
               h: height,
@@ -4774,6 +4765,13 @@ function DashboardInner() {
               removedY,
               todayPopupFields,
               drilldownFields,
+              titleFontSize,
+              titleColor,
+              titleAlign,
+              titleX,
+              titleY,
+              valueX,
+              valueY,
             } = styleClipboard;
 
             editWidgets(
@@ -4888,7 +4886,7 @@ function DashboardInner() {
                   };
                 }
 
-                // dataConfig はスタイル関連のみ更新（データ取得設定は変更しない）
+                                // dataConfig はスタイル関連のみ更新（データ取得設定は変更しない）
                 if (w.dataConfig) {
                   const ndc = { ...w.dataConfig };
                   if (showTodayValue !== undefined) ndc.showTodayValue = showTodayValue;
@@ -4903,6 +4901,14 @@ function DashboardInner() {
                   if (removedY !== undefined) ndc.removedY = removedY;
                   if (todayPopupFields !== undefined) ndc.todayPopupFields = todayPopupFields;
                   if (drilldownFields !== undefined) ndc.drilldownFields = drilldownFields;
+                  // ★ 追加
+                  if (titleFontSize !== undefined) ndc.titleFontSize = titleFontSize;
+                  if (titleColor !== undefined) ndc.titleColor = titleColor;
+                  if (titleAlign !== undefined) ndc.titleAlign = titleAlign;
+                  if (titleX !== undefined) ndc.titleX = titleX;
+                  if (titleY !== undefined) ndc.titleY = titleY;
+                  if (valueX !== undefined) ndc.valueX = valueX;
+                  if (valueY !== undefined) ndc.valueY = valueY;
                   updated.dataConfig = ndc;
                 }
 
