@@ -653,7 +653,23 @@ function DashboardInner() {
     addToastRef.current(`${label} (${ids.length}件) でフィルターしました`, 'info');
   }, [setCrossFilterValues]);
 
-  const availableFieldsBySource = useMemo(()=>{ const m:Record<string,string[]>={}; for(const idx of Object.keys(cacheStore)) m[idx]=cacheStore[idx]?.length?Object.keys(cacheStore[idx][0]).filter(k=>k!=='id'):[]; return m; },[cacheStore]);
+    const availableFieldsBySource = useMemo(() => {
+    const m: Record<string, string[]> = {};
+    for (const idx of Object.keys(cacheStore)) {
+      const data = cacheStore[idx];
+      if (data && data.length > 0) {
+        const keySet = new Set<string>();
+        const limit = Math.min(data.length, 50);
+        for (let i = 0; i < limit; i++) {
+          Object.keys(data[i]).forEach(k => keySet.add(k));
+        }
+        m[idx] = Array.from(keySet).filter(k => k !== 'id');
+      } else {
+        m[idx] = [];
+      }
+    }
+    return m;
+  }, [cacheStore]);
   const numericFieldsBySource = useMemo(()=>{ const m:Record<string,string[]>={}; for(const idx of Object.keys(cacheStore)) m[idx]=cacheStore[idx]?.length?Object.keys(cacheStore[idx][0]).filter(k=>typeof cacheStore[idx][0][k]==='number'):[]; return m; },[cacheStore]);
 
   const relationFieldsBySource = useMemo(() => {
