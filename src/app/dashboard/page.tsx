@@ -2815,7 +2815,332 @@ function DashboardInner() {
   sourceIndex={srcIdx}
   onUpdate={(newConds) => updateSelectedDesign('dataConfig', { ...dc, filterConditions: newConds })}
   maxConditions={10}
-/>
+                  />
+
+                  {/* ★★★ 追加：スコアカード スタイル設定 ★★★ */}
+                  {activeEditorWidget.type === 'scorecard' && (() => {
+                    const dc = activeEditorWidget.dataConfig || ({} as DataConfig);
+                    const availableFields = availableFieldsBySource[srcIdx] || [];
+
+                    const toggleArrayField = (fieldKey: keyof DataConfig, value: string) => {
+                      const current = (dc[fieldKey] as string[] | undefined) || [];
+                      const next = current.includes(value)
+                        ? current.filter(v => v !== value)
+                        : [...current, value];
+                      updateSelectedDesign('dataConfig', { ...dc, [fieldKey]: next.length ? next : undefined });
+                    };
+
+                    return (
+                      <div className="space-y-4 pt-4 border-t border-slate-100">
+                        <h4 className="text-xs font-bold text-slate-700">🎨 スコアカード スタイル設定</h4>
+
+                        {/* ---- タイトル ---- */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">タイトル文字サイズ</label>
+                          <div className="flex items-center gap-2">
+                            <input type="range" min="8" max="48" value={dc.titleFontSize ?? 14}
+                              onChange={e => updateSelectedDesign('dataConfig', { ...dc, titleFontSize: Number(e.target.value) })}
+                              className="flex-1 accent-indigo-500" />
+                            <span className="text-xs font-bold bg-slate-100 px-2 py-0.5 rounded">{dc.titleFontSize ?? 14}px</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">タイトル色</label>
+                          <input type="color" value={dc.titleColor || '#64748b'}
+                            onChange={e => updateSelectedDesign('dataConfig', { ...dc, titleColor: e.target.value })}
+                            className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">タイトル配置</label>
+                          <div className="flex gap-2">
+                            {(['left', 'center', 'right'] as const).map(a => (
+                              <button key={a}
+                                onClick={() => updateSelectedDesign('dataConfig', { ...dc, titleAlign: a })}
+                                className={`flex-1 py-1.5 text-xs rounded-lg border transition-all ${(dc.titleAlign || 'center') === a ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'bg-white border-slate-200 text-slate-600'}`}
+                              >{a === 'left' ? '左' : a === 'center' ? '中央' : '右'}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">タイトル X</label>
+                            <input type="number" value={dc.titleX ?? 0}
+                              onChange={e => updateSelectedDesign('dataConfig', { ...dc, titleX: Number(e.target.value) })}
+                              className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">タイトル Y</label>
+                            <input type="number" value={dc.titleY ?? 0}
+                              onChange={e => updateSelectedDesign('dataConfig', { ...dc, titleY: Number(e.target.value) })}
+                              className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                          </div>
+                        </div>
+
+                        {/* ---- メイン数値位置 ---- */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">数値 X</label>
+                            <input type="number" value={dc.valueX ?? 0}
+                              onChange={e => updateSelectedDesign('dataConfig', { ...dc, valueX: Number(e.target.value) })}
+                              className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">数値 Y</label>
+                            <input type="number" value={dc.valueY ?? 0}
+                              onChange={e => updateSelectedDesign('dataConfig', { ...dc, valueY: Number(e.target.value) })}
+                              className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                          </div>
+                        </div>
+
+                        {/* ---- 今日の実績 ---- */}
+                        <div className="border-t border-slate-100 pt-3">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox"
+                              checked={dc.showTodayValue || false}
+                              onChange={e => updateSelectedDesign('dataConfig', { ...dc, showTodayValue: e.target.checked })}
+                              className="w-4 h-4 rounded text-indigo-600" />
+                            <span className="text-xs font-medium text-slate-700">📅 今日の実績を表示</span>
+                          </label>
+                          {dc.showTodayValue && (
+                            <div className="mt-3 space-y-3">
+                              <div>
+                                <label className="text-xs font-medium text-slate-500 mb-1 block">今日の数値サイズ</label>
+                                <div className="flex items-center gap-2">
+                                  <input type="range" min="8" max="48" value={dc.todayFontSize ?? 16}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, todayFontSize: Number(e.target.value) })}
+                                    className="flex-1 accent-indigo-500" />
+                                  <span className="text-xs font-bold bg-slate-100 px-2 py-0.5 rounded">{dc.todayFontSize ?? 16}px</span>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-slate-500 mb-1 block">今日の数値 X</label>
+                                  <input type="number" value={dc.todayX ?? 0}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, todayX: Number(e.target.value) })}
+                                    className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-slate-500 mb-1 block">今日の数値 Y</label>
+                                  <input type="number" value={dc.todayY ?? 0}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, todayY: Number(e.target.value) })}
+                                    className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-slate-500 mb-1 block">増加色</label>
+                                  <input type="color" value={dc.colorDelta || '#06b6d4'}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, colorDelta: e.target.value })}
+                                    className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-slate-500 mb-1 block">減少色</label>
+                                  <input type="color" value={dc.colorDeltaMinus || '#ef4444'}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, colorDeltaMinus: e.target.value })}
+                                    className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer" />
+                                </div>
+                              </div>
+
+                              {/* 増加/減少バッジ位置 */}
+                              <p className="text-xs font-medium text-slate-500">🟢 増加バッジ位置</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-slate-400">X</label>
+                                  <input type="number" value={dc.addedX ?? 0}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, addedX: Number(e.target.value) })}
+                                    className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-slate-400">Y</label>
+                                  <input type="number" value={dc.addedY ?? 0}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, addedY: Number(e.target.value) })}
+                                    className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                                </div>
+                              </div>
+                              <p className="text-xs font-medium text-slate-500">🔴 減少バッジ位置</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-slate-400">X</label>
+                                  <input type="number" value={dc.removedX ?? 0}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, removedX: Number(e.target.value) })}
+                                    className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-slate-400">Y</label>
+                                  <input type="number" value={dc.removedY ?? 0}
+                                    onChange={e => updateSelectedDesign('dataConfig', { ...dc, removedY: Number(e.target.value) })}
+                                    className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ---- ポップアップ表示フィールド ---- */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">📋 今日の増減ポップアップに表示するフィールド</label>
+                          <div className="flex flex-wrap gap-1">
+                            {availableFields.map(f => {
+                              const selected = dc.todayPopupFields || [];
+                              return (
+                                <button key={f}
+                                  onClick={() => toggleArrayField('todayPopupFields', f)}
+                                  className={`text-[10px] px-2 py-1 rounded-md transition-all ${selected.includes(f) ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                >{f}</button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* ---- ドリルダウンフィールド ---- */}
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">🔍 ドリルダウン（クリック時）に表示するフィールド</label>
+                          <div className="flex flex-wrap gap-1">
+                            {availableFields.map(f => {
+                              const selected = dc.drilldownFields || [];
+                              return (
+                                <button key={f}
+                                  onClick={() => toggleArrayField('drilldownFields', f)}
+                                  className={`text-[10px] px-2 py-1 rounded-md transition-all ${selected.includes(f) ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                >{f}</button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* ---- 条件付きテキスト色 ---- */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-medium text-slate-500">🎨 条件付きテキスト色</label>
+                            <button
+                              onClick={() => updateSelectedDesign('dataConfig', { ...dc, conditionalTextRules: undefined })}
+                              className="text-[10px] text-slate-400 hover:text-rose-500">リセット</button>
+                          </div>
+                          {(dc.conditionalTextRules || []).map((rule, idx) => (
+                            <div key={idx} className="flex items-center gap-2 mb-2">
+                              <select
+                                value={rule.operator}
+                                onChange={e => {
+                                  const newRules = [...(dc.conditionalTextRules || [])];
+                                  newRules[idx] = { ...newRules[idx], operator: e.target.value as any };
+                                  updateSelectedDesign('dataConfig', { ...dc, conditionalTextRules: newRules });
+                                }}
+                                className="text-xs border border-slate-200 rounded px-1 py-1 bg-white w-20">
+                                <option value="gt">&gt;</option>
+                                <option value="lt">&lt;</option>
+                                <option value="gte">≥</option>
+                                <option value="lte">≤</option>
+                                <option value="eq">=</option>
+                              </select>
+                              <input type="number" value={rule.value}
+                                onChange={e => {
+                                  const newRules = [...(dc.conditionalTextRules || [])];
+                                  newRules[idx] = { ...newRules[idx], value: Number(e.target.value) };
+                                  updateSelectedDesign('dataConfig', { ...dc, conditionalTextRules: newRules });
+                                }}
+                                className="w-16 text-xs border border-slate-200 rounded px-1 py-1 bg-white" />
+                              <input type="color" value={rule.textColor}
+                                onChange={e => {
+                                  const newRules = [...(dc.conditionalTextRules || [])];
+                                  newRules[idx] = { ...newRules[idx], textColor: e.target.value };
+                                  updateSelectedDesign('dataConfig', { ...dc, conditionalTextRules: newRules });
+                                }}
+                                className="w-8 h-8 rounded border p-0.5 bg-white cursor-pointer" />
+                              <button
+                                onClick={() => {
+                                  const newRules = (dc.conditionalTextRules || []).filter((_, i) => i !== idx);
+                                  updateSelectedDesign('dataConfig', { ...dc, conditionalTextRules: newRules.length ? newRules : undefined });
+                                }}
+                                className="text-slate-400 hover:text-rose-500 text-[10px]">✕</button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => {
+                              const newRules = [...(dc.conditionalTextRules || []), { operator: 'gt', value: 0, textColor: '#10b981' }];
+                              updateSelectedDesign('dataConfig', { ...dc, conditionalTextRules: newRules });
+                            }}
+                            className="text-xs text-indigo-600 hover:text-indigo-700"
+                          >＋ ルール追加</button>
+                        </div>
+
+                        {/* ---- 条件付き背景色 ---- */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-medium text-slate-500">🎨 条件付き背景色</label>
+                            <button
+                              onClick={() => updateSelectedDesign('dataConfig', { ...dc, conditionalBgRules: undefined })}
+                              className="text-[10px] text-slate-400 hover:text-rose-500">リセット</button>
+                          </div>
+                          {(dc.conditionalBgRules || []).map((rule, idx) => (
+                            <div key={idx} className="flex items-center gap-2 mb-2">
+                              <select
+                                value={rule.operator}
+                                onChange={e => {
+                                  const newRules = [...(dc.conditionalBgRules || [])];
+                                  newRules[idx] = { ...newRules[idx], operator: e.target.value as any };
+                                  updateSelectedDesign('dataConfig', { ...dc, conditionalBgRules: newRules });
+                                }}
+                                className="text-xs border border-slate-200 rounded px-1 py-1 bg-white w-20">
+                                <option value="gt">&gt;</option>
+                                <option value="lt">&lt;</option>
+                                <option value="gte">≥</option>
+                                <option value="lte">≤</option>
+                                <option value="eq">=</option>
+                              </select>
+                              <input type="number" value={rule.value}
+                                onChange={e => {
+                                  const newRules = [...(dc.conditionalBgRules || [])];
+                                  newRules[idx] = { ...newRules[idx], value: Number(e.target.value) };
+                                  updateSelectedDesign('dataConfig', { ...dc, conditionalBgRules: newRules });
+                                }}
+                                className="w-16 text-xs border border-slate-200 rounded px-1 py-1 bg-white" />
+                              <input type="color" value={rule.bgColor}
+                                onChange={e => {
+                                  const newRules = [...(dc.conditionalBgRules || [])];
+                                  newRules[idx] = { ...newRules[idx], bgColor: e.target.value };
+                                  updateSelectedDesign('dataConfig', { ...dc, conditionalBgRules: newRules });
+                                }}
+                                className="w-8 h-8 rounded border p-0.5 bg-white cursor-pointer" />
+                              <button
+                                onClick={() => {
+                                  const newRules = (dc.conditionalBgRules || []).filter((_, i) => i !== idx);
+                                  updateSelectedDesign('dataConfig', { ...dc, conditionalBgRules: newRules.length ? newRules : undefined });
+                                }}
+                                className="text-slate-400 hover:text-rose-500 text-[10px]">✕</button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => {
+                              const newRules = [...(dc.conditionalBgRules || []), { operator: 'gt', value: 0, bgColor: '#f0fdf4' }];
+                              updateSelectedDesign('dataConfig', { ...dc, conditionalBgRules: newRules });
+                            }}
+                            className="text-xs text-indigo-600 hover:text-indigo-700"
+                          >＋ ルール追加</button>
+                        </div>
+
+                        {/* ---- トレンドアイコン ---- */}
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center gap-2 text-xs cursor-pointer">
+                            <input type="checkbox"
+                              checked={dc.showTrendIcon || false}
+                              onChange={e => updateSelectedDesign('dataConfig', { ...dc, showTrendIcon: e.target.checked })}
+                              className="w-4 h-4 rounded text-indigo-600" />
+                            <span className="text-slate-700">📈 トレンドアイコンを表示</span>
+                          </label>
+                          {dc.showTrendIcon && (
+                            <select
+                              value={dc.trendTarget || 'previous'}
+                              onChange={e => updateSelectedDesign('dataConfig', { ...dc, trendTarget: e.target.value })}
+                              className="text-xs border border-slate-200 rounded px-2 py-1.5 bg-white">
+                              <option value="previous">前日比</option>
+                              <option value="target">目標比</option>
+                            </select>
+                          )}
+                        </div>
+
+                      </div>
+                    );
+                  })()}
 
                                 {activeEditorWidget.type === 'comparison' && (
   <div className="space-y-4 pt-4 border-t border-slate-100">
