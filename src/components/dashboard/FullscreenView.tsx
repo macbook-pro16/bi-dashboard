@@ -35,6 +35,11 @@ interface FullscreenViewProps {
   allWidgetValues?: Record<string, number>;
   comparisonDiffMap?: Record<string, { onlyInActual: DBItem[]; onlyInTarget: DBItem[] }>;
   CanvasWidgetComponent: React.ComponentType<any>;
+  // ページ切り替え用
+  pagesCount: number;
+  onNextPage: () => void;
+  onPrevPage: () => void;
+  currentPageDisplayIndex: number;
   // 期間バー用
   updateDateRange: (partial: { start?: string; end?: string }) => void;
   periodOffsets: { day: number; week: number; month: number; year: number };
@@ -65,6 +70,10 @@ export default function FullscreenView({
   allWidgetValues,
   comparisonDiffMap,
   CanvasWidgetComponent,
+  pagesCount,
+  onNextPage,
+  onPrevPage,
+  currentPageDisplayIndex,
   updateDateRange,
   periodOffsets,
   applyPeriodOffset,
@@ -116,12 +125,14 @@ export default function FullscreenView({
       className="h-[100dvh] w-full bg-black relative overflow-hidden select-none"
       style={{ fontFamily: '"Inter", "Noto Sans JP", sans-serif' }}
     >
-      {/* 終了ボタン */}
+      {/* 終了ボタン（小さく） */}
       <button
         onClick={onExit}
-        className="absolute top-6 left-6 z-50 bg-slate-900/80 backdrop-blur-md text-white rounded-xl px-5 py-2.5 text-sm font-medium shadow-xl hover:bg-slate-800 flex items-center gap-2 transition-all"
+        className="absolute top-6 left-6 z-50 w-10 h-10 flex items-center justify-center bg-slate-900/60 backdrop-blur-md text-white rounded-full shadow-lg hover:bg-slate-800 transition-all"
+        style={{ minWidth: '44px', minHeight: '44px' }}
+        title="終了 (Esc)"
       >
-        <Icons.X className="w-4 h-4" /> 終了 (Esc)
+        <Icons.X className="w-5 h-5" />
       </button>
 
       {/* 期間フィルターボタン（右上） */}
@@ -184,6 +195,38 @@ export default function FullscreenView({
             />
           </div>
         </div>
+      )}
+
+      {/* ページ切り替え（手動） */}
+      {pagesCount > 1 && (
+        <>
+          <button
+            onClick={onPrevPage}
+            className="absolute left-6 top-1/2 -translate-y-1/2 z-50 bg-slate-900/60 backdrop-blur-md text-white rounded-full p-3 shadow-xl hover:bg-slate-800 transition-all"
+            style={{ minWidth: '44px', minHeight: '44px' }}
+            title="前のページ"
+          >
+            <Icons.ArrowRight className="w-5 h-5 rotate-180" />
+          </button>
+          <button
+            onClick={onNextPage}
+            className="absolute right-6 top-1/2 -translate-y-1/2 z-50 bg-slate-900/60 backdrop-blur-md text-white rounded-full p-3 shadow-xl hover:bg-slate-800 transition-all"
+            style={{ minWidth: '44px', minHeight: '44px' }}
+            title="次のページ"
+          >
+            <Icons.ArrowRight className="w-5 h-5" />
+          </button>
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2">
+            {Array.from({ length: pagesCount }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === currentPageDisplayIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/40'
+                }`}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {/* アートボード */}

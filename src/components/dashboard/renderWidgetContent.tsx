@@ -295,7 +295,7 @@ export function renderWidgetContent(
       }
 
       const handleScorecardClick = () => {
-        if (mode !== 'view' && mode !== 'signage') return;
+        if (mode !== 'view' && mode !== 'signage' && mode !== 'fullscreen') return;
         const wpData = filteredDataByIndex['wp_inventory_without_photo'] || [];
         if (wpData.length > 0) {
           handleChartCrossFilter('写真なし車両', String(wpData.length), w.title, wpData);
@@ -303,7 +303,7 @@ export function renderWidgetContent(
       };
 
       const handleMainValueClick = () => {
-        if (mode !== 'view' && mode !== 'signage') return;
+        if (mode !== 'view' && mode !== 'signage' && mode !== 'fullscreen') return;
         if (!onDrilldown) return;
 
         const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';

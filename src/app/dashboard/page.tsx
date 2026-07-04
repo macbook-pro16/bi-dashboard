@@ -2053,6 +2053,10 @@ function DashboardInner() {
       allWidgetValues={allWidgetValues}
       comparisonDiffMap={comparisonDiffMap}
       CanvasWidgetComponent={CanvasWidget}
+      pagesCount={eligiblePageCount}
+      onNextPage={handleSignageNextPage}
+      onPrevPage={handleSignagePrevPage}
+      currentPageDisplayIndex={currentPageDisplayIndex}
       updateDateRange={updateDateRange}
       periodOffsets={periodOffsets}
       applyPeriodOffset={applyPeriodOffset}
