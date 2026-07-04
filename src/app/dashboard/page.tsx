@@ -1788,6 +1788,33 @@ function DashboardInner() {
       .filter(({ page }) => page.includeInSignage !== false);
   }, [dashboards]);
 
+  // ★ 全画面モード用：ユーザー権限に応じて公開ページのみを対象にする
+  const fullscreenEligiblePages = useMemo(() => {
+    if (canEdit) {
+      return dashboards.map((p, i) => ({ page: p, index: i }));
+    }
+    return dashboards
+      .map((p, i) => ({ page: p, index: i }))
+      .filter(({ page }) => page.published !== false);
+  }, [dashboards, canEdit]);
+
+  const fullscreenEligiblePageCount = fullscreenEligiblePages.length;
+  const currentFullscreenPageIndex = fullscreenEligiblePages.findIndex(({ index }) => index === activePageIndex);
+
+  const handleFullscreenNextPage = useCallback(() => {
+    if (fullscreenEligiblePages.length === 0) return;
+    const currentIdx = fullscreenEligiblePages.findIndex(({ index }) => index === activePageIndex);
+    const nextIdx = (currentIdx + 1) % fullscreenEligiblePages.length;
+    dispatch({ type: 'SET_ACTIVE_PAGE', payload: fullscreenEligiblePages[nextIdx].index });
+  }, [activePageIndex, fullscreenEligiblePages]);
+
+  const handleFullscreenPrevPage = useCallback(() => {
+    if (fullscreenEligiblePages.length === 0) return;
+    const currentIdx = fullscreenEligiblePages.findIndex(({ index }) => index === activePageIndex);
+    const prevIdx = (currentIdx - 1 + fullscreenEligiblePages.length) % fullscreenEligiblePages.length;
+    dispatch({ type: 'SET_ACTIVE_PAGE', payload: fullscreenEligiblePages[prevIdx].index });
+  }, [activePageIndex, fullscreenEligiblePages]);
+
   const currentPageDisplayIndex = eligiblePages.findIndex(({ index }) => index === activePageIndex);
   const eligiblePageCount = eligiblePages.length;
 
@@ -1803,6 +1830,13 @@ function DashboardInner() {
       }
     } else if (newMode === 'fullscreen') {
       setSelectedIds([]);
+      // 非公開ページを表示できないユーザーの場合、最初の公開ページへ
+      if (!canEdit && dashboards[activePageIndex]?.published === false) {
+        const firstPublic = fullscreenEligiblePages[0];
+        if (firstPublic) {
+          dispatch({ type: 'SET_ACTIVE_PAGE', payload: firstPublic.index });
+        }
+      }
     } else if (newMode === 'edit') {
     } else {
       setSelectedIds([]);
@@ -2053,10 +2087,10 @@ function DashboardInner() {
       allWidgetValues={allWidgetValues}
       comparisonDiffMap={comparisonDiffMap}
       CanvasWidgetComponent={CanvasWidget}
-      pagesCount={eligiblePageCount}
-      onNextPage={handleSignageNextPage}
-      onPrevPage={handleSignagePrevPage}
-      currentPageDisplayIndex={currentPageDisplayIndex}
+      pagesCount={fullscreenEligiblePageCount}
+      onNextPage={handleFullscreenNextPage}
+      onPrevPage={handleFullscreenPrevPage}
+      currentPageDisplayIndex={currentFullscreenPageIndex >= 0 ? currentFullscreenPageIndex : 0}
       updateDateRange={updateDateRange}
       periodOffsets={periodOffsets}
       applyPeriodOffset={applyPeriodOffset}
