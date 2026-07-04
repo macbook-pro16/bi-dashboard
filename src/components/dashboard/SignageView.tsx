@@ -74,6 +74,7 @@ export default function SignageView({
   CanvasWidgetComponent,
 }: SignageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
   const onDrilldown = useCallback((field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
@@ -82,6 +83,7 @@ export default function SignageView({
   const { filters, updateDateRange, setStatuses, setDateRange, removeCrossFilter, clearCrossFilters } = useFilter();
   const todayStr = formatLocalDate(new Date());
   const [manualTrigger, setManualTrigger] = useState(0);
+  const [showPeriodPanel, setShowPeriodPanel] = useState(false);  const [manualTrigger, setManualTrigger] = useState(0);
 
   useEffect(() => {
     if (pagesCount <= 1 || !signageInterval || signageInterval <= 0) return;
@@ -103,6 +105,18 @@ export default function SignageView({
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setShowPeriodPanel(false);
+      }
+    };
+    if (showPeriodPanel) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPeriodPanel]);
 
   const setQuickDate = (preset: string) => {
     const now = new Date();
@@ -161,41 +175,65 @@ export default function SignageView({
     <div ref={containerRef} className="h-screen w-screen bg-black relative overflow-hidden select-none">
       <button
         onClick={onExit}
-        className="absolute top-6 left-6 z-50 bg-slate-900/80 backdrop-blur-md text-white rounded-xl px-5 py-2.5 text-sm font-medium shadow-xl hover:bg-slate-800 flex items-center gap-2 transition-all"
+        className="absolute top-6 left-6 z-50 w-10 h-10 flex items-center justify-center bg-slate-900/60 backdrop-blur-md text-white rounded-full shadow-lg hover:bg-slate-800 transition-all"
+        style={{ minWidth: '44px', minHeight: '44px' }}
+        title="終了 (Esc)"
       >
-        <Icons.X className="w-4 h-4" /> 終了 (Esc)
+        <Icons.X className="w-5 h-5" />
       </button>
 
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-black/60 backdrop-blur-lg rounded-full px-4 py-2 shadow-2xl border border-white/10">
-        {[
-          { label: '今日', preset: 'today' },
-          { label: '今週', preset: 'thisWeek' },
-          { label: '今月', preset: 'thisMonth' },
-          { label: '先月', preset: 'lastMonth' },
-        ].map(({ label, preset }) => (
-          <button
-            key={preset}
-            onClick={() => setQuickDate(preset)}
-            className="text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-full px-3 py-1 transition-all"
-          >
-            {label}
-          </button>
-        ))}
-        <div className="w-px h-4 bg-white/20" />
-        <input
-          type="date"
-          value={filters.dateRange.start}
-          onChange={(e) => updateDateRange({ start: e.target.value })}
-          className="text-xs bg-white/10 border border-white/20 rounded-full px-3 py-1 text-white outline-none focus:border-indigo-400 transition-all"
-        />
-        <span className="text-white/50">〜</span>
-        <input
-          type="date"
-          value={filters.dateRange.end}
-          onChange={(e) => updateDateRange({ end: e.target.value })}
-          className="text-xs bg-white/10 border border-white/20 rounded-full px-3 py-1 text-white outline-none focus:border-indigo-400 transition-all"
-        />
-      </div>
+      <button
+        onClick={() => setShowPeriodPanel(prev => !prev)}
+        className="absolute top-6 right-6 z-50 w-11 h-11 flex items-center justify-center bg-slate-900/80 backdrop-blur-md text-white rounded-full shadow-xl hover:bg-slate-800 transition-all"
+        style={{ minWidth: '44px', minHeight: '44px' }}
+        title="期間フィルター"
+      >
+        <Icons.Settings className="w-5 h-5" />
+      </button>
+
+      {showPeriodPanel && (
+        <div
+          ref={panelRef}
+          className="absolute top-20 right-6 z-[60] bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-5 flex flex-col gap-4 min-w-[280px]"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-white text-sm font-semibold">期間設定</span>
+            <button onClick={() => setShowPeriodPanel(false)} className="text-white/60 hover:text-white">
+              <Icons.X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {[
+            { label: '今日', preset: 'today' },
+            { label: '今週', preset: 'thisWeek' },
+            { label: '今月', preset: 'thisMonth' },
+            { label: '先月', preset: 'lastMonth' },
+          ].map(({ label, preset }) => (
+            <button
+              key={preset}
+              onClick={() => setQuickDate(preset)}
+              className="w-full text-left text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg px-3 py-2 transition-all"
+            >
+              {label}
+            </button>
+          ))}
+          <div className="flex items-center gap-2 mt-1">
+            <input
+              type="date"
+              value={filters.dateRange.start}
+              onChange={(e) => updateDateRange({ start: e.target.value })}
+              className="flex-1 text-xs bg-white/10 border border-white/20 rounded-lg px-2 py-1.5 text-white outline-none focus:border-indigo-400"
+            />
+            <span className="text-white/50">〜</span>
+            <input
+              type="date"
+              value={filters.dateRange.end}
+              onChange={(e) => updateDateRange({ end: e.target.value })}
+              className="flex-1 text-xs bg-white/10 border border-white/20 rounded-lg px-2 py-1.5 text-white outline-none focus:border-indigo-400"
+            />
+          </div>
+        </div>
+      )}
 
       {allBadges.length > 0 && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-black/60 backdrop-blur-lg rounded-full shadow-2xl border border-white/10 overflow-x-auto max-w-[90vw]">
