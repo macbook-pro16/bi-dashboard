@@ -83,7 +83,7 @@ export default function SignageView({
   const { filters, updateDateRange, setStatuses, setDateRange, removeCrossFilter, clearCrossFilters } = useFilter();
   const todayStr = formatLocalDate(new Date());
   const [manualTrigger, setManualTrigger] = useState(0);
-  const [showPeriodPanel, setShowPeriodPanel] = useState(false);  const [manualTrigger, setManualTrigger] = useState(0);
+  const [showPeriodPanel, setShowPeriodPanel] = useState(false);
 
   useEffect(() => {
     if (pagesCount <= 1 || !signageInterval || signageInterval <= 0) return;
