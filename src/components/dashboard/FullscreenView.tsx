@@ -83,6 +83,10 @@ export default function FullscreenView({
   const [scale, setScale] = useState(1);
   const [showPeriodPanel, setShowPeriodPanel] = useState(false);
 
+  const onDrilldown = useCallback((field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
+    setDrilldown({ field, value, widgetTitle, data, columns, images });
+  }, [setDrilldown]);
+
   // コンテナサイズの観測（ResizeObserver と window resize を両方使う）
   const updateScale = useCallback(() => {
     if (!containerRef.current) return;
@@ -370,7 +374,7 @@ export default function FullscreenView({
               availableFields,
               handleDiffFilter,
               allWidgetValues,
-              setDrilldown,
+              onDrilldown,
               undefined,
               comparisonDiffMap
             )}

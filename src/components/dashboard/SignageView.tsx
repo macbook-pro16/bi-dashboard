@@ -1,7 +1,7 @@
 // src/components/dashboard/SignageView.tsx
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Widget, Annotation, DBItem } from '../../types';
 import {
   ARTBOARD_WIDTH,
@@ -75,6 +75,10 @@ export default function SignageView({
 }: SignageViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+
+  const onDrilldown = useCallback((field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
+    setDrilldown({ field, value, widgetTitle, data, columns, images });
+  }, [setDrilldown]);
   const { filters, updateDateRange, setStatuses, setDateRange, removeCrossFilter, clearCrossFilters } = useFilter();
   const todayStr = formatLocalDate(new Date());
   const [manualTrigger, setManualTrigger] = useState(0);
@@ -388,7 +392,7 @@ export default function SignageView({
               availableFields,
               handleDiffFilter,
               allWidgetValues,
-              setDrilldown,
+              onDrilldown,
               undefined, // cacheStore
               comparisonDiffMap // ★ ここで正しく comparisonDiffMap を渡す
             )}
