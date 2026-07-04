@@ -10,6 +10,11 @@ import Providers from "../components/Providers";
 export const metadata: Metadata = {
   title: "販売・在庫管理 BIアプリ",
   description: "Notion同期データ - リアルタイム表示",
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/icon-192.png',
+  },
 };
 
 export default function RootLayout({
