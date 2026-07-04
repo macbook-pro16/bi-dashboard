@@ -27,6 +27,7 @@ import {
   Pause,
   ChevronLeft,
   ChevronRight,
+  Maximize,
 } from 'lucide-react';
 
 // page.tsx で使われている Icons.xxx の形式をそのまま維持する
@@ -58,6 +59,7 @@ export const Icons = {
   Pause,
   ChevronLeft,
   ChevronRight,
+  Maximize,
 };
 
 // デフォルトエクスポートも維持（どちらのインポート方法でも使えるように）

@@ -61,6 +61,7 @@ import {
 } from '../../utils/dashboardUtils';
 import { renderWidgetContent } from '../../components/dashboard/renderWidgetContent';
 import SignageView from '../../components/dashboard/SignageView';
+import FullscreenView from '../../components/dashboard/FullscreenView';
 import CanvasWidget from '../../components/dashboard/CanvasWidget';
 import SelectWithSearch from '../../components/SelectWithSearch';
 import ActiveFilterBar from '../../components/dashboard/ActiveFilterBar';
@@ -243,7 +244,7 @@ function flattenWidgets(widgets: Widget[]): Widget[] {
   }
   return result;
 }
-type DashboardMode = 'view' | 'edit' | 'signage';
+type DashboardMode = 'view' | 'edit' | 'signage' | 'fullscreen';
 
 function DashboardInner() {
   const { data: session, status } = useSession();
@@ -450,6 +451,11 @@ function DashboardInner() {
       if(e.code==='Space'&&e.target instanceof HTMLElement&&e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){e.preventDefault();setIsSpacePressed(true);}
       if(e.key==='Escape'){
         if(mode==='signage'){ setMode('view'); return; }
+        if(mode==='fullscreen'){
+          if (document.fullscreenElement) { document.exitFullscreen().catch(()=>{}); }
+          setMode('view');
+          return;
+        }
         if(showAiDrawer){ setShowAiDrawer(false); return; }
         if(showShortcuts){ setShowShortcuts(false); return; }
         if(ctxMenu){ setCtxMenu(null); return; }
@@ -515,6 +521,16 @@ function DashboardInner() {
     window.addEventListener('keydown',kd); window.addEventListener('keyup',ku);
     return()=>{window.removeEventListener('keydown',kd);window.removeEventListener('keyup',ku);};
   },[mode,layout,selectedIds,clipboard,handleGroup,handleUngroup,editWidgets,showAiDrawer,selectedAnnotationIds,annotations,commitAnnotations,showShortcuts,ctxMenu]);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement && mode === 'fullscreen') {
+        setMode('view');
+      }
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, [mode]);
 
   useEffect(() => {
     if (!ctxMenu) return;
@@ -1785,6 +1801,8 @@ function DashboardInner() {
       if (eligible.length > 0 && dashboards[activePageIndex]?.includeInSignage === false) {
         dispatch({ type: 'SET_ACTIVE_PAGE', payload: eligible[0].index });
       }
+    } else if (newMode === 'fullscreen') {
+      setSelectedIds([]);
     } else if (newMode === 'edit') {
     } else {
       setSelectedIds([]);
@@ -2008,6 +2026,40 @@ function DashboardInner() {
   />
 );
 
+  if (mode === 'fullscreen') return (
+    <FullscreenView
+      layout={layout}
+      annotations={annotations}
+      computedValues={computedValues}
+      computedTargetValues={computedTargetValues}
+      computedPreviousValues={computedPreviousValues}
+      filteredDataByIndex={filteredDataByIndex}
+      widgetFilteredData={widgetFilteredData}
+      statusOptions={statusOptions}
+      onExit={() => {
+        if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+        setMode('view');
+      }}
+      handleStatusChange={handleStatusChange}
+      filters={filters}
+      handleChartCrossFilter={handleChartCrossFilter}
+      toggleCrossFilter={toggleCrossFilter}
+      canvasBgColor={canvasBgColor}
+      drilldown={drilldown}
+      setDrilldown={setDrilldown}
+      todayDiffMap={todayDiffByWidget}
+      availableFields={availableFieldsBySource['001'] || []}
+      handleDiffFilter={handleDiffFilter}
+      allWidgetValues={allWidgetValues}
+      comparisonDiffMap={comparisonDiffMap}
+      CanvasWidgetComponent={CanvasWidget}
+      updateDateRange={updateDateRange}
+      periodOffsets={periodOffsets}
+      applyPeriodOffset={applyPeriodOffset}
+      formatPeriodLabel={formatPeriodLabel}
+    />
+  );
+
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden text-slate-900 selection:bg-indigo-500/30">
 
@@ -2089,6 +2141,13 @@ function DashboardInner() {
                 title="サイネージモードを開始"
               >
                 <Icons.Monitor className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => toggleMode('fullscreen')}
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-md"
+                title="全画面表示"
+              >
+                <Icons.Maximize className="w-5 h-5" />
               </button>
             </div>
           )}
@@ -2198,6 +2257,9 @@ function DashboardInner() {
               )}
               <button onClick={() => toggleMode('signage')} className="w-full py-3 bg-slate-800 text-white text-sm font-semibold rounded-xl hover:bg-slate-900 shadow-md transition-all flex justify-center items-center gap-2">
                 <Icons.Monitor className="w-4 h-4" /> サイネージモードを開始
+              </button>
+              <button onClick={() => toggleMode('fullscreen')} className="w-full py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 shadow-md transition-all flex justify-center items-center gap-2 mt-2">
+                <Icons.Maximize className="w-4 h-4" /> 全画面表示
               </button>
             </section>
           </div>
