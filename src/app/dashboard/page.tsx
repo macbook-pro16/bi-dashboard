@@ -261,7 +261,7 @@ function DashboardInner() {
   const [loadingAll, setLoadingAll] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: DATABASE_CONFIG.length });
 
-  const [mode, setMode] = useState<DashboardMode>('view');
+  const [mode, setMode] = useState<DashboardMode>('fullscreen');
   const [rightTab, setRightTab] = useState<'layers'|'properties'>('properties');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [clipboard, setClipboard] = useState<Widget[]>([]);
@@ -2305,10 +2305,45 @@ function DashboardInner() {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 min-h-0 relative bg-slate-50/50">
-        <header className="shrink-0 h-16 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-8 shadow-sm">
-          <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+        <header className="shrink-0 bg-white border-b border-slate-200 z-30 flex items-center gap-4 px-8 py-2 shadow-sm flex-wrap">
+          <h1 className="text-lg font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap">
             {mode === 'edit' ? <span className="text-indigo-600">📐 デザイン・エディタ</span> : dashboards[activePageIndex]?.name||'Dashboard'}
           </h1>
+          
+          {/* 期間バー（ヘッダー内に統合） */}
+          <div className="flex items-center gap-2 flex-1 justify-center">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest mr-1">Period</span>
+            {(['day', 'week', 'month', 'year'] as const).map((unit) => (
+              <div key={unit} className="flex items-center gap-0.5 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+                <button
+                  onClick={() => applyPeriodOffset(unit, periodOffsets[unit] - 1)}
+                  className="p-1 rounded-md text-slate-500 hover:bg-white hover:text-indigo-600 transition-colors"
+                  aria-label={`前の${unit === 'day' ? '日' : unit === 'week' ? '週' : unit === 'month' ? '月' : '年'}`}
+                >
+                  <Icons.ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-xs font-medium text-slate-600 min-w-[56px] text-center px-1">
+                  {formatPeriodLabel(unit, periodOffsets[unit])}
+                </span>
+                <button
+                  onClick={() => applyPeriodOffset(unit, periodOffsets[unit] + 1)}
+                  disabled={periodOffsets[unit] >= 0}
+                  className="p-1 rounded-md text-slate-500 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
+                  aria-label={`次の${unit === 'day' ? '日' : unit === 'week' ? '週' : unit === 'month' ? '月' : '年'}`}
+                >
+                  <Icons.ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            <div className="h-6 w-px bg-slate-200 mx-1"></div>
+            <input type="date" value={filters.dateRange.start} onChange={e => updateDateRange({ start: e.target.value })} className="text-sm bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
+            <span className="text-slate-400">〜</span>
+            <input type="date" value={filters.dateRange.end} onChange={e => updateDateRange({ end: e.target.value })} className="text-sm bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
+            <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-1 rounded-md whitespace-nowrap">
+              {Math.ceil((new Date(filters.dateRange.end).getTime() - new Date(filters.dateRange.start).getTime()) / 86400000) + 1}日間
+            </span>
+          </div>
+
           <div className="flex items-center gap-3">
             {mode === 'edit' && (
               <div className="flex items-center gap-2 mr-2">
@@ -2337,43 +2372,6 @@ function DashboardInner() {
             </button>
           </div>
         </header>
-
-        <div className="shrink-0 flex items-center gap-4 px-8 py-3 bg-white border-b border-slate-200 z-20 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest mr-2">Period</span>
-            {(['day', 'week', 'month', 'year'] as const).map((unit) => (
-              <div key={unit} className="flex items-center gap-0.5 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
-                <button
-                  onClick={() => applyPeriodOffset(unit, periodOffsets[unit] - 1)}
-                  className="p-1 rounded-md text-slate-500 hover:bg-white hover:text-indigo-600 transition-colors"
-                  aria-label={`前の${unit === 'day' ? '日' : unit === 'week' ? '週' : unit === 'month' ? '月' : '年'}`}
-                >
-                  <Icons.ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-xs font-medium text-slate-600 min-w-[56px] text-center px-1">
-                  {formatPeriodLabel(unit, periodOffsets[unit])}
-                </span>
-                <button
-                  onClick={() => applyPeriodOffset(unit, periodOffsets[unit] + 1)}
-                  disabled={periodOffsets[unit] >= 0}
-                  className="p-1 rounded-md text-slate-500 hover:bg-white hover:text-indigo-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors"
-                  aria-label={`次の${unit === 'day' ? '日' : unit === 'week' ? '週' : unit === 'month' ? '月' : '年'}`}
-                >
-                  <Icons.ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="h-6 w-px bg-slate-200 mx-2"></div>
-          <div className="flex items-center gap-2">
-            <input type="date" value={filters.dateRange.start} onChange={e => updateDateRange({ start: e.target.value })} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
-            <span className="text-slate-400 px-1">〜</span>
-            <input type="date" value={filters.dateRange.end} onChange={e => updateDateRange({ end: e.target.value })} className="text-sm bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
-            <span className="text-xs font-medium text-slate-400 ml-3 bg-slate-100 px-2 py-1 rounded-md">
-              {Math.ceil((new Date(filters.dateRange.end).getTime() - new Date(filters.dateRange.start).getTime()) / 86400000) + 1}日間
-            </span>
-          </div>
-        </div>
 
         <ActiveFilterBar />
 
