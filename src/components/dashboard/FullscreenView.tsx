@@ -363,7 +363,7 @@ export default function FullscreenView({
               filters,
               toggleCrossFilter,
               filters.dateRange,
-              'signage', // mode は 'signage' と同じ扱いでOK（編集不可、ドリルダウン可）
+              'fullscreen',
               undefined,
               undefined,
               todayDiffMap,

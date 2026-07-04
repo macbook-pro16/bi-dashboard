@@ -51,7 +51,7 @@ function SlideshowWidgetContent({
   comparisonDiffMap,
 }: {
   widget: Widget;
-  mode: 'view' | 'edit' | 'signage';
+  mode: 'view' | 'edit' | 'signage' | 'fullscreen';
   computedValues: Record<string, number>;
   computedTargetValues: Record<string, number>;
   computedPreviousValues: Record<string, number>;
@@ -211,7 +211,7 @@ export function renderWidgetContent(
   filters: any,
   toggleCrossFilter: any,
   dateRange: { start: string; end: string },
-  mode: 'view' | 'edit' | 'signage',
+  mode: 'view' | 'edit' | 'signage' | 'fullscreen',
   editWidgets?: (layout: Widget[]) => void,
   layout?: Widget[],
   todayDiffMap?: Record<string, { added: DBItem[]; removed: DBItem[] }>,
