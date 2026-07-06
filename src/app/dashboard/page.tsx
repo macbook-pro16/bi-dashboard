@@ -4470,97 +4470,14 @@ function DashboardInner() {
                                           placeholder="日付フィールド"
                                         />
                                       </div>
-                                      <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                          <label className="text-xs font-medium text-slate-500 mb-1 block">目標値フィルター条件</label>
-                                          <div className="flex gap-1">
-                                            <button
-                                              onClick={() => updateSelectedDesign('dataConfig', { ...dc, targetConditionLogic: 'and' })}
-                                              className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-all ${
-                                                (dc.targetConditionLogic ?? 'and') === 'and'
-                                                  ? 'bg-indigo-100 text-indigo-700'
-                                                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                                              }`}
-                                            >
-                                              AND
-                                            </button>
-                                            <button
-                                              onClick={() => updateSelectedDesign('dataConfig', { ...dc, targetConditionLogic: 'or' })}
-                                              className={`px-2 py-0.5 text-[10px] font-medium rounded-md transition-all ${
-                                                (dc.targetConditionLogic ?? 'and') === 'or'
-                                                  ? 'bg-indigo-100 text-indigo-700'
-                                                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                                              }`}
-                                            >
-                                              OR
-                                            </button>
-                                          </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                          {(dc.targetFilterConditions || []).map((cond, idx) => (
-                                            <div key={idx} className="flex gap-1 items-center bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                                              <div className="flex-1 min-w-0">
-                                                <SelectWithSearch
-                                                  options={availableFieldsBySource[dc.targetSourceIndex || srcIdx] || []}
-                                                  value={cond.field}
-                                                  onChange={v => {
-                                                    const newConds = [...(dc.targetFilterConditions || [])];
-                                                    newConds[idx] = { ...newConds[idx], field: v, value: '' };
-                                                    updateSelectedDesign('dataConfig', { ...dc, targetFilterConditions: newConds });
-                                                  }}
-                                                  placeholder="フィールド"
-                                                />
-                                              </div>
-                                              <select
-                                                value={cond.operator || 'eq'}
-                                                onChange={e => {
-                                                  const newConds = [...(dc.targetFilterConditions || [])];
-                                                  newConds[idx] = { ...newConds[idx], operator: e.target.value as any };
-                                                  updateSelectedDesign('dataConfig', { ...dc, targetFilterConditions: newConds });
-                                                }}
-                                                className="w-16 text-[10px] border border-slate-200 rounded px-0.5 py-1.5 bg-white outline-none shrink-0"
-                                              >
-                                                <option value="eq">一致</option>
-        <option value="neq">不一致</option>
-        <option value="empty">空欄</option>
-        <option value="not_empty">空欄以外</option>
-                                              </select>
-                                              {(!cond.operator || cond.operator === 'eq' || cond.operator === 'neq') && (
-                                                <div className="flex-1 min-w-0">
-                                                  <SelectWithSearch
-                                                    options={cond.field ? (fieldUniqueValuesBySource[dc.targetSourceIndex || srcIdx]?.[cond.field] || []) : []}
-                                                    value={cond.value}
-                                                    onChange={v => {
-                                                      const newConds = [...(dc.targetFilterConditions || [])];
-                                                      newConds[idx] = { ...newConds[idx], value: v };
-                                                      updateSelectedDesign('dataConfig', { ...dc, targetFilterConditions: newConds });
-                                                    }}
-                                                    placeholder="値"
-                                                  />
-                                                </div>
-                                              )}
-                                              <button
-                                                onClick={() => {
-                                                  const newConds = (dc.targetFilterConditions || []).filter((_, i) => i !== idx);
-                                                  updateSelectedDesign('dataConfig', { ...dc, targetFilterConditions: newConds });
-                                                }}
-                                                className="text-rose-500 p-1 shrink-0 hover:bg-rose-50 rounded"
-                                              >
-                                                <Icons.X className="w-3.5 h-3.5" />
-                                              </button>
-                                            </div>
-                                          ))}
-                                          <button
-                                            onClick={() => {
-                                              const newConds = [...(dc.targetFilterConditions || []), { field: '', value: '' }];
-                                              updateSelectedDesign('dataConfig', { ...dc, targetFilterConditions: newConds });
-                                            }}
-                                            className="text-xs text-indigo-600 hover:text-indigo-700"
-                                          >
-                                            + 条件追加
-                                          </button>
-                                        </div>
-                                      </div>
+                                      <FilterConditionsEditor
+                                        conditions={dc.targetFilterConditions || []}
+                                        allFields={availableFieldsBySource[dc.targetSourceIndex || srcIdx] || []}
+                                        fieldUniqueValues={fieldUniqueValuesBySource[dc.targetSourceIndex || srcIdx] || {}}
+                                        sourceIndex={dc.targetSourceIndex || srcIdx}
+                                        onUpdate={(newConds) => updateSelectedDesign('dataConfig', { ...dc, targetFilterConditions: newConds })}
+                                        maxConditions={10}
+                                      />
                                     </div>
                                     <div>
                                       <label className="text-xs font-medium text-slate-500 mb-1 block">ゲージ最小値</label>
