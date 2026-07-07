@@ -4409,8 +4409,54 @@ function DashboardInner() {
                                 )}
 
                                 {activeEditorWidget.type === 'gauge' && (
-                                  <div className="space-y-3 pt-4 border-t border-slate-100">
-                                    <div className="pt-4 border-t border-slate-100">
+                                  <>
+                                    {/* タイトル設定 */}
+                                    <div className="space-y-3 pt-4 border-t border-slate-100">
+                                      <h4 className="text-xs font-bold text-slate-700">📝 タイトル設定</h4>
+                                      <div>
+                                        <label className="text-xs font-medium text-slate-500 mb-1 block">タイトル文字サイズ</label>
+                                        <div className="flex items-center gap-2">
+                                          <input type="range" min="8" max="48" value={dc.titleFontSize ?? 14}
+                                            onChange={e => updateSelectedDesign('dataConfig', { ...dc, titleFontSize: Number(e.target.value) })}
+                                            className="flex-1 accent-indigo-500" />
+                                          <span className="text-xs font-bold bg-slate-100 px-2 py-0.5 rounded">{dc.titleFontSize ?? 14}px</span>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="text-xs font-medium text-slate-500 mb-1 block">タイトル色</label>
+                                        <input type="color" value={dc.titleColor || '#64748b'}
+                                          onChange={e => updateSelectedDesign('dataConfig', { ...dc, titleColor: e.target.value })}
+                                          className="w-full h-8 rounded border p-0.5 bg-white cursor-pointer" />
+                                      </div>
+                                      <div>
+                                        <label className="text-xs font-medium text-slate-500 mb-1 block">タイトル配置</label>
+                                        <div className="flex gap-2">
+                                          {(['left', 'center', 'right'] as const).map(a => (
+                                            <button key={a}
+                                              onClick={() => updateSelectedDesign('dataConfig', { ...dc, titleAlign: a })}
+                                              className={`flex-1 py-1.5 text-xs rounded-lg border transition-all ${(dc.titleAlign || 'center') === a ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'bg-white border-slate-200 text-slate-600'}`}
+                                            >{a === 'left' ? '左' : a === 'center' ? '中央' : '右'}</button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <label className="text-xs text-slate-500 mb-1 block">タイトル X</label>
+                                          <input type="number" value={dc.titleX ?? 0}
+                                            onChange={e => updateSelectedDesign('dataConfig', { ...dc, titleX: Number(e.target.value) })}
+                                            className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                                        </div>
+                                        <div>
+                                          <label className="text-xs text-slate-500 mb-1 block">タイトル Y</label>
+                                          <input type="number" value={dc.titleY ?? 0}
+                                            onChange={e => updateSelectedDesign('dataConfig', { ...dc, titleY: Number(e.target.value) })}
+                                            className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none" />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* 目標値設定 */}
+                                    <div className="space-y-3 pt-4 border-t border-slate-100">
                                       <label className="text-xs font-bold text-slate-700 mb-2 block">🎯 目標値設定</label>
                                       <div className="mb-3">
                                         <p className="text-xs text-slate-500 mb-2">目標値はデータソースから動的に取得します</p>
@@ -4479,6 +4525,8 @@ function DashboardInner() {
                                         maxConditions={10}
                                       />
                                     </div>
+
+                                    {/* ゲージ基本設定 */}
                                     <div>
                                       <label className="text-xs font-medium text-slate-500 mb-1 block">ゲージ最小値</label>
                                       <input
@@ -4498,6 +4546,8 @@ function DashboardInner() {
                                         placeholder="万円, 件, %"
                                       />
                                     </div>
+
+                                    {/* 色設定 */}
                                     <div className="space-y-3 pt-2 border-t border-slate-100">
                                       <label className="text-xs font-bold text-slate-700">🎨 ゲージの色設定</label>
                                       <div>
@@ -4569,6 +4619,8 @@ function DashboardInner() {
                                         </div>
                                       </div>
                                     </div>
+
+                                    {/* 集計方法 */}
                                     <div>
                                       <label className="text-xs font-medium text-slate-500 mb-1 block">実績値集計方法</label>
                                       <select
@@ -4583,6 +4635,8 @@ function DashboardInner() {
                                         <option value="count">件数</option>
                                       </select>
                                     </div>
+
+                                    {/* 今日の実績の表示 */}
                                     <div className="pt-3 border-t border-slate-100">
                                       <label className="flex items-center gap-2 cursor-pointer">
                                         <input
@@ -4594,6 +4648,8 @@ function DashboardInner() {
                                         <span className="text-xs font-medium text-slate-700">📅 今日の実績を表示</span>
                                       </label>
                                     </div>
+
+                                    {/* 下部テキストサイズ */}
                                     <div className="space-y-3 pt-4 border-t border-slate-100">
                                       <label className="text-xs font-bold text-slate-700">📏 下部テキストサイズ</label>
                                       <div>
@@ -4612,7 +4668,7 @@ function DashboardInner() {
                                       </div>
                                       <p className="text-[9px] text-slate-400">※ 未設定の場合はメイン数値サイズに連動します</p>
                                     </div>
-                                  </div>
+                                  </>
                                 )}
                               </>
                             );
