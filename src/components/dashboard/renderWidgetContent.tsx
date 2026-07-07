@@ -506,6 +506,7 @@ export function renderWidgetContent(
           titleY={dc.titleY}
           statsLabelFontSize={dc.statsLabelFontSize}
           statsValueFontSize={dc.statsValueFontSize}
+          showTodayValue={dc.showTodayValue}
         />
       );
     }

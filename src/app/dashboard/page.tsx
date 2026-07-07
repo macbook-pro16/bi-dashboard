@@ -4583,6 +4583,17 @@ function DashboardInner() {
                                         <option value="count">件数</option>
                                       </select>
                                     </div>
+                                    <div className="pt-3 border-t border-slate-100">
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={dc.showTodayValue || false}
+                                          onChange={e => updateSelectedDesign('dataConfig', { ...dc, showTodayValue: e.target.checked })}
+                                          className="w-4 h-4 rounded text-indigo-600"
+                                        />
+                                        <span className="text-xs font-medium text-slate-700">📅 今日の実績を表示</span>
+                                      </label>
+                                    </div>
                                     <div className="space-y-3 pt-4 border-t border-slate-100">
                                       <label className="text-xs font-bold text-slate-700">📏 下部テキストサイズ</label>
                                       <div>

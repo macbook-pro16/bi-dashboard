@@ -32,6 +32,8 @@ interface GaugeWidgetProps {
   statsLabelFontSize?: number;
   /** 下部数値（実績・目標・今日）の文字サイズ（px）*/
   statsValueFontSize?: number;
+  /** 今日の実績を表示するか */
+  showTodayValue?: boolean;
 }
 
 const GaugeWidget: React.FC<GaugeWidgetProps> = ({
@@ -60,6 +62,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   titleY = 0,
   statsLabelFontSize,
   statsValueFontSize,
+  showTodayValue,
 }) => {
   const safeTotalValue = typeof value === 'number' && !isNaN(value) ? value : 0;
   const safeTarget = typeof target === 'number' && !isNaN(target) && target > 0 ? target : 1;
@@ -297,7 +300,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
             </span>
           </div>
 
-          {valToday > 0 && (
+          {showTodayValue !== false && valToday > 0 && (
             <>
               <div className="w-px h-6 shrink-0" style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
               <div className="flex flex-col items-center flex-1 min-w-0">
