@@ -32,7 +32,7 @@ export default function SelectWithSearch({
       if (typeof opt === 'object') return opt.name || opt.select?.name || String(opt);
       return String(opt);
     })
-    .filter(opt => opt && opt !== '' && opt !== 'undefined' && opt !== '[object Object]' && opt !== '0');
+    .filter(opt => opt && opt !== '' && opt !== 'undefined' && opt !== '[object Object]');
 
   const dedupedOptions = Array.from(new Set(safeOptions));
   const filtered = dedupedOptions.filter(o => o.toLowerCase().includes(search.toLowerCase()));
