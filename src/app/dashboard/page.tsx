@@ -709,10 +709,11 @@ function DashboardInner() {
         const uniqueSet = new Set<string>();
         for (const item of data) {
           const raw = item[f];
-          const str = extractStringValue(raw);
-          if (str && str !== '' && str !== 'undefined' && str !== '[object Object]') {
-            uniqueSet.add(str);
-          }
+                      const str = extractStringValue(raw);
+            // 空文字・undefined・[object Object] は除外するが、"0" は有効な値として追加する
+            if ((str || str === '0') && str !== '' && str !== 'undefined' && str !== '[object Object]') {
+              uniqueSet.add(str);
+            }
         }
         fieldMap[f] = uniqueSet;
       }
