@@ -398,20 +398,17 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
 
       <div ref={parentRef} className="flex-1 overflow-auto custom-scrollbar px-0 pb-0">
         {!groupedData ? (
-          (() => {
-            let currentTop = 0;
-            return limitedData.map((item) => {
-              const isEditing = editState?.id === item.id;
-              const rowEl = (
-                <div
-                  key={item.id}
-                  className="absolute top-0 left-0 w-full flex items-center text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-50/80"
-                  style={{
-                    height: `${rowHeight}px`,
-                    top: `${currentTop}px`,
-                    borderBottom: `${hBorderWidth}px solid ${hBorderColor}`,
-                  }}
-                >
+           limitedData.map((item) => {
+            const isEditing = editState?.id === item.id;
+            return (
+              <div
+                key={item.id}
+                className="flex items-center text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-50/80"
+                style={{
+                  height: `${rowHeight}px`,
+                  borderBottom: `${hBorderWidth}px solid ${hBorderColor}`,
+                }}
+              >
                   {displayColumns.map((col, colIndex) => {
                     const rawVal = (item as any)[col.key] ?? '';
                     const displayVal = col.format ? col.format(rawVal) : String(rawVal);
@@ -501,31 +498,23 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                     );
                   })}
                 </div>
-              );
-              currentTop += rowHeight;
-              return rowEl;
-            });
-          })()
-        ) : (
-          (() => {
-            let currentTop = 0;
-            const rows: React.JSX.Element[] = [];
+            );
+          })
+                ) : (
+          groupedData.groupKeys.map((key) => {
+            const items = groupedData.groups[key];
+            const isExpanded = expandedGroups.has(key);
+            const aggValue = getGroupAggregation(items);
+            const aggLabel = getAggregationLabel();
+            const { bgColor, textColor } = getGroupHeaderStyle(key);
 
-            groupedData.groupKeys.forEach((key) => {
-              const items = groupedData.groups[key];
-              const isExpanded = expandedGroups.has(key);
-              const aggValue = getGroupAggregation(items);
-              const aggLabel = getAggregationLabel();
-              const { bgColor, textColor } = getGroupHeaderStyle(key);
-
-              rows.push(
+            return (
+              <div key={`group-${key}`}>
                 <div
-                  key={`group-${key}`}
-                  className="absolute top-0 left-0 flex items-center justify-between cursor-pointer transition-all select-none shadow-sm rounded-lg"
+                  className="flex items-center justify-between cursor-pointer transition-all select-none shadow-sm rounded-lg"
                   style={{
-                    width: '62.5%',
+                    width: '100%',
                     height: `${groupHeaderHeight}px`,
-                    top: `${currentTop}px`,
                     background: `linear-gradient(to right, ${bgColor || '#f8fafc'}, ${bgColor || '#eef2ff'})`,
                     border: '1px solid rgba(226, 232, 240, 0.5)',
                     color: textColor,
@@ -591,19 +580,14 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                     </span>
                   </div>
                 </div>
-              );
-              currentTop += groupHeaderHeight;
-
-              if (isExpanded) {
-                items.forEach((item) => {
+                {isExpanded && items.map((item) => {
                   const isEditing = editState?.id === item.id;
-                  rows.push(
+                  return (
                     <div
                       key={item.id}
-                      className="absolute top-0 left-0 w-full flex items-center text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-50/80"
+                      className="flex items-center text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-50/80"
                       style={{
                         height: `${rowHeight}px`,
-                        top: `${currentTop}px`,
                         borderBottom: `${hBorderWidth}px solid ${hBorderColor}`,
                         paddingLeft: '28px',
                       }}
@@ -611,35 +595,6 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                       {displayColumns.map((col, colIndex) => {
                         const rawVal = (item as any)[col.key] ?? '';
                         const displayVal = col.format ? col.format(rawVal) : String(rawVal);
-
-                        // ★ 追加：サムネイル画像の表示
-                        const isImageColumn = col.key === 'thumbnail' || (typeof rawVal === 'string' && /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(rawVal));
-                        if (isImageColumn && rawVal) {
-                          return (
-                            <div
-                              key={col.key}
-                              className="px-1"
-                              style={{
-                                ...getColumnStyle(col.key),
-                                height: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                borderRight: colIndex < displayColumns.length - 1
-                                  ? `${vBorderWidth}px solid ${vBorderColor}`
-                                  : 'none',
-                              }}
-                            >
-                              <img
-                                src={String(rawVal)}
-                                alt=""
-                                className="w-12 h-10 object-cover rounded border border-slate-200 shadow-sm"
-                                loading="lazy"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                              />
-                            </div>
-                          );
-                        }
-
                         if (col.key === 'status' && statusOptions.length > 0) {
                           return (
                             <div
@@ -698,17 +653,10 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                       })}
                     </div>
                   );
-                  currentTop += rowHeight;
-                });
-              }
-            });
-
-            return (
-              <div style={{ height: `${currentTop}px`, width: '100%', position: 'relative' }}>
-                {rows}
+                })}
               </div>
             );
-          })()
+          })
         )}
       </div>
 
