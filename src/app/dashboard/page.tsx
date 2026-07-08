@@ -4926,6 +4926,7 @@ function DashboardInner() {
               // ★ 追加：メイン数値位置
               valueX: w.dataConfig?.valueX,
               valueY: w.dataConfig?.valueY,
+              gaugeColorStops: w.dataConfig?.gaugeColorStops,
             };
             setStyleClipboard(styleData);
             addToastRef.current('スタイルをコピーしました（データソースは除く）', 'success');
@@ -4968,6 +4969,7 @@ function DashboardInner() {
               titleY,
               valueX,
               valueY,
+              gaugeColorStops,
             } = styleClipboard;
 
             editWidgets(
@@ -5105,6 +5107,7 @@ function DashboardInner() {
                   if (titleY !== undefined) ndc.titleY = titleY;
                   if (valueX !== undefined) ndc.valueX = valueX;
                   if (valueY !== undefined) ndc.valueY = valueY;
+                  if (gaugeColorStops !== undefined) ndc.gaugeColorStops = gaugeColorStops;
                   updated.dataConfig = ndc;
                 }
 
