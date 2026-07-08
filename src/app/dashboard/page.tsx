@@ -955,7 +955,7 @@ function DashboardInner() {
 
   const computedValues = useMemo(() => {
     const map: Record<string, number> = {};
-    layout.forEach(w => {
+    flattenWidgets(layout).forEach(w => {
       const dc = w.dataConfig as DataConfig | undefined;
       if (!dc) return;
       const srcIdx = dc.sourceIndex || w.dataSourceIndex || '001';
@@ -1055,7 +1055,7 @@ function DashboardInner() {
 
   const computedTargetValues = useMemo(()=>{
     const map:Record<string,number>={};
-    layout.forEach(w=>{
+    flattenWidgets(layout).forEach(w=>{
       const dc = w.dataConfig as DataConfig | undefined;
       if (!dc) return;
       if (w.type !== 'gauge' && w.type !== 'chart') return;
@@ -1120,7 +1120,7 @@ function DashboardInner() {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = formatLocalDate(yesterday);
 
-    layout.forEach(w=>{
+    flattenWidgets(layout).forEach(w=>{
       const dc = w.dataConfig as DataConfig | undefined;
       if (!dc) return;
 
