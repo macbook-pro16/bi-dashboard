@@ -631,7 +631,7 @@ export function renderWidgetContent(
         </div>
       );
     }
-    case 'ranking-card': {
+        case 'ranking-card': {
       const rankingData = (filteredDataByIndex['wp_ranking'] || []) as any[];
       const dcRank = w.dataConfig || ({} as DataConfig);
       return (
@@ -642,8 +642,8 @@ export function renderWidgetContent(
           limit={dcRank.rankingCardLimit ?? 20}
           columns={dcRank.rankingCardColumns ?? 8}
           rows={dcRank.rankingCardRows ?? 3}
-          titleColor={dcRank.titleColor}
-          titleFontSize={dcRank.titleFontSize}
+          titleColor={dcRank.titleColor || w.textColor}
+          titleFontSize={dcRank.titleFontSize ?? 14}
           onDrilldown={onDrilldown}
         />
       );
