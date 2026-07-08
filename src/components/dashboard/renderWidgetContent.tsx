@@ -434,7 +434,7 @@ export function renderWidgetContent(
         );
       };
 
-      return (
+            return (
         <div onClick={handleScorecardClick} style={{ cursor: 'pointer', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <KpiWidget
             value={val ?? 0}
@@ -481,7 +481,7 @@ export function renderWidgetContent(
       const previousValue = computedPreviousValues[w.id];
       const minVal = dc.gaugeMinValue ?? 0;
       const maxVal = dc.gaugeMaxValue ?? undefined;
-      return (
+            return (
         <GaugeWidget
           value={actualValue}
           target={targetValue}
@@ -508,6 +508,7 @@ export function renderWidgetContent(
           statsLabelFontSize={dc.statsLabelFontSize}
           statsValueFontSize={dc.statsValueFontSize}
           showTodayValue={dc.showTodayValue}
+          colorStops={dc.gaugeColorStops}
         />
       );
     }
