@@ -127,19 +127,20 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
 
   if (paceData === null) {
     // 全期間モード：達成率に基づいて色を決定
-    const pct = Math.min(100, percent);
-    if (colorStops && colorStops.length > 0) {
-      const sorted = [...colorStops].sort((a, b) => b.percent - a.percent);
-      for (const stop of sorted) {
-        if (pct >= stop.percent) {
-          activeColor = stop.color;
-          break;
-        }
-      }
-    } else {
-      // デフォルト：目標達成でcolorOverTarget、そうでなければcolorCurrent
-      if (safeTotalValue >= safeTarget) {
-        activeColor = colorOverTarget;
+    const pct = Math.min(200, percent);
+    // デフォルトの色停止点（未設定時）
+    const defaultStops = [
+      { percent: 100, color: colorOverTarget || '#06b6d4' },
+      { percent: 80,  color: colorCurrent || '#10b981' },
+      { percent: 50,  color: colorUnderTarget || '#ef4444' },
+      { percent: 0,   color: colorDefault || '#e2e8f0' },
+    ];
+    const stops = (colorStops && colorStops.length > 0) ? colorStops : defaultStops;
+    const sorted = [...stops].sort((a, b) => b.percent - a.percent);
+    for (const stop of sorted) {
+      if (pct >= stop.percent) {
+        activeColor = stop.color;
+        break;
       }
     }
     statusText = '';
