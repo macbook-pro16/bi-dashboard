@@ -134,8 +134,8 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
       { percent: 80,  color: colorCurrent || '#06b6d4' },
       { percent: 60,  color: colorUnderTarget || '#10b981' },
       { percent: 40,  color: colorUnderTarget || '#e7ae3e' },
-      { percent: 20,  color: colorUnderTarget || '#ef4444' },
-      { percent: 0,   color: colorDefault || '#e2e8f0' },
+      { percent: 20,  color: colorUnderTarget || '#f57e43' },
+      { percent: 0,   color: colorDefault || '#ef4444' },
     ];
     const stops = (colorStops && colorStops.length > 0) ? colorStops : defaultStops;
     const sorted = [...stops].sort((a, b) => b.percent - a.percent);
