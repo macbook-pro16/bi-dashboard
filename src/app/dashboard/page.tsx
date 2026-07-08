@@ -82,6 +82,7 @@ const DATABASE_CONFIG = [
   { index: '006', name: '目標数値' },
   { index: 'wp_inventory', name: '在庫車両 (WP)' },
   { index: 'wp_inventory_without_photo', name: '在庫車両 写真なし (WP)' },
+  { index: 'wp_ranking', name: 'いいねランキング (WP)' },
 ];
 
 const DEFAULT_PAGE: DashboardPage = {
@@ -635,6 +636,7 @@ function DashboardInner() {
       ...layout.map(w => w.dataConfig?.barSourceIndex).filter(Boolean) as string[],
       ...layout.map(w => w.dataConfig?.lineSourceIndex).filter(Boolean) as string[],
       'wp_inventory',
+      'wp_ranking', // ★ ランキングも常に取得
     ])],
     [layout]
   );

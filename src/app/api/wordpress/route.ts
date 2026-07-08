@@ -15,6 +15,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: withoutPhoto });
     }
 
+    if (postType === 'ranking') {
+      const rankingRes = await fetch(`${wpBase}/ranking-api.php`, { cache: 'no-store' });
+      if (!rankingRes.ok) throw new Error('Failed to fetch ranking data');
+      const rankingData = await rankingRes.json();
+      return NextResponse.json({ success: true, data: rankingData.data || [] });
+    }
+
     return NextResponse.json({ success: true, data: allVehicles });
   } catch (error: any) {
     return NextResponse.json(

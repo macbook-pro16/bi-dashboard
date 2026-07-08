@@ -415,6 +415,35 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                   {displayColumns.map((col, colIndex) => {
                     const rawVal = (item as any)[col.key] ?? '';
                     const displayVal = col.format ? col.format(rawVal) : String(rawVal);
+
+                    // ★ 追加：サムネイル画像の表示
+                    const isImageColumn = col.key === 'thumbnail' || (typeof rawVal === 'string' && /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(rawVal));
+                    if (isImageColumn && rawVal) {
+                      return (
+                        <div
+                          key={col.key}
+                          className="px-1"
+                          style={{
+                            ...getColumnStyle(col.key),
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderRight: colIndex < displayColumns.length - 1
+                              ? `${vBorderWidth}px solid ${vBorderColor}`
+                              : 'none',
+                          }}
+                        >
+                          <img
+                            src={String(rawVal)}
+                            alt=""
+                            className="w-12 h-10 object-cover rounded border border-slate-200 shadow-sm"
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        </div>
+                      );
+                    }
+
                     if (col.key === 'status' && statusOptions.length > 0) {
                       return (
                         <div
@@ -582,6 +611,35 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                       {displayColumns.map((col, colIndex) => {
                         const rawVal = (item as any)[col.key] ?? '';
                         const displayVal = col.format ? col.format(rawVal) : String(rawVal);
+
+                        // ★ 追加：サムネイル画像の表示
+                        const isImageColumn = col.key === 'thumbnail' || (typeof rawVal === 'string' && /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i.test(rawVal));
+                        if (isImageColumn && rawVal) {
+                          return (
+                            <div
+                              key={col.key}
+                              className="px-1"
+                              style={{
+                                ...getColumnStyle(col.key),
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderRight: colIndex < displayColumns.length - 1
+                                  ? `${vBorderWidth}px solid ${vBorderColor}`
+                                  : 'none',
+                              }}
+                            >
+                              <img
+                                src={String(rawVal)}
+                                alt=""
+                                className="w-12 h-10 object-cover rounded border border-slate-200 shadow-sm"
+                                loading="lazy"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                            </div>
+                          );
+                        }
+
                         if (col.key === 'status' && statusOptions.length > 0) {
                           return (
                             <div
