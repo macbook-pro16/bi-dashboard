@@ -130,10 +130,11 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
     const pct = Math.min(200, percent);
     // デフォルトの色停止点（未設定時）
     const defaultStops = [
-      { percent: 90, color: colorOverTarget || '#06b6d4' },
-      { percent: 65,  color: colorCurrent || '#10b981' },
-      { percent: 50,  color: colorUnderTarget || '#e66123' },
-      { percent: 30,  color: colorUnderTarget || '#ef4444' },
+      { percent: 100, color: colorOverTarget || '#8b5cf6' },
+      { percent: 80,  color: colorCurrent || '#06b6d4' },
+      { percent: 60,  color: colorUnderTarget || '#10b981' },
+      { percent: 40,  color: colorUnderTarget || '#e7ae3e' },
+      { percent: 20,  color: colorUnderTarget || '#ef4444' },
       { percent: 0,   color: colorDefault || '#e2e8f0' },
     ];
     const stops = (colorStops && colorStops.length > 0) ? colorStops : defaultStops;
