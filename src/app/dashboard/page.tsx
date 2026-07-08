@@ -4645,7 +4645,7 @@ function DashboardInner() {
                                     </div>
 
                                     {/* 今日の実績の表示 */}
-                                    <div className="pt-3 border-t border-slate-100">
+                                                                        <div className="pt-3 border-t border-slate-100">
                                       <label className="flex items-center gap-2 cursor-pointer">
                                         <input
                                           type="checkbox"
@@ -4656,8 +4656,57 @@ function DashboardInner() {
                                         <span className="text-xs font-medium text-slate-700">📅 今日の実績を表示</span>
                                       </label>
                                     </div>
-
-                                    {/* 下部テキストサイズ */}
+                                    {/* ★ 全期間時の色設定（今日の実績オフ時に有効） */}
+                                    {!dc.showTodayValue && (
+                                      <div className="space-y-3 pt-4 border-t border-slate-100">
+                                        <label className="text-xs font-bold text-slate-700">🎨 全期間時の達成率カラー設定</label>
+                                        <p className="text-[10px] text-slate-400">
+                                          目標に対する達成率（%）に応じて色を変更します。上から順に評価され、達成率が閾値を超えた最初の色が採用されます。
+                                        </p>
+                                        {(dc.gaugeColorStops || []).map((stop, idx) => (
+                                          <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                            <span className="text-xs text-slate-500 w-8">≥</span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="200"
+                                              value={stop.percent}
+                                              onChange={e => {
+                                                const newStops = [...(dc.gaugeColorStops || [])];
+                                                newStops[idx] = { ...newStops[idx], percent: Number(e.target.value) };
+                                                updateSelectedDesign('dataConfig', { ...dc, gaugeColorStops: newStops });
+                                              }}
+                                              className="w-16 text-xs border border-slate-200 rounded px-2 py-1 bg-white"
+                                            />
+                                            <span className="text-xs text-slate-400">%</span>
+                                            <input
+                                              type="color"
+                                              value={stop.color}
+                                              onChange={e => {
+                                                const newStops = [...(dc.gaugeColorStops || [])];
+                                                newStops[idx] = { ...newStops[idx], color: e.target.value };
+                                                updateSelectedDesign('dataConfig', { ...dc, gaugeColorStops: newStops });
+                                              }}
+                                              className="w-8 h-8 rounded border p-0.5 bg-white cursor-pointer"
+                                            />
+                                            <button
+                                              onClick={() => {
+                                                const newStops = (dc.gaugeColorStops || []).filter((_, i) => i !== idx);
+                                                updateSelectedDesign('dataConfig', { ...dc, gaugeColorStops: newStops.length ? newStops : undefined });
+                                              }}
+                                              className="text-slate-400 hover:text-rose-500 text-xs"
+                                            >✕</button>
+                                          </div>
+                                        ))}
+                                        <button
+                                          onClick={() => {
+                                            const newStops = [...(dc.gaugeColorStops || []), { percent: 80, color: '#10b981' }];
+                                            updateSelectedDesign('dataConfig', { ...dc, gaugeColorStops: newStops });
+                                          }}
+                                          className="text-xs text-indigo-600 hover:text-indigo-700"
+                                        >＋ 色停止点を追加</button>
+                                      </div>
+                                    )}
                                     <div className="space-y-3 pt-4 border-t border-slate-100">
                                       <label className="text-xs font-bold text-slate-700">📏 下部テキストサイズ</label>
                                       <div>

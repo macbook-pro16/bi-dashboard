@@ -57,7 +57,8 @@ export interface DataConfig {
   gaugeTargetValue?: number;
   gaugeTargetColor?: string;
   gaugeTargetWidth?: number;
-  statsLabelFontSize?: number;   // 「実績」「目標」「今日」ラベルのフォントサイズ
+  gaugeColorStops?: { percent: number; color: string }[];
+  statsLabelFontSize?: number;
   statsValueFontSize?: number;   // 対応する数値のフォントサイズ
   colorDefault?: string;
   colorCurrent?: string;

@@ -34,6 +34,7 @@ interface GaugeWidgetProps {
   statsValueFontSize?: number;
   /** 今日の実績を表示するか */
   showTodayValue?: boolean;
+  colorStops?: { percent: number; color: string }[];
 }
 
 const GaugeWidget: React.FC<GaugeWidgetProps> = ({
@@ -63,6 +64,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   statsLabelFontSize,
   statsValueFontSize,
   showTodayValue,
+  colorStops,
 }) => {
   const safeTotalValue = typeof value === 'number' && !isNaN(value) ? value : 0;
   const safeTarget = typeof target === 'number' && !isNaN(target) && target > 0 ? target : 1;
@@ -75,6 +77,8 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   const safeMaxValue = safeTarget > minValue ? minValue + (safeTarget - minValue) / 0.75 : minValue + 100;
   
   const paceData = useMemo(() => {
+    // 全期間モードではペース判定を行わない（nullを返す）
+    if (showTodayValue === false) return null;
     const today = new Date();
     const currentDay = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
@@ -84,7 +88,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
     const isCompleted = safeTotalValue >= safeTarget;
 
     return { expectedPace, isOnPace, isCompleted, currentDay, daysInMonth };
-  }, [safeTarget, safeTotalValue]);
+  }, [safeTarget, safeTotalValue, showTodayValue]);
 
   const maxRange = safeMaxValue - minValue;
   const ratioPrev = Math.max(0, Math.min((valPrev - minValue) / maxRange, 1));
@@ -121,14 +125,35 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   let statusText = 'ON TRACK';
   let statusBg = 'bg-emerald-100 text-emerald-700';
 
-  if (paceData.isCompleted || safeTotalValue >= safeTarget) {
-    activeColor = colorOverTarget;
-    statusText = 'ACHIEVED';
-    statusBg = 'bg-indigo-100 text-indigo-700';
-  } else if (!paceData.isOnPace) {
-    activeColor = colorUnderTarget;
-    statusText = 'BEHIND';
-    statusBg = 'bg-rose-100 text-rose-700';
+  if (paceData === null) {
+    // 全期間モード：達成率に基づいて色を決定
+    const pct = Math.min(100, percent);
+    if (colorStops && colorStops.length > 0) {
+      const sorted = [...colorStops].sort((a, b) => b.percent - a.percent);
+      for (const stop of sorted) {
+        if (pct >= stop.percent) {
+          activeColor = stop.color;
+          break;
+        }
+      }
+    } else {
+      // デフォルト：目標達成でcolorOverTarget、そうでなければcolorCurrent
+      if (safeTotalValue >= safeTarget) {
+        activeColor = colorOverTarget;
+      }
+    }
+    statusText = '';
+    statusBg = '';
+  } else {
+    if (paceData.isCompleted || safeTotalValue >= safeTarget) {
+      activeColor = colorOverTarget;
+      statusText = 'ACHIEVED';
+      statusBg = 'bg-indigo-100 text-indigo-700';
+    } else if (!paceData.isOnPace) {
+      activeColor = colorUnderTarget;
+      statusText = 'BEHIND';
+      statusBg = 'bg-rose-100 text-rose-700';
+    }
   }
 
   const centerX = 100;
@@ -165,10 +190,12 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   const targetX2 = centerX + tickOuter * Math.cos(targetAngle);
   const targetY2 = centerY + tickOuter * Math.sin(targetAngle);
 
-  const paceRatio = Math.max(0, Math.min((paceData.expectedPace - minValue) / (safeMaxValue - minValue), 1));
-  const paceAngle = Math.PI + paceRatio * Math.PI;
-  const paceX = centerX + radius * Math.cos(paceAngle);
-  const paceY = centerY + radius * Math.sin(paceAngle);
+  const paceRatio = paceData
+    ? Math.max(0, Math.min((paceData.expectedPace - minValue) / (safeMaxValue - minValue), 1))
+    : 0;
+  const paceAngle = paceData ? Math.PI + paceRatio * Math.PI : 0;
+  const paceX = paceData ? centerX + radius * Math.cos(paceAngle) : 0;
+  const paceY = paceData ? centerY + radius * Math.sin(paceAngle) : 0;
 
   const trackStroke = isDarkMode ? 'rgba(255,255,255,0.1)' : colorDefault;
   const innerTrackStroke = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
@@ -189,10 +216,12 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
           <span className="text-slate-400">達成率:</span>
           <span className="font-bold text-indigo-400" style={{ fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>{percent.toFixed(1)}%</span>
         </div>
-        <div className="flex justify-between border-t border-slate-700/60 pt-1 mt-0.5">
-          <span className="text-slate-400">本日の目安({paceData.currentDay}/{paceData.daysInMonth}日):</span>
-          <span className="font-bold" style={{ fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>{Math.floor(paceData.expectedPace).toLocaleString()}{unit}</span>
-        </div>
+                {paceData && (
+          <div className="flex justify-between">
+            <span className="text-slate-400">本日の目安({paceData.currentDay}/{paceData.daysInMonth}日):</span>
+            <span className="font-bold" style={{ fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>{Math.floor(paceData.expectedPace).toLocaleString()}{unit}</span>
+          </div>
+        )}
         <div className="flex justify-between">
           <span className="text-slate-400">最終目標:</span>
           <span className="font-bold" style={{ fontFamily: '"Roboto", sans-serif', fontFeatureSettings: '"tnum"' }}>{safeTarget.toLocaleString()}{unit}</span>
@@ -231,7 +260,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
 
           {isOverrun && <path d={outerPathD} fill="none" stroke={colorOverTarget} strokeWidth={4} strokeLinecap="round" strokeDasharray={outerArcLength} strokeDashoffset={overrunDashoffset} />}
 
-          {paceRatio > 0 && paceRatio < 1 && (
+          {paceData && paceRatio > 0 && paceRatio < 1 && (
             <g style={{ opacity: 0.6 }}>
               <circle cx={paceX} cy={paceY} r={strokeWidthToUse / 2 + 1} fill="none" stroke={textColor || (isDarkMode ? '#fff' : '#cbd5e1')} strokeWidth="1.5" strokeDasharray="1,2" />
             </g>
@@ -263,11 +292,13 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
           </div>
         )}
 
-        <div className="absolute top-[44%] w-full flex justify-center pointer-events-none">
-          <span className={`px-2 py-0.5 text-[9px] font-black tracking-widest uppercase rounded shadow-sm ${statusBg}`}>
-            {statusText}
-          </span>
-        </div>
+        {statusText && (
+          <div className="absolute top-[44%] w-full flex justify-center pointer-events-none">
+            <span className={`px-2 py-0.5 text-[9px] font-black tracking-widest uppercase rounded shadow-sm ${statusBg}`}>
+              {statusText}
+            </span>
+          </div>
+        )}
 
         <div className="absolute top-[56%] w-full flex justify-center pointer-events-none">
           <span 
