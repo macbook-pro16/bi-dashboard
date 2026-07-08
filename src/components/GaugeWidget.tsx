@@ -67,7 +67,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   colorStops,
 }) => {
   const safeTotalValue = typeof value === 'number' && !isNaN(value) ? value : 0;
-  const safeTarget = typeof target === 'number' && !isNaN(target) && target > 0 ? target : 1;
+  const safeTarget = typeof target === 'number' && !isNaN(target) ? target : 0;
   const safePrevValue = typeof previousValue === 'number' && !isNaN(previousValue) ? previousValue : safeTotalValue;
 
   const isIncrease = safeTotalValue > safePrevValue;
@@ -93,7 +93,7 @@ const GaugeWidget: React.FC<GaugeWidgetProps> = ({
   const maxRange = safeMaxValue - minValue;
   const ratioPrev = Math.max(0, Math.min((valPrev - minValue) / maxRange, 1));
   const ratioToday = Math.max(0, Math.min(valToday / maxRange, 1 - ratioPrev));
-  const percent = (safeTotalValue / safeTarget) * 100;
+  const percent = safeTarget > 0 ? (safeTotalValue / safeTarget) * 100 : 0;
 
   const [progressPrev, setProgressPrev] = useState(0);
   const [progressToday, setProgressToday] = useState(0);
