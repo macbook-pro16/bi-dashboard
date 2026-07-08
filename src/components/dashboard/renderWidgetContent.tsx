@@ -640,7 +640,8 @@ export function renderWidgetContent(
           title={w.title}
           showTitle={w.showTitle !== false}
           limit={dcRank.rankingCardLimit ?? 20}
-          columns={dcRank.rankingCardColumns ?? 4}
+          columns={dcRank.rankingCardColumns ?? 8}
+          rows={dcRank.rankingCardRows ?? 3}
           titleColor={dcRank.titleColor}
           titleFontSize={dcRank.titleFontSize}
           onDrilldown={onDrilldown}

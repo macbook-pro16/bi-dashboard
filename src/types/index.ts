@@ -128,6 +128,7 @@ export interface DataConfig {
   // ランキングカード用
   rankingCardLimit?: number;
   rankingCardColumns?: number;
+  rankingCardRows?: number;
 
   compareWidgetIds?: string[];      // 合計するスコアカードのIDリスト
   compareTargetType?: 'fixed' | 'widget'; // 比較対象：固定値 or 別ウィジェット

@@ -91,7 +91,8 @@ export function defaultDataConfig(type: WidgetType): DataConfig {
     base.sourceIndex = 'wp_ranking';
     base.dateFilter = 'none';
     base.rankingCardLimit = 20;
-    base.rankingCardColumns = 4;
+    base.rankingCardColumns = 8;
+    base.rankingCardRows = 3;
   }
   return base;
 }

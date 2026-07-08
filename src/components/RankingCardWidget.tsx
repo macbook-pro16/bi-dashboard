@@ -25,6 +25,7 @@ interface RankingCardWidgetProps {
   showTitle?: boolean;
   limit?: number;
   columns?: number;
+  rows?: number;
   titleColor?: string;
   titleFontSize?: number;
   onDrilldown?: (field: string, value: string, widgetTitle: string, data?: any[]) => void;
@@ -34,14 +35,15 @@ export default function RankingCardWidget({
   data,
   title,
   showTitle = true,
-  limit = 20,
-  columns = 4,
+  rows = 3,
+  columns = 8,
   titleColor = '#475569',
   titleFontSize = 14,
   onDrilldown,
 }: RankingCardWidgetProps) {
   const [expanded, setExpanded] = useState(false);
-  const displayData = expanded ? data : data.slice(0, limit);
+  const visibleCount = rows * columns;
+  const displayData = expanded ? data : data.slice(0, visibleCount);
 
   const handleCardClick = useCallback((item: RankingItem) => {
     if (onDrilldown) {
@@ -140,13 +142,13 @@ export default function RankingCardWidget({
       </div>
 
       {/* もっと見るボタン */}
-      {data.length > limit && (
+      {data.length > visibleCount && (
         <div className="text-center mt-3 shrink-0">
           <button
             onClick={() => setExpanded(!expanded)}
             className="text-xs text-indigo-600 hover:text-indigo-700 font-medium underline"
           >
-            {expanded ? `上位${limit}件に戻す` : `すべて表示（${data.length}件）`}
+            {expanded ? `上位${visibleCount}件に戻す` : `すべて表示（${data.length}件）`}
           </button>
         </div>
       )}

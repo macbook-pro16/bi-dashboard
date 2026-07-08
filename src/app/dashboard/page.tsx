@@ -4687,31 +4687,30 @@ function DashboardInner() {
                         <div className="space-y-4 pt-4 border-t border-slate-100">
                           <h4 className="text-xs font-bold text-slate-700">🃏 ランキングカード設定</h4>
                           <div>
-                            <label className="text-xs font-medium text-slate-500 mb-1 block">表示件数</label>
-                            <input
-                              type="number"
-                              min={1}
-                              max={50}
-                              value={activeEditorWidget.dataConfig?.rankingCardLimit ?? 20}
-                              onChange={(e) => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, rankingCardLimit: Number(e.target.value) })}
-                              className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-slate-500 mb-1 block">カラム数</label>
-                            <div className="flex gap-2">
-                              {[1, 2, 3, 4, 5, 6].map((n) => (
+                            <label className="text-xs font-medium text-slate-500 mb-1 block">列数</label>
+                            <div className="flex gap-1 flex-wrap">
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                                 <button
                                   key={n}
                                   onClick={() => updateSelectedDesign('dataConfig', { ...activeEditorWidget.dataConfig, rankingCardColumns: n })}
-                                  className={`flex-1 py-1.5 text-xs rounded-lg border transition-all ${
-                                    (activeEditorWidget.dataConfig?.rankingCardColumns ?? 4) === n ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'bg-white border-slate-200 text-slate-600'
+                                  className={`w-10 py-1.5 text-xs rounded-lg border transition-all ${
+                                    (activeEditorWidget.dataConfig?.rankingCardColumns ?? 8) === n ? 'bg-indigo-50 border-indigo-400 text-indigo-700' : 'bg-white border-slate-200 text-slate-600'
                                   }`}
                                 >
                                   {n}
                                 </button>
                               ))}
                             </div>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-500 mb-1 block">行数（初期表示）</label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg">3 行</span>
+                              <span className="text-[10px] text-slate-400">（固定）</span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              表示件数 = 列数 × 行数（現在 { (activeEditorWidget.dataConfig?.rankingCardColumns ?? 8) * 3 } 件）
+                            </p>
                           </div>
                         </div>
                       )}
