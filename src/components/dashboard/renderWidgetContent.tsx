@@ -18,6 +18,7 @@ import TextBlockWidget from '../TextBlockWidget';
 import OutlineWidget from '../OutlineWidget';
 import ChartWidget from '../ChartWidget';
 import ComparisonWidget from '../ComparisonWidget';
+import RankingCardWidget from '../RankingCardWidget';
 import FlowNodeWidget from '../FlowNodeWidget';
 import TextWidget from '../TextWidget';
 import WidgetErrorBoundary from '../WidgetErrorBoundary';
@@ -628,6 +629,22 @@ export function renderWidgetContent(
             dateRange={dateRange}
           />
         </div>
+      );
+    }
+    case 'ranking-card': {
+      const rankingData = (filteredDataByIndex['wp_ranking'] || []) as any[];
+      const dcRank = w.dataConfig || ({} as DataConfig);
+      return (
+        <RankingCardWidget
+          data={rankingData}
+          title={w.title}
+          showTitle={w.showTitle !== false}
+          limit={dcRank.rankingCardLimit ?? 20}
+          columns={dcRank.rankingCardColumns ?? 4}
+          titleColor={dcRank.titleColor}
+          titleFontSize={dcRank.titleFontSize}
+          onDrilldown={onDrilldown}
+        />
       );
     }
     case 'comparison': {

@@ -87,6 +87,11 @@ export function defaultDataConfig(type: WidgetType): DataConfig {
     base.compareWidgetIds = [];
     base.compareTargetType = 'fixed';
     base.compareTarget = 0;
+  } else if (type === 'ranking-card') {
+    base.sourceIndex = 'wp_ranking';
+    base.dateFilter = 'none';
+    base.rankingCardLimit = 20;
+    base.rankingCardColumns = 4;
   }
   return base;
 }
