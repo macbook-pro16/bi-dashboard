@@ -132,7 +132,10 @@ export default function RankingCardWidget({
                 </div>
                 {item.price && !item.is_sold && (
                   <div className="text-xs font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded text-center">
-                    {item.price}
+                    {(() => {
+                      const num = Number(item.price);
+                      return isNaN(num) ? item.price : num.toLocaleString();
+                    })()}
                   </div>
                 )}
               </div>
