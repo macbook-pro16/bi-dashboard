@@ -28,9 +28,14 @@ export default function OpenPage() {
         window.location.href = PLAY_STORE_CHROME;
       }, 1500);
     } else {
-      navigator.clipboard.writeText(DASHBOARD_URL).then(() => {
-        alert('URLをコピーしました。\nSafari または Chrome に貼り付けて開いてください。');
-      });
+      // iOS: window.open でSafariを開く試行（LINEのWebViewなどでは有効な場合がある）
+      const newWindow = window.open(DASHBOARD_URL, '_blank');
+      if (!newWindow) {
+        // 開けなかった場合のみクリップボードにコピー
+        navigator.clipboard.writeText(DASHBOARD_URL).then(() => {
+          alert('Safariで開けませんでした。\nURLをコピーしましたので、Safariに貼り付けて開いてください。');
+        });
+      }
     }
   };
 
