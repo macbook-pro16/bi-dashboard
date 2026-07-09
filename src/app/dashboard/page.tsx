@@ -61,6 +61,7 @@ import {
 } from '../../utils/dashboardUtils';
 import { renderWidgetContent } from '../../components/dashboard/renderWidgetContent';
 import SignageView from '../../components/dashboard/SignageView';
+import InstallPrompt from '../../components/InstallPrompt';
 import FullscreenView from '../../components/dashboard/FullscreenView';
 import CanvasWidget from '../../components/dashboard/CanvasWidget';
 import SelectWithSearch from '../../components/SelectWithSearch';
@@ -2371,6 +2372,7 @@ function DashboardInner() {
                 {mode === 'edit' ? <><Icons.Check className="w-4 h-4" /> 編集を完了</> : <><Icons.Settings className="w-4 h-4" /> ダッシュボードを編集</>}
               </button>
             )}
+            <InstallPrompt />
             <button
               onClick={() => signOut()}
               className="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all flex items-center gap-1.5"
