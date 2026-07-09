@@ -2760,10 +2760,12 @@ function DashboardInner() {
                     activeEditorWidget.type.startsWith('kpi-') ||
                     activeEditorWidget.type === 'group' ||
                     activeEditorWidget.type === 'comparison' ||
-                    activeEditorWidget.type === 'ranking-card'
+                    activeEditorWidget.type === 'ranking-card' ||
+                    activeEditorWidget.type === 'text-block' ||
+                    activeEditorWidget.type === 'flow-node'
                   ) ? (
                     <>
-                      {/* ★★★ 追加：基本デザイン（単一ウィジェット選択時） ★★★ */}
+                                            {/* ★★★ 追加：基本デザイン（単一ウィジェット選択時） ★★★ */}
                       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-4 mb-4">
                         <h4 className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">🎨 基本デザイン</h4>
                         
@@ -2873,7 +2875,7 @@ function DashboardInner() {
                           </div>
                         </div>
 
-                        {/* その他トグル */}
+                        {/* 影・タイトル表示 */}
                         <div className="flex items-center gap-4">
                           <label className="flex items-center gap-2 text-xs cursor-pointer">
                             <input
