@@ -14,7 +14,9 @@ export default function LoginPage() {
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
     // Chrome, Safari, Edge (Chromium) はサポート
-    const isSupported = ua.includes('chrome') || ua.includes('safari') || ua.includes('edg');
+    // iOS (iPhone/iPad) は常にサポート対象（Safariが標準ブラウザのため）
+    const isIOS = /iphone|ipad|ipod/.test(ua);
+    const isSupported = isIOS || ua.includes('chrome') || ua.includes('safari') || ua.includes('edg');
     setIsSupportedBrowser(isSupported);
   }, []);
 

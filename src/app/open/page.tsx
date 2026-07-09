@@ -1,48 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const DASHBOARD_URL = 'https://bi-dashboard-phi-five.vercel.app/dashboard';
 const PLAY_STORE_CHROME = 'https://play.google.com/store/apps/details?id=com.android.chrome';
 
 export default function OpenPage() {
-  useEffect(() => {
-    const isAndroid = /android/i.test(navigator.userAgent);
-    if (isAndroid) {
-      // Android: まず intent を試し、失敗したら Play ストアへ自動フォールバック
-      window.location.href =
-        'intent://bi-dashboard-phi-five.vercel.app/dashboard#Intent;scheme=https;package=com.android.chrome;end';
-      setTimeout(() => {
-        window.location.href = PLAY_STORE_CHROME;
-      }, 2000);
-    }
-    // iOS/その他は自動リダイレクトせず、手動ボタンを表示
-  }, []);
+  const [copied, setCopied] = useState(false);
 
-  const handleOpenChrome = () => {
-    const isAndroid = /android/i.test(navigator.userAgent);
-    if (isAndroid) {
-      window.location.href =
-        'intent://bi-dashboard-phi-five.vercel.app/dashboard#Intent;scheme=https;package=com.android.chrome;end';
-      setTimeout(() => {
-        window.location.href = PLAY_STORE_CHROME;
-      }, 1500);
-    } else {
-      // iOS: window.open でSafariを開く試行（LINEのWebViewなどでは有効な場合がある）
-      const newWindow = window.open(DASHBOARD_URL, '_blank');
-      if (!newWindow) {
-        // 開けなかった場合のみクリップボードにコピー
-        navigator.clipboard.writeText(DASHBOARD_URL).then(() => {
-          alert('Safariで開けませんでした。\nURLをコピーしましたので、Safariに貼り付けて開いてください。');
-        });
-      }
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(DASHBOARD_URL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // クリップボードが使えない場合、URLを表示して手動コピーを促す
+      prompt('以下のURLをコピーしてください:', DASHBOARD_URL);
     }
-  };
-
-  const handleCopyUrl = () => {
-    navigator.clipboard.writeText(DASHBOARD_URL).then(() => {
-      alert('URLをコピーしました。\n対応ブラウザで開いてください。');
-    });
   };
 
   return (
@@ -62,30 +36,49 @@ export default function OpenPage() {
         <p style={{ fontSize: 14, color: '#475569', margin: '0 0 24px', lineHeight: 1.5 }}>
           このアプリは <strong>Google Chrome</strong>（Android）または <strong>Safari</strong>（iPhone/iPad）でご利用ください。
         </p>
-        <button
-          onClick={handleOpenChrome}
+        
+        {/* Android用：Playストア経由でChrome起動 */}
+        <a
+          href={PLAY_STORE_CHROME}
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
             display: 'block', width: '100%', padding: '14px 18px', borderRadius: 14,
-            fontSize: 16, fontWeight: 600, border: 'none', cursor: 'pointer',
+            fontSize: 16, fontWeight: 600, textDecoration: 'none', textAlign: 'center',
             background: '#6366f1', color: 'white', marginBottom: 12
           }}
         >
-          Chrome で開く
-        </button>
+          Chrome を開く (Android)
+        </a>
+
+        {/* iOS/その他用：ダッシュボード直接リンク（Safariで開く） */}
+        <a
+          href={DASHBOARD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block', width: '100%', padding: '14px 18px', borderRadius: 14,
+            fontSize: 16, fontWeight: 600, textDecoration: 'none', textAlign: 'center',
+            background: '#10b981', color: 'white', marginBottom: 12
+          }}
+        >
+          ダッシュボードを開く
+        </a>
+
         <button
           onClick={handleCopyUrl}
           style={{
             display: 'block', width: '100%', padding: '14px 18px', borderRadius: 14,
             fontSize: 16, fontWeight: 600, border: 'none', cursor: 'pointer',
-            background: '#e2e8f0', color: '#334155'
+            background: copied ? '#cbd5e1' : '#e2e8f0', color: '#334155'
           }}
         >
-          URLをコピー
+          {copied ? 'コピーしました！' : 'URLをコピー'}
         </button>
+
         <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginTop: 20 }}>
-          ※「Chromeで開く」ボタンが反応しない場合は、<br />
-          手動で Chrome を起動し、<br />
-          <a href={DASHBOARD_URL} style={{ color: '#6366f1' }}>ダッシュボード</a> にアクセスしてください。
+          ※ 自動で開かない場合は、上記の「ダッシュボードを開く」をタップするか、<br />
+          URLをコピーして <strong>Safari</strong> または <strong>Chrome</strong> に貼り付けてください。
         </p>
       </div>
     </div>
