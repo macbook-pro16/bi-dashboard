@@ -30,10 +30,10 @@ export default function LoginPage() {
     return null;
   }
 
-     // 非対応ブラウザの場合：専用の /open ページにリダイレクト
+    // 非対応ブラウザの場合：専用の /go ページにリダイレクト
   if (!isSupportedBrowser) {
     useEffect(() => {
-      window.location.replace('https://bi-dashboard-phi-five.vercel.app/open');
+      window.location.replace('https://bi-dashboard-phi-five.vercel.app/go');
     }, []);
     return null;
   }
