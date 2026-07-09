@@ -398,12 +398,13 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
 
       <div ref={parentRef} className="flex-1 overflow-auto custom-scrollbar px-0 pb-0">
         {!groupedData ? (
-           limitedData.map((item) => {
+           limitedData.map((item, index) => {
             const isEditing = editState?.id === item.id;
+            const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30';
             return (
               <div
                 key={item.id}
-                className="flex items-center text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-50/80"
+                className={`flex items-center text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-100 ${rowBg}`}
                 style={{
                   height: `${rowHeight}px`,
                   borderBottom: `${hBorderWidth}px solid ${hBorderColor}`,
@@ -501,24 +502,26 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
             );
           })
                 ) : (
-          groupedData.groupKeys.map((key) => {
+          groupedData.groupKeys.map((key, index) => {
             const items = groupedData.groups[key];
             const isExpanded = expandedGroups.has(key);
             const aggValue = getGroupAggregation(items);
             const aggLabel = getAggregationLabel();
             const { bgColor, textColor } = getGroupHeaderStyle(key);
 
+            const isFirstGroup = index === 0;
             return (
-              <div key={`group-${key}`}>
+              <div key={`group-${key}`} style={{ marginTop: isFirstGroup ? 0 : '16px' }}>
                 <div
-                  className="flex items-center justify-between cursor-pointer transition-all select-none shadow-sm rounded-lg"
+                  className="flex items-center justify-between cursor-pointer transition-all select-none shadow-md rounded-xl"
                   style={{
                     width: '100%',
                     height: `${groupHeaderHeight}px`,
                     background: `linear-gradient(to right, ${bgColor || '#f8fafc'}, ${bgColor || '#eef2ff'})`,
                     border: '1px solid rgba(226, 232, 240, 0.5)',
                     color: textColor,
-                    padding: '0 8px',
+                    padding: '0 12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                   }}
                   onClick={() => toggleGroup(key)}
                 >
@@ -580,12 +583,13 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
                     </span>
                   </div>
                 </div>
-                {isExpanded && items.map((item) => {
+                {isExpanded && items.map((item, itemIndex) => {
                   const isEditing = editState?.id === item.id;
+                  const rowBg = itemIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50/30';
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-50/80"
+                      className={`flex items-center text-[12px] font-medium text-slate-700 transition-colors hover:bg-slate-100 ${rowBg}`}
                       style={{
                         height: `${rowHeight}px`,
                         borderBottom: `${hBorderWidth}px solid ${hBorderColor}`,
