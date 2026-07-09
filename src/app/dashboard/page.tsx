@@ -630,23 +630,22 @@ function DashboardInner() {
 
   // バックグラウンド更新（ローディング画面なし、完了時にトーストで通知）
       const refreshDataInBackground = useCallback(async () => {
-    console.log('refreshDataInBackground called'); // ★ 一時追加
     try {
       await fetchAllDatabases(true);
-      addToastRef.current?.('データをバックグラウンドで更新しました', 'success');
+      addToast('データをバックグラウンドで更新しました', 'success');
     } catch (e: any) {
-      addToastRef.current?.('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
+      addToast('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
     }
-  }, [fetchAllDatabases]);
+  }, [fetchAllDatabases, addToast]);
 
-  const refreshDataFull = useCallback(async () => {
+    const refreshDataFull = useCallback(async () => {
     try {
       await fetchAllDatabases(false);
-      addToastRef.current?.('データを完全に更新しました', 'success');
+      addToast('データを完全に更新しました', 'success');
     } catch (e: any) {
-      addToastRef.current?.('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
+      addToast('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
     }
-  }, [fetchAllDatabases]);
+  }, [fetchAllDatabases, addToast]);
 
   useEffect(()=>{if(status==='authenticated')fetchAllDatabases(false);},[status,fetchAllDatabases]);
   useEffect(()=>{ if(refreshInterval<=0)return; const iv=setInterval(()=>fetchAllDatabases(true),refreshInterval); return()=>clearInterval(iv); },[refreshInterval,fetchAllDatabases]);
