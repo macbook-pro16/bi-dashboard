@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const DASHBOARD_URL = 'https://bi-dashboard-phi-five.vercel.app/dashboard';
 const PLAY_STORE_CHROME = 'https://play.google.com/store/apps/details?id=com.android.chrome';
@@ -51,34 +51,36 @@ export default function OpenPage() {
           Chrome を開く (Android)
         </a>
 
-        {/* iOS/その他用：ダッシュボード直接リンク（Safariで開く） */}
-        <a
-          href={DASHBOARD_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'block', width: '100%', padding: '14px 18px', borderRadius: 14,
-            fontSize: 16, fontWeight: 600, textDecoration: 'none', textAlign: 'center',
-            background: '#10b981', color: 'white', marginBottom: 12
-          }}
-        >
-          ダッシュボードを開く
-        </a>
-
+        {/* URLコピーボタン（iPhone/その他共通） */}
         <button
           onClick={handleCopyUrl}
           style={{
             display: 'block', width: '100%', padding: '14px 18px', borderRadius: 14,
             fontSize: 16, fontWeight: 600, border: 'none', cursor: 'pointer',
-            background: copied ? '#cbd5e1' : '#e2e8f0', color: '#334155'
+            background: copied ? '#cbd5e1' : '#10b981', color: 'white', marginBottom: 12
           }}
         >
-          {copied ? 'コピーしました！' : 'URLをコピー'}
+          {copied ? 'コピーしました！' : 'URLをコピーして Safari で開く'}
         </button>
 
-        <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginTop: 20 }}>
-          ※ 自動で開かない場合は、上記の「ダッシュボードを開く」をタップするか、<br />
-          URLをコピーして <strong>Safari</strong> または <strong>Chrome</strong> に貼り付けてください。
+        <div style={{ 
+          background: '#f8fafc', borderRadius: 12, padding: 16, marginTop: 16,
+          textAlign: 'left', fontSize: 13, color: '#334155', lineHeight: 1.6 
+        }}>
+          <p style={{ margin: '0 0 8px', fontWeight: 600 }}>📱 iPhone で開く手順</p>
+          <ol style={{ margin: 0, paddingLeft: 20 }}>
+            <li>上のボタンで <strong>URLをコピー</strong> します</li>
+            <li>ホーム画面に戻り、<strong>Safari</strong> を起動します</li>
+            <li>アドレスバーにコピーしたURLを <strong>貼り付けて</strong> 開きます</li>
+          </ol>
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: '#64748b' }}>
+            ※ 開いた後、共有メニューから「ホーム画面に追加」すると、次回からアプリのように使えます。
+          </p>
+        </div>
+
+        <p style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginTop: 16 }}>
+          または、手動で <strong>Safari</strong> を開き、以下のURLにアクセスしてください：<br />
+          <span style={{ fontSize: 11, wordBreak: 'break-all' }}>{DASHBOARD_URL}</span>
         </p>
       </div>
     </div>
