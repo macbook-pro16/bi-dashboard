@@ -1,25 +1,86 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+
+const DASHBOARD_URL = 'https://bi-dashboard-phi-five.vercel.app/dashboard';
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isSupportedBrowser, setIsSupportedBrowser] = useState(true);
 
-  // useEffectを使って、描画が完了した後にページ遷移を安全に実行する
+  useEffect(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    // Chrome, Safari, Edge (Chromium) はサポート
+    const isSupported = ua.includes('chrome') || ua.includes('safari') || ua.includes('edg');
+    setIsSupportedBrowser(isSupported);
+  }, []);
+
   useEffect(() => {
     if (status === 'authenticated') {
       router.push('/dashboard');
     }
   }, [status, router]);
 
-  // 遷移中（ログイン済み）は画面に何も表示せず待機する
   if (status === 'authenticated') {
     return null;
   }
 
+  // 非対応ブラウザの場合：Chrome起動画面
+  if (!isSupportedBrowser) {
+    const isAndroid = /android/i.test(navigator.userAgent);
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md bg-white rounded-2xl shadow-lg p-8 text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">このブラウザはサポートされていません</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            BIダッシュボードを表示するには <strong>Google Chrome</strong> または <strong>Safari</strong> が必要です。
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                if (isAndroid) {
+                  // Android: intent:// でChromeを起動
+                  window.location.href =
+                    'intent://bi-dashboard-phi-five.vercel.app/dashboard#Intent;scheme=https;package=com.android.chrome;end';
+                } else {
+                  // iOS/その他: URLをクリップボードにコピー
+                  navigator.clipboard
+                    .writeText(DASHBOARD_URL)
+                    .then(() => {
+                      alert('URLをコピーしました。\nSafari または Chrome で開いてください。');
+                    });
+                }
+              }}
+              className="block w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 transition-all"
+            >
+              {isAndroid ? 'Chromeで開く' : 'URLをコピーして開く'}
+            </button>
+            <button
+              onClick={() => {
+                navigator.clipboard
+                  .writeText(DASHBOARD_URL)
+                  .then(() => {
+                    alert('URLをコピーしました。\n対応ブラウザで開いてください。');
+                  });
+              }}
+              className="block w-full px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all"
+            >
+              URLをコピー
+            </button>
+          </div>
+          <p className="text-xs text-slate-400 mt-6">
+            Chromeで開いた後、メニューから「ホーム画面に追加」すると<br />アプリのように使えます。
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 通常のログイン画面
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-slate-100 p-8 text-center">
