@@ -42,23 +42,13 @@ export default function LoginPage() {
           <div className="space-y-3">
             <button
               onClick={() => {
-                if (isAndroid) {
-                  // Android: まずカスタムURLスキームでChromeを開くことを試みる
-                  const chromeCustomUrl = 'googlechrome://bi-dashboard-phi-five.vercel.app/dashboard';
-                  const chromeMarketUrl = 'https://play.google.com/store/apps/details?id=com.android.chrome';
-                  
-                  // 一定時間後にChromeが開かなければPlayストアに飛ばす
-                  const timeout = setTimeout(() => {
-                    window.location.href = chromeMarketUrl;
-                  }, 2000);
-
-                  // ChromeカスタムURLを試す
-                  window.location.href = chromeCustomUrl;
-
-                  // ページがバックグラウンドになったらタイマーをクリア
-                  window.addEventListener('blur', () => {
-                    clearTimeout(timeout);
-                  });
+                                if (isAndroid) {
+                  // Android: intentを試し、失敗時はPlayストアへ
+                  window.location.href =
+                    'intent://bi-dashboard-phi-five.vercel.app/dashboard#Intent;scheme=https;package=com.android.chrome;end';
+                  setTimeout(() => {
+                    window.location.href = 'https://play.google.com/store/apps/details?id=com.android.chrome';
+                  }, 1500);
                 } else {
                   // iOS/その他: URLをクリップボードにコピー
                   navigator.clipboard
