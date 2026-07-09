@@ -2531,57 +2531,53 @@ function DashboardInner() {
               )}
             </svg>
 
-            {(!isMounted || loadingAll) ? (
-              layout.map(w => <SkeletonWidget key={w.id} x={w.x} y={w.y} w={w.w} h={w.h} />)
-            ) : (
-              <DndContext id="canvas-dnd" sensors={canvasSensors} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
-                {layout.map((w, idx) => {
-                  const content = renderWidgetContent(
-                    w,
-                    computedValues,
-                    computedTargetValues,
-                    computedPreviousValues,
-                    filteredDataByIndex,
-                    widgetFilteredData,
-                    statusOptions,
-                    handleStatusChange,
-                    handleChartCrossFilter,
-                    filters,
-                    toggleCrossFilter,
-                    filters.dateRange,
-                    mode,
-                    editWidgets,
-                    layout,
-                    todayDiffByWidget,
-                    availableFieldsBySource['001'] || [],
-                    handleDiffFilter,
-                    allWidgetValues,
-                    (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
-                      setDrilldown({ field, value, widgetTitle, data, columns, images });
-                    },
-                    cacheStore,
-                    comparisonDiffMap
-                  );
-                  const flashClass = editModeFlash ? 'ring-1 ring-slate-300 transition-all duration-300' : '';
-                  return (
-                    <div key={w.id} className={flashClass}>
-                      <CanvasWidget key={w.id} widget={w} isEditMode={mode === 'edit'} isSignageMode={false} zoom={zoom} zIndex={idx}
-                        isSelected={selectedIds.includes(w.id)} onSelect={handleSelect} onSelectToggle={handleSelectToggle}
-                        onResizeEnd={handleResizeEnd} onChangeSize={handleChangeSize} onMove={handleMoveWidget}
-                        onClickFlowNode={(s)=>toggleCrossFilter('status',s)}
-                        onRename={handleRenameWidget}
-                        onContextMenu={mode === 'edit' ? (id,x,y)=>setCtxMenu({id,x,y}) : undefined}
-                        onDoubleClick={handleWidgetDoubleClick}
-                        computedValue={computedValues[w.id]}
-                        selectedCount={selectedIds.length}
-                      >
-                        {content}
-                      </CanvasWidget>
-                    </div>
-                  );
-                })}
-              </DndContext>
-            )}
+                        <DndContext id="canvas-dnd" sensors={canvasSensors} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+              {layout.map((w, idx) => {
+                const content = renderWidgetContent(
+                  w,
+                  computedValues,
+                  computedTargetValues,
+                  computedPreviousValues,
+                  filteredDataByIndex,
+                  widgetFilteredData,
+                  statusOptions,
+                  handleStatusChange,
+                  handleChartCrossFilter,
+                  filters,
+                  toggleCrossFilter,
+                  filters.dateRange,
+                  mode,
+                  editWidgets,
+                  layout,
+                  todayDiffByWidget,
+                  availableFieldsBySource['001'] || [],
+                  handleDiffFilter,
+                  allWidgetValues,
+                  (field: string, value: string, widgetTitle: string, data?: any[], columns?: string[], images?: string[]) => {
+                    setDrilldown({ field, value, widgetTitle, data, columns, images });
+                  },
+                  cacheStore,
+                  comparisonDiffMap
+                );
+                const flashClass = editModeFlash ? 'ring-1 ring-slate-300 transition-all duration-300' : '';
+                return (
+                  <div key={w.id} className={flashClass}>
+                    <CanvasWidget key={w.id} widget={w} isEditMode={mode === 'edit'} isSignageMode={false} zoom={zoom} zIndex={idx}
+                      isSelected={selectedIds.includes(w.id)} onSelect={handleSelect} onSelectToggle={handleSelectToggle}
+                      onResizeEnd={handleResizeEnd} onChangeSize={handleChangeSize} onMove={handleMoveWidget}
+                      onClickFlowNode={(s)=>toggleCrossFilter('status',s)}
+                      onRename={handleRenameWidget}
+                      onContextMenu={mode === 'edit' ? (id,x,y)=>setCtxMenu({id,x,y}) : undefined}
+                      onDoubleClick={handleWidgetDoubleClick}
+                      computedValue={computedValues[w.id]}
+                      selectedCount={selectedIds.length}
+                    >
+                      {content}
+                    </CanvasWidget>
+                  </div>
+                );
+              })}
+            </DndContext>
           </div>
         </div>
       </main>
