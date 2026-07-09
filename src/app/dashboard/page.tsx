@@ -2074,6 +2074,7 @@ function DashboardInner() {
     drilldown={drilldown}
     setDrilldown={setDrilldown}
     signageInterval={signageInterval}
+    loadingAll={loadingAll}
     todayDiffMap={todayDiffByWidget}
     comparisonDiffMap={comparisonDiffMap}
     availableFields={availableFieldsBySource['001'] || []}
@@ -2110,6 +2111,7 @@ function DashboardInner() {
       allWidgetValues={allWidgetValues}
       comparisonDiffMap={comparisonDiffMap}
       CanvasWidgetComponent={CanvasWidget}
+      loadingAll={loadingAll}
       pagesCount={fullscreenEligiblePageCount}
       onNextPage={handleFullscreenNextPage}
       onPrevPage={handleFullscreenPrevPage}
