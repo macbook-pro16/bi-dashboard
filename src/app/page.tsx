@@ -33,7 +33,7 @@ export default function LoginPage() {
     // 非対応ブラウザの場合：専用の /go ページにリダイレクト
   if (!isSupportedBrowser) {
     useEffect(() => {
-      window.location.replace('https://bi-dashboard-phi-five.vercel.app/go');
+            window.location.replace('https://bi-dashboard-phi-five.vercel.app/go');
     }, []);
     return null;
   }
