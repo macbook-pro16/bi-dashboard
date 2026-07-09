@@ -629,15 +629,22 @@ function DashboardInner() {
   }, []);
 
   // バックグラウンド更新（ローディング画面なし、完了時にトーストで通知）
-  const refreshDataInBackground = useCallback(async () => {
-    await fetchAllDatabases(true);
-    addToastRef.current('データをバックグラウンドで更新しました', 'success');
+    const refreshDataInBackground = useCallback(async () => {
+    try {
+      await fetchAllDatabases(true);
+      addToastRef.current?.('データをバックグラウンドで更新しました', 'success');
+    } catch (e: any) {
+      addToastRef.current?.('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
+    }
   }, [fetchAllDatabases]);
 
-  // 強制全更新（従来のローディング表示あり）
   const refreshDataFull = useCallback(async () => {
-    await fetchAllDatabases(false);
-    addToastRef.current('データを完全に更新しました', 'success');
+    try {
+      await fetchAllDatabases(false);
+      addToastRef.current?.('データを完全に更新しました', 'success');
+    } catch (e: any) {
+      addToastRef.current?.('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
+    }
   }, [fetchAllDatabases]);
 
   useEffect(()=>{if(status==='authenticated')fetchAllDatabases(false);},[status,fetchAllDatabases]);
@@ -2032,6 +2039,9 @@ function DashboardInner() {
             </svg>
             <h2 className="text-lg font-semibold text-slate-700">ダッシュボードを読み込んでいます...</h2>
           </div>
+          {loadingAll && (
+            <p className="text-sm text-slate-500 animate-pulse">同時にデータを取得しています...</p>
+          )}
         </div>
       </div>
     );
@@ -2180,6 +2190,7 @@ function DashboardInner() {
           {!leftSidebarOpen && (
             <div className="flex flex-col items-center gap-3 mt-4">
               <button
+                type="button"
                 onClick={refreshDataInBackground}
                 className="w-10 h-10 rounded-xl flex items-center justify-center bg-white text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-400 transition-colors"
                 title="データを更新（バックグラウンド）"
@@ -2187,6 +2198,7 @@ function DashboardInner() {
                 <Icons.Download className="w-5 h-5" />
               </button>
               <button
+                type="button"
                 onClick={refreshDataFull}
                 className="w-10 h-10 rounded-xl flex items-center justify-center bg-white text-rose-500 hover:text-rose-600 border border-slate-200 hover:border-rose-400 transition-colors"
                 title="データを強制全更新"
@@ -2324,6 +2336,7 @@ function DashboardInner() {
                 <Icons.Maximize className="w-4 h-4" /> 全画面表示
               </button>
               <button
+                type="button"
                 onClick={refreshDataInBackground}
                 className="w-full py-2.5 bg-white text-slate-600 text-sm font-medium rounded-xl border border-slate-200 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 mt-2"
                 title="バックグラウンドで更新"
@@ -2331,6 +2344,7 @@ function DashboardInner() {
                 <Icons.Download className="w-4 h-4" /> データを更新
               </button>
               <button
+                type="button"
                 onClick={refreshDataFull}
                 className="w-full py-2.5 bg-white text-rose-600 text-sm font-medium rounded-xl border border-rose-200 hover:bg-rose-50 transition-all flex items-center justify-center gap-2 mt-2"
                 title="全データを再取得（時間がかかります）"
