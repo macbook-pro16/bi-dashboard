@@ -632,9 +632,15 @@ function DashboardInner() {
     const refreshDataInBackground = useCallback(async () => {
     try {
       await fetchAllDatabases(true);
-      addToastRef.current?.('データをバックグラウンドで更新しました', 'success');
+      if (addToastRef.current) {
+        addToastRef.current('データをバックグラウンドで更新しました', 'success');
+      } else {
+        console.error('addToastRef.current is null');
+      }
     } catch (e: any) {
-      addToastRef.current?.('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
+      if (addToastRef.current) {
+        addToastRef.current('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
+      }
     }
   }, [fetchAllDatabases]);
 
