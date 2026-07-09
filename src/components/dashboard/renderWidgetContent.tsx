@@ -231,13 +231,15 @@ export function renderWidgetContent(
   if (w.type === 'table-details') {
     const ds = widgetFilteredData[w.id] || [];
     return (
-      <TableWidget
-        data={ds}
-        config={w.tableConfig}
-        statusOptions={statusOptions}
-        onStatusChange={handleStatusChange}
-        widget={w}
-        onColumnsReorder={(columns) => {
+        <TableWidget
+          data={ds}
+          config={w.tableConfig}
+          statusOptions={statusOptions}
+          onStatusChange={handleStatusChange}
+          widget={w}
+          bgColor={w.bgColor}
+          bgAlpha={w.bgAlpha}
+          onColumnsReorder={(columns) => {
           if (mode === 'edit' && editWidgets && layout) {
             editWidgets(
               layout.map((widget) =>

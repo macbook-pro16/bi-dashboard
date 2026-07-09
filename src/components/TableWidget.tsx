@@ -10,11 +10,20 @@ interface TableWidgetProps {
   statusOptions?: string[];
   onStatusChange?: (itemId: string, newStatus: string, item: DBItem) => void;
   widget: Widget;
-  // ★ 追加：列順序変更時のコールバック（DataTableから受け取って親に伝播）
+  bgColor?: string;
+  bgAlpha?: number;
+  // ★ 追加：列順序変更時のコールバック
   onColumnsReorder?: (columns: string[]) => void;
 }
 
-const TableWidget = React.memo(function TableWidget({ data, config, statusOptions, onStatusChange, widget, onColumnsReorder }: TableWidgetProps) {
+const TableWidget = React.memo(function TableWidget({ data, config, statusOptions, onStatusChange, widget, onColumnsReorder }: TableWidgetProps) {  const bg = bgColor || '#ffffff';
+  const alpha = bgAlpha ?? 1;
+  const rgbaBg = bg.startsWith('#')
+    ? `rgba(${parseInt(bg.slice(1, 3), 16)}, ${parseInt(bg.slice(3, 5), 16)}, ${parseInt(bg.slice(5, 7), 16)}, ${alpha})`
+    : bg;
+
+  return (
+    <div className="w-full h-full flex flex-col pt-3 rounded-inherit" style={{ backgroundColor: rgbaBg, fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}></div>
   const { dataConfig, title, showTitle, textColor } = widget;
   
   const titleX = dataConfig?.titleX || 0;
