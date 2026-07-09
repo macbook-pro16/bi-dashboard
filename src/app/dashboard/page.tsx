@@ -629,18 +629,13 @@ function DashboardInner() {
   }, []);
 
   // バックグラウンド更新（ローディング画面なし、完了時にトーストで通知）
-    const refreshDataInBackground = useCallback(async () => {
+      const refreshDataInBackground = useCallback(async () => {
+    console.log('refreshDataInBackground called'); // ★ 一時追加
     try {
       await fetchAllDatabases(true);
-      if (addToastRef.current) {
-        addToastRef.current('データをバックグラウンドで更新しました', 'success');
-      } else {
-        console.error('addToastRef.current is null');
-      }
+      addToastRef.current?.('データをバックグラウンドで更新しました', 'success');
     } catch (e: any) {
-      if (addToastRef.current) {
-        addToastRef.current('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
-      }
+      addToastRef.current?.('更新に失敗しました: ' + (e.message || 'エラー'), 'error');
     }
   }, [fetchAllDatabases]);
 
