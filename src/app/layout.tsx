@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google"; // Inter は必要に応じて残す（実際は Noto Sans JP を globals.css で指定）
 import "./globals.css";
 import Providers from "../components/Providers";
+import BrowserFallback from "../components/BrowserFallback";
 
 // Inter の設定は削除しても構いませんが、後方互換のため残しています。
 // 実際のフォントは globals.css で上書きされます。
@@ -30,7 +31,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        <Providers>{children}</Providers>
+        <BrowserFallback>
+          <Providers>{children}</Providers>
+        </BrowserFallback>
         <script
           dangerouslySetInnerHTML={{
             __html: `
