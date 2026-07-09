@@ -12,18 +12,11 @@ interface TableWidgetProps {
   widget: Widget;
   bgColor?: string;
   bgAlpha?: number;
-  // ★ 追加：列順序変更時のコールバック
+  // ★ 追加：列順序変更時のコールバック（DataTableから受け取って親に伝播）
   onColumnsReorder?: (columns: string[]) => void;
 }
 
-const TableWidget = React.memo(function TableWidget({ data, config, statusOptions, onStatusChange, widget, onColumnsReorder }: TableWidgetProps) {  const bg = bgColor || '#ffffff';
-  const alpha = bgAlpha ?? 1;
-  const rgbaBg = bg.startsWith('#')
-    ? `rgba(${parseInt(bg.slice(1, 3), 16)}, ${parseInt(bg.slice(3, 5), 16)}, ${parseInt(bg.slice(5, 7), 16)}, ${alpha})`
-    : bg;
-
-  return (
-    <div className="w-full h-full flex flex-col pt-3 rounded-inherit" style={{ backgroundColor: rgbaBg, fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}></div>
+const TableWidget = React.memo(function TableWidget({ data, config, statusOptions, onStatusChange, widget, bgColor, bgAlpha, onColumnsReorder }: TableWidgetProps) {
   const { dataConfig, title, showTitle, textColor } = widget;
   
   const titleX = dataConfig?.titleX || 0;
@@ -32,8 +25,14 @@ const TableWidget = React.memo(function TableWidget({ data, config, statusOption
   const titleFontSize = dataConfig?.titleFontSize || 14;
   const titleColor = dataConfig?.titleColor || textColor || '#475569';
 
+  const bg = bgColor || '#ffffff';
+  const alpha = bgAlpha ?? 1;
+  const rgbaBg = bg.startsWith('#')
+    ? `rgba(${parseInt(bg.slice(1, 3), 16)}, ${parseInt(bg.slice(3, 5), 16)}, ${parseInt(bg.slice(5, 7), 16)}, ${alpha})`
+    : bg;
+
   return (
-    <div className="w-full h-full flex flex-col pt-3 bg-white rounded-inherit" style={{ fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
+    <div className="w-full h-full flex flex-col pt-3 rounded-inherit" style={{ backgroundColor: rgbaBg, fontFamily: '"Futura", "Trebuchet MS", sans-serif' }}>
       {showTitle && title && (
         <div 
           className="font-bold tracking-widest uppercase mb-2 px-4 opacity-80 shrink-0" 
