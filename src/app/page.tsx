@@ -28,59 +28,12 @@ export default function LoginPage() {
     return null;
   }
 
-  // 非対応ブラウザの場合：Chrome起動画面
+     // 非対応ブラウザの場合：専用の /open ページにリダイレクト
   if (!isSupportedBrowser) {
-    const isAndroid = /android/i.test(navigator.userAgent);
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md bg-white rounded-2xl shadow-lg p-8 text-center">
-          <div className="text-4xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">このブラウザはサポートされていません</h2>
-          <p className="text-sm text-slate-500 mb-6">
-            BIダッシュボードを表示するには <strong>Google Chrome</strong> または <strong>Safari</strong> が必要です。
-          </p>
-          <div className="space-y-3">
-            <button
-              onClick={() => {
-                                if (isAndroid) {
-                  // Android: intentを試し、失敗時はPlayストアへ
-                  window.location.href =
-                    'intent://bi-dashboard-phi-five.vercel.app/dashboard#Intent;scheme=https;package=com.android.chrome;end';
-                  setTimeout(() => {
-                    window.location.href = 'https://play.google.com/store/apps/details?id=com.android.chrome';
-                  }, 1500);
-                } else {
-                  // iOS/その他: URLをクリップボードにコピー
-                  navigator.clipboard
-                    .writeText(DASHBOARD_URL)
-                    .then(() => {
-                      alert('URLをコピーしました。\nSafari または Chrome で開いてください。');
-                    });
-                }
-              }}
-              className="block w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 transition-all"
-            >
-              {isAndroid ? 'Chromeで開く' : 'URLをコピーして開く'}
-            </button>
-            <button
-              onClick={() => {
-                navigator.clipboard
-                  .writeText(DASHBOARD_URL)
-                  .then(() => {
-                    alert('URLをコピーしました。\n対応ブラウザで開いてください。');
-                  });
-              }}
-              className="block w-full px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all"
-            >
-              URLをコピー
-            </button>
-          </div>
-          <p className="text-xs text-slate-400 mt-6">
-            Chromeで開いた後、メニューから「ホーム画面に追加」すると<br />アプリのように使えます。
-          </p>
-        </div>
-      </div>
-    );
+    useEffect(() => {
+      window.location.replace('https://bi-dashboard-phi-five.vercel.app/open');
+    }, []);
+    return null;
   }
 
   // 通常のログイン画面
