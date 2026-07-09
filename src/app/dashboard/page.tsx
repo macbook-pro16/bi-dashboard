@@ -2193,8 +2193,8 @@ function DashboardInner() {
             <div className="flex flex-col items-center gap-3 mt-4">
               <button
                 type="button"
-                onClick={refreshDataInBackground}
-                className="w-10 h-10 rounded-xl flex items-center justify-center bg-white text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-400 transition-colors"
+                onClick={() => alert('clicked')}
+                className="w-10 h-10 rounded-xl ..."
                 title="データを更新（バックグラウンド）"
               >
                 <Icons.Download className="w-5 h-5" />
