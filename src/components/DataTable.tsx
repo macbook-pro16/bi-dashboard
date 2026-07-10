@@ -167,16 +167,50 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
     return () => clearTimeout(timer);
   }, [editState]);
 
-  const sorted = useMemo(() =>
-    [...data].sort((a, b) => {
+  const sorted = useMemo(() => {
+    const priorityConfig = config?.prioritySort;
+    let processed = [...data];
+
+    // 優先ソートが設定されていて、現在のソートキーがそのフィールドと一致する場合
+    if (priorityConfig && priorityConfig.field === sortKey && priorityConfig.order.length > 0) {
+      const orderMap = new Map<string, number>();
+      priorityConfig.order.forEach((keyword, index) => {
+        orderMap.set(keyword, index);
+      });
+
+      processed.sort((a, b) => {
+        const av = a[sortKey] ?? '';
+        const bv = b[sortKey] ?? '';
+        const aStr = String(av);
+        const bStr = String(bv);
+
+        // 優先度マップに存在するかチェック
+        const aIndex = orderMap.has(aStr) ? orderMap.get(aStr)! : -1;
+        const bIndex = orderMap.has(bStr) ? orderMap.get(bStr)! : -1;
+
+        // 両方とも優先度リストに存在する → リスト内の順序で並べる
+        if (aIndex >= 0 && bIndex >= 0) {
+          return sortDir === 'asc' ? aIndex - bIndex : bIndex - aIndex;
+        }
+        // 片方だけリストに存在する → 存在する方を先に
+        if (aIndex >= 0) return -1;
+        if (bIndex >= 0) return 1;
+        // どちらもリストにない → 通常の文字列ソート
+        return sortDir === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+      });
+      return processed;
+    }
+
+    // 優先ソートなし → 通常のソート
+    processed.sort((a, b) => {
       const av = a[sortKey] ?? '';
       const bv = b[sortKey] ?? '';
       if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(String(bv)) : String(bv).localeCompare(av);
       return typeof av === 'number' && typeof bv === 'number'
         ? (sortDir === 'asc' ? av - bv : bv - av) : 0;
-    }),
-    [data, sortKey, sortDir]
-  );
+    });
+    return processed;
+  }, [data, sortKey, sortDir, config?.prioritySort]);
 
   const pageSize = config?.pageSize ?? 50;
   const limitedData = sorted.slice(0, pageSize);

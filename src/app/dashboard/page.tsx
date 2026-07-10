@@ -3891,6 +3891,54 @@ function DashboardInner() {
 {activeEditorWidget.type === 'table-details' && (
   <>
     <div className="space-y-3 pt-4 border-t border-slate-100">
+      <label className="text-xs font-bold text-slate-700">📊 優先ソート</label>
+      <p className="text-[10px] text-slate-400">
+        指定したフィールドの値が、入力したキーワード順に先頭に並びます（1行1キーワード）。キーワードにない値は後ろに並びます。
+      </p>
+      <div>
+        <label className="text-xs font-medium text-slate-500 mb-1 block">対象フィールド</label>
+        <SelectWithSearch
+          options={availableFieldsBySource[activeEditorWidget.dataConfig?.sourceIndex || '001'] || []}
+          value={activeEditorWidget.tableConfig?.prioritySort?.field || ''}
+          onChange={(v) => {
+            const current = activeEditorWidget.tableConfig || {};
+            updateSelectedDesign('_multi', {
+              tableConfig: { ...current, prioritySort: { field: v, order: current.prioritySort?.order || [] } }
+            });
+          }}
+          placeholder="フィールドを選択"
+        />
+      </div>
+      {activeEditorWidget.tableConfig?.prioritySort?.field && (
+        <div className="mt-2">
+          <label className="text-xs font-medium text-slate-500 mb-1 block">優先キーワード（上ほど優先）</label>
+          <textarea
+            value={(activeEditorWidget.tableConfig?.prioritySort?.order || []).join('\n')}
+            onChange={(e) => {
+              const order = e.target.value.split('\n').filter(s => s.trim() !== '');
+              const current = activeEditorWidget.tableConfig || {};
+              updateSelectedDesign('_multi', {
+                tableConfig: { ...current, prioritySort: { ...current.prioritySort!, order } }
+              });
+            }}
+            className="w-full text-xs border border-slate-200 rounded px-2 py-1.5 bg-white resize-y min-h-[80px]"
+            placeholder={"在庫中\n整備中\n販売済み"}
+          />
+        </div>
+      )}
+      <button
+        onClick={() => {
+          const current = activeEditorWidget.tableConfig || {};
+          updateSelectedDesign('_multi', {
+            tableConfig: { ...current, prioritySort: undefined }
+          });
+        }}
+        className="w-full text-xs py-2 border border-rose-200 bg-rose-50 rounded-lg text-rose-500 hover:bg-rose-100 transition-all"
+      >
+        優先ソートを解除
+      </button>
+    </div>
+    <div className="space-y-3 pt-4 border-t border-slate-100">
       <label className="text-xs font-bold text-slate-700">📐 行の高さ</label>
       <div className="flex items-center gap-3">
         <input

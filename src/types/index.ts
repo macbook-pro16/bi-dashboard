@@ -246,6 +246,11 @@ export interface TableConfig {
   groupHeaderBadgeLabelColor?: string;
   groupHeaderBadgeValueColor?: string;
   rowHeight?: number;
+  // 優先ソート: 指定フィールドの値がこの配列の順に先頭に並ぶ
+  prioritySort?: {
+    field: string;
+    order: string[]; // 優先度の高い順にキーワードを並べる
+  };
   excludeKeywords?: string[];
   excludeKeywordField?: string;
 }
