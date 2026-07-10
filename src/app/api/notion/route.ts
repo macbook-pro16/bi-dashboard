@@ -264,8 +264,8 @@ export async function GET(request: NextRequest) {
         chassisNumber,
         date: dateVal,
         status: statusText,
-        last_edited_by: mapUserName(lastEditedBy),
-        created_by: mapUserName(createdBy),
+        last_edited_by: lastEditedBy,
+        created_by: createdBy,
       };
 
       // その他すべてのプロパティを動的に抽出
