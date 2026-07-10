@@ -262,7 +262,7 @@ function DashboardInner() {
     const getInitialCacheStore = (): CacheStore => {
     if (typeof window === 'undefined') return {};
     try {
-      const raw = localStorage.getItem('bi-cache-store');
+      const raw = localStorage.getItem('bi-cache-store-v2');
       if (raw) {
         // ★ 一時対応：キャッシュをクリアして、Notion置換後の新データを取得させる
         localStorage.removeItem('bi-cache-store');
@@ -276,7 +276,7 @@ function DashboardInner() {
     // cacheStore が更新されたら localStorage に保存（初回も含む）
   useEffect(() => {
     try {
-      localStorage.setItem('bi-cache-store', JSON.stringify(cacheStore));
+      localStorage.setItem('bi-cache-store-v2', JSON.stringify(cacheStore));
     } catch {}
   }, [cacheStore]);
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: DATABASE_CONFIG.length });
