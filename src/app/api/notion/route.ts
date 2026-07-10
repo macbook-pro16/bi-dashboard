@@ -16,9 +16,10 @@ function extractNotionValue(prop: any): any {
     return prop;
   }
 
-  // ユーザーオブジェクトの検出 (id と name を持ち、type が people でない場合)
-  if (prop.object === 'user' && prop.name) {
-    return prop.name;
+  // ユーザーオブジェクトの検出
+  if (prop.object === 'user') {
+    if (prop.name) return prop.name;
+    if (prop.id) return prop.id; // フォールバックとしてUUIDを返す（後でマッピングテーブルで置換）
   }
   if (prop.id && prop.name && !prop.type) {
     return prop.name;
