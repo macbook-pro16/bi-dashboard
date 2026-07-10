@@ -259,8 +259,26 @@ function DashboardInner() {
   const { addToast } = useToast();
   const { colors } = useTheme();
 
-  const [cacheStore, setCacheStore] = useState<CacheStore>({});
+  const getInitialCacheStore = (): CacheStore => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem('bi-cache-store');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // 念のため有効なオブジェクトか確認
+        if (typeof parsed === 'object' && parsed !== null) return parsed;
+      }
+    } catch {}
+    return {};
+  };
+  const [cacheStore, setCacheStore] = useState<CacheStore>(getInitialCacheStore);
   const [loadingAll, setLoadingAll] = useState(true);
+    // cacheStore が更新されたら localStorage に保存（初回も含む）
+  useEffect(() => {
+    try {
+      localStorage.setItem('bi-cache-store', JSON.stringify(cacheStore));
+    } catch {}
+  }, [cacheStore]);
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: DATABASE_CONFIG.length });
 
   const [mode, setMode] = useState<DashboardMode>('fullscreen');
@@ -647,7 +665,13 @@ function DashboardInner() {
     }
   }, [fetchAllDatabases, addToast]);
 
-  useEffect(()=>{if(status==='authenticated')fetchAllDatabases(false);},[status,fetchAllDatabases]);
+  useEffect(() => {
+    if (status === 'authenticated') {
+      // キャッシュが存在する場合は、ローディング画面を出さずにバックグラウンド更新
+      const hasCache = Object.keys(cacheStore).length > 0;
+      fetchAllDatabases(!hasCache); // hasCache=true → silent=true
+    }
+  }, [status, fetchAllDatabases, cacheStore]);
   useEffect(()=>{ if(refreshInterval<=0)return; const iv=setInterval(()=>fetchAllDatabases(true),refreshInterval); return()=>clearInterval(iv); },[refreshInterval,fetchAllDatabases]);
 
       const usedSources = useMemo(() =>
