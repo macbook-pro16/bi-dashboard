@@ -235,24 +235,25 @@ export async function GET(request: NextRequest) {
 
       let lastEditedBy = '';
       if (page.last_edited_by) {
-        lastEditedBy = page.last_edited_by.name 
-          || page.last_edited_by.person?.email 
-          || page.last_edited_by.id 
-          || '';
-      }
-      // Notionの自動化によるID（"00000000-0000-0000-0000-000000000003"）の場合は「Notion」に置換
-      // Notion自動化のID "00000000-0000-0000-0000-000000000003" のみ「Notion」に置換
-      if (lastEditedBy === '00000000-0000-0000-0000-000000000003') {
-        lastEditedBy = 'Notion';
+        // Notionの自動化（Bot）の場合は「Notion」と表示
+        if ((page.last_edited_by as any).type === 'bot') {
+          lastEditedBy = 'Notion';
+        } else {
+          lastEditedBy = page.last_edited_by.name 
+            || page.last_edited_by.person?.email 
+            || page.last_edited_by.id 
+            || '';
+        }
       }
       
       let createdBy = '';
       if (page.created_by) {
-        createdBy = page.created_by.name || page.created_by.id || '';
-      }
-      // Notion自動化のID "00000000-0000-0000-0000-000000000003" のみ「Notion」に置換
-      if (createdBy === '00000000-0000-0000-0000-000000000003') {
-        createdBy = 'Notion';
+        // Notionの自動化（Bot）の場合は「Notion」と表示
+        if ((page.created_by as any).type === 'bot') {
+          createdBy = 'Notion';
+        } else {
+          createdBy = page.created_by.name || page.created_by.id || '';
+        }
       }
 
       const baseItem: any = {
