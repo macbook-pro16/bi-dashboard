@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { DBItem } from '../types';
+import { useToast } from './Toast';
 
 function extractFileUrls(val: any): { url: string; name: string; type?: string }[] {
   if (!val) return [];
@@ -53,6 +54,7 @@ interface DrilldownModalProps {
 export default function DrilldownModal({
   open, onClose, title, data, filterField, filterValue, columns, images = [],
 }: DrilldownModalProps) {
+  const { addToast } = useToast();
   const [search, setSearch] = useState('');
   const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
 
@@ -176,7 +178,19 @@ return <span className="truncate block max-w-[200px]" title={strVal}>{strVal}</s
                 {filtered.map(item => (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                     {displayColumns.map(key => (
-                      <td key={key} className="py-2 px-3">
+                      <td 
+                        key={key} 
+                        className="py-2 px-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                        onClick={() => {
+                          const rawValue = item[key];
+                          const textToCopy = typeof rawValue === 'boolean' ? String(rawValue) : (rawValue ?? '').toString();
+                          navigator.clipboard.writeText(textToCopy).then(() => {
+                            addToast('コピーしました', 'success');
+                          }).catch(() => {
+                            addToast('コピーに失敗しました', 'error');
+                          });
+                        }}
+                      >
                         {renderCellValue(item[key])}
                       </td>
                     ))}
