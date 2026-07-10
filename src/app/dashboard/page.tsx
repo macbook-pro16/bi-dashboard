@@ -2190,18 +2190,18 @@ function DashboardInner() {
           </section>
 
           {!leftSidebarOpen && (
-            <div className="flex flex-col items-center gap-3 mt-4">
+            <div className="flex flex-col items-center gap-1 mt-4">
               <button
                 type="button"
-                onClick={() => alert('clicked')}
-                className="w-10 h-10 rounded-xl ..."
+                onClick={() => refreshDataInBackground()}
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-white text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-400 transition-colors"
                 title="データを更新（バックグラウンド）"
               >
                 <Icons.Download className="w-5 h-5" />
               </button>
               <button
                 type="button"
-                onClick={refreshDataFull}
+                onClick={() => refreshDataFull()}
                 className="w-10 h-10 rounded-xl flex items-center justify-center bg-white text-rose-500 hover:text-rose-600 border border-slate-200 hover:border-rose-400 transition-colors"
                 title="データを強制全更新"
               >
@@ -2337,21 +2337,21 @@ function DashboardInner() {
               <button onClick={() => toggleMode('fullscreen')} className="w-full py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 shadow-md transition-all flex justify-center items-center gap-2 mt-2">
                 <Icons.Maximize className="w-4 h-4" /> 全画面表示
               </button>
-              <button
+                            <button
                 type="button"
-                onClick={refreshDataInBackground}
-                className="w-full py-2.5 bg-white text-slate-600 text-sm font-medium rounded-xl border border-slate-200 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 mt-2"
-                title="バックグラウンドで更新"
+                onClick={() => refreshDataInBackground()}
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-white text-slate-500 hover:text-indigo-600 border border-slate-200 hover:border-indigo-400 transition-colors"
+                title="データを更新（バックグラウンド）"
               >
-                <Icons.Download className="w-4 h-4" /> データを更新
+                <Icons.Download className="w-5 h-5" />
               </button>
               <button
                 type="button"
-                onClick={refreshDataFull}
-                className="w-full py-2.5 bg-white text-rose-600 text-sm font-medium rounded-xl border border-rose-200 hover:bg-rose-50 transition-all flex items-center justify-center gap-2 mt-2"
-                title="全データを再取得（時間がかかります）"
+                onClick={() => refreshDataFull()}
+                className="w-10 h-10 rounded-xl flex items-center justify-center bg-white text-rose-500 hover:text-rose-600 border border-slate-200 hover:border-rose-400 transition-colors"
+                title="データを強制全更新"
               >
-                <Icons.Download className="w-4 h-4" /> 強制全更新
+                <Icons.Download className="w-5 h-5" />
               </button>
             </section>
           </div>
