@@ -246,6 +246,12 @@ export interface TableConfig {
   groupHeaderBadgeLabelColor?: string;
   groupHeaderBadgeValueColor?: string;
   rowHeight?: number;
+  // グループヘッダーのソートルール
+  groupSortRules?: {
+    id: string;
+    condition: 'contains' | 'not_contains';
+    text: string;
+  }[];
   // 優先ソート: 指定フィールドの値がこの配列の順に先頭に並ぶ
   prioritySort?: {
     field: string;

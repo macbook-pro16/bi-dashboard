@@ -12,7 +12,7 @@ import {
   DndContext, useDraggable, useSensor, useSensors, PointerSensor,
   DragEndEvent, DragMoveEvent, closestCenter,
 } from '@dnd-kit/core';
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 import { FilterProvider, useFilter } from '../../contexts/FilterContext';
@@ -4040,6 +4040,87 @@ function DashboardInner() {
             <span className="text-xs text-slate-600">グループ内の件数を表示</span>
           </label>
         </div>
+
+        {/* ★ 追加：グループのソート順 */}
+        <div className="space-y-3 pt-3 border-t border-slate-100">
+          <label className="text-xs font-bold text-slate-700">📊 グループのソート順</label>
+          <p className="text-[10px] text-slate-400">
+            キーワードの「含む/含まない」でグループの並び順を制御します。上から優先評価されます。
+          </p>
+
+          {/* ルール一覧（ドラッグで並び替え） */}
+          <DndContext
+            sensors={useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))}
+            collisionDetection={closestCenter}
+            onDragEnd={(e: DragEndEvent) => {
+              const { active, over } = e;
+              if (!over || active.id === over.id) return;
+              const current = activeEditorWidget.tableConfig || {};
+              const rules = [...(current.groupSortRules || [])];
+              const oldIndex = rules.findIndex(r => r.id === active.id);
+              const newIndex = rules.findIndex(r => r.id === over.id);
+              if (oldIndex !== -1 && newIndex !== -1) {
+                updateSelectedDesign('_multi', {
+                  tableConfig: { ...current, groupSortRules: arrayMove(rules, oldIndex, newIndex) }
+                });
+              }
+            }}
+          >
+            <SortableContext items={(activeEditorWidget.tableConfig?.groupSortRules || []).map(r => r.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-1">
+                {(activeEditorWidget.tableConfig?.groupSortRules || []).map((rule) => (
+                  <SortableGroupRuleItem
+                    key={rule.id}
+                    rule={rule}
+                    onUpdate={(updatedRule) => {
+                      const current = activeEditorWidget.tableConfig || {};
+                      const rules = (current.groupSortRules || []).map(r => r.id === updatedRule.id ? updatedRule : r);
+                      updateSelectedDesign('_multi', { tableConfig: { ...current, groupSortRules: rules } });
+                    }}
+                    onDelete={() => {
+                      const current = activeEditorWidget.tableConfig || {};
+                      const rules = (current.groupSortRules || []).filter(r => r.id !== rule.id);
+                      updateSelectedDesign('_multi', { tableConfig: { ...current, groupSortRules: rules.length > 0 ? rules : undefined } });
+                    }}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+
+          {/* ルール追加フォーム */}
+          <div className="flex gap-1 items-end">
+            <select
+              defaultValue="contains"
+              id={`new-rule-condition`}
+              className="text-xs border border-slate-200 rounded px-1 py-1.5 bg-white outline-none"
+            >
+              <option value="contains">含む</option>
+              <option value="not_contains">含まない</option>
+            </select>
+            <input
+              id={`new-rule-text`}
+              type="text"
+              placeholder="キーワード"
+              className="flex-1 text-xs border border-slate-200 rounded px-2 py-1.5 bg-white outline-none"
+            />
+            <button
+              onClick={() => {
+                const condition = (document.getElementById('new-rule-condition') as HTMLSelectElement).value as 'contains' | 'not_contains';
+                const text = (document.getElementById('new-rule-text') as HTMLInputElement).value.trim();
+                if (!text) return;
+                const current = activeEditorWidget.tableConfig || {};
+                const newRule = { id: `rule_${Date.now()}`, condition, text };
+                const rules = [...(current.groupSortRules || []), newRule];
+                updateSelectedDesign('_multi', { tableConfig: { ...current, groupSortRules: rules } });
+                (document.getElementById('new-rule-text') as HTMLInputElement).value = '';
+              }}
+              className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              追加
+            </button>
+          </div>
+        </div>
         <div>
           <label className="text-xs font-medium text-slate-500 mb-1 block">グループヘッダー背景色</label>
           <input
@@ -5385,6 +5466,43 @@ function DashboardInner() {
       {showTemplateGallery&&<TemplateGallery onSelect={handleTemplateSelect} onClose={()=>setShowTemplateGallery(false)}/>}
       <AiSummaryModal open={showAiSummary} onClose={()=>setShowAiSummary(false)} summary={aiSummary} />
       {drilldown && <DrilldownModal open={!!drilldown} onClose={()=>setDrilldown(null)} title={drilldown.widgetTitle} data={drilldown.data ?? activeFilteredData} filterField={drilldown.field} filterValue={drilldown.value} columns={drilldown.columns} images={drilldown.images} />}
+    </div>
+  );
+}
+
+// ★ 追加：グループソートルールのドラッグ用コンポーネント
+function SortableGroupRuleItem({ rule, onUpdate, onDelete }: {
+  rule: { id: string; condition: 'contains' | 'not_contains'; text: string };
+  onUpdate: (updatedRule: any) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: rule.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+      <button {...attributes} {...listeners} className="cursor-grab text-slate-400 hover:text-slate-600 p-0.5">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="9" cy="5" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="9" cy="19" r="1" />
+          <circle cx="15" cy="5" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="19" r="1" />
+        </svg>
+      </button>
+      <span className="text-[10px] font-medium text-slate-500 w-14">
+        {rule.condition === 'contains' ? '含む' : '含まない'}
+      </span>
+      <input
+        type="text"
+        value={rule.text}
+        onChange={(e) => onUpdate({ ...rule, text: e.target.value })}
+        className="flex-1 text-xs border border-slate-200 rounded px-2 py-1 bg-white outline-none"
+      />
+      <button onClick={onDelete} className="text-slate-400 hover:text-rose-500 p-0.5">
+        <Icons.X className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
