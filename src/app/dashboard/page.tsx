@@ -5470,6 +5470,43 @@ function DashboardInner() {
   );
 }
 
+// ★ 追加：グループソートルールのドラッグ用コンポーネント
+function SortableGroupRuleItem({ rule, onUpdate, onDelete }: {
+  rule: { id: string; condition: 'contains' | 'not_contains'; text: string };
+  onUpdate: (updatedRule: any) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: rule.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+      <button {...attributes} {...listeners} className="cursor-grab text-slate-400 hover:text-slate-600 p-0.5">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="9" cy="5" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="9" cy="19" r="1" />
+          <circle cx="15" cy="5" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="19" r="1" />
+        </svg>
+      </button>
+      <span className="text-[10px] font-medium text-slate-500 w-14">
+        {rule.condition === 'contains' ? '含む' : '含まない'}
+      </span>
+      <input
+        type="text"
+        value={rule.text}
+        onChange={(e) => onUpdate({ ...rule, text: e.target.value })}
+        className="flex-1 text-xs border border-slate-200 rounded px-2 py-1 bg-white outline-none"
+      />
+      <button onClick={onDelete} className="text-slate-400 hover:text-rose-500 p-0.5">
+        <Icons.X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   return (
     <FilterProvider>
