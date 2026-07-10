@@ -236,22 +236,26 @@ export async function GET(request: NextRequest) {
 
       let lastEditedBy = '';
       if (page.last_edited_by) {
-        lastEditedBy = page.last_edited_by.name 
-          || page.last_edited_by.person?.email 
-          || page.last_edited_by.id 
-          || '';
-      }
-      // 特定のNotion自動化IDだけを「Notion」に置換
-      if (lastEditedBy === '00000000-0000-0000-0000-000000000003') {
-        lastEditedBy = 'Notion';
+        const rawName = page.last_edited_by.name;
+        if (rawName) {
+          // ユーザー名があればそのまま表示
+          lastEditedBy = rawName;
+        } else {
+          // 名前がない場合のみUUIDが返ってくるので、BotのIDなら「Notion」に置換
+          const rawId = page.last_edited_by.id || '';
+          lastEditedBy = (rawId === '00000000-0000-0000-0000-000000000003') ? 'Notion' : rawId;
+        }
       }
       
       let createdBy = '';
       if (page.created_by) {
-        createdBy = page.created_by.name || page.created_by.id || '';
-      }
-      if (createdBy === '00000000-0000-0000-0000-000000000003') {
-        createdBy = 'Notion';
+        const rawName = page.created_by.name;
+        if (rawName) {
+          createdBy = rawName;
+        } else {
+          const rawId = page.created_by.id || '';
+          createdBy = (rawId === '00000000-0000-0000-0000-000000000003') ? 'Notion' : rawId;
+        }
       }
 
       const baseItem: any = {
@@ -260,8 +264,8 @@ export async function GET(request: NextRequest) {
         chassisNumber,
         date: dateVal,
         status: statusText,
-        last_edited_by: lastEditedBy,
-        created_by: createdBy,
+        last_edited_by: mapUserName(lastEditedBy),
+        created_by: mapUserName(createdBy),
       };
 
       // その他すべてのプロパティを動的に抽出
