@@ -236,32 +236,25 @@ export async function GET(request: NextRequest) {
 
             let lastEditedBy = '';
       if (page.last_edited_by) {
-        // デバッグ用：実際のlast_edited_byオブジェクトをログ出力
-        console.log('last_edited_by:', JSON.stringify(page.last_edited_by));
-        const { name, person, id } = page.last_edited_by as any;
-        // ユーザー名を取得（name または person.name を試す）
-        const displayName = name || person?.name || '';
-        if (displayName) {
-          lastEditedBy = displayName;
-        } else {
-          // 名前がない場合はUUID、BotのIDなら「Notion」に置換
-          lastEditedBy = (id === '00000000-0000-0000-0000-000000000003') ? 'Notion' : (id || '');
-        }
+        lastEditedBy = page.last_edited_by.name 
+          || page.last_edited_by.person?.email 
+          || page.last_edited_by.id 
+          || '';
+      }
+      // Notion自動化のBotの場合のみ「Notion」に置換
+      if (lastEditedBy === '00000000-0000-0000-0000-000000000003') {
+        lastEditedBy = 'Notion';
       }
       
       let createdBy = '';
       if (page.created_by) {
-        console.log('created_by:', JSON.stringify(page.created_by));
-        const { name, person, id } = page.created_by as any;
-        const displayName = name || person?.name || '';
-        if (displayName) {
-          createdBy = displayName;
-        } else {
-          createdBy = (id === '00000000-0000-0000-0000-000000000003') ? 'Notion' : (id || '');
-        }
+        createdBy = page.created_by.name || page.created_by.id || '';
+      }
+      if (createdBy === '00000000-0000-0000-0000-000000000003') {
+        createdBy = 'Notion';
       }
 
-      const baseItem: any = {
+            const baseItem: any = {
         id: page.id,
         name: titleText,
         chassisNumber,
