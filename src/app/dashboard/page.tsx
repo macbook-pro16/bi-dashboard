@@ -279,6 +279,15 @@ function DashboardInner() {
       localStorage.setItem('bi-cache-store', JSON.stringify(cacheStore));
     } catch {}
   }, [cacheStore]);
+
+  // ★ 追加：起動時にキャッシュがあればバックグラウンドでデータ取得
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const hasCache = Object.keys(cacheStore).length > 0;
+      fetchAllDatabases(!hasCache); // キャッシュあり→silent=true（ローディングなし）
+    }
+  }, [status]); // status が変わったときだけ実行
+
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: DATABASE_CONFIG.length });
 
   const [mode, setMode] = useState<DashboardMode>('fullscreen');
