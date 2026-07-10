@@ -241,8 +241,8 @@ export async function GET(request: NextRequest) {
           || '';
       }
       // Notionの自動化によるID（"00000000-0000-0000-0000-000000000003"）の場合は「Notion」に置換
-      // UUID形式（例: 00000000-0000-0000-0000-000000000003）または数字とハイフンのみなら「Notion」に置換
-      if (/^[0-9a-f-]+$/i.test(lastEditedBy) && lastEditedBy.length > 20) {
+      // Notion自動化のID "00000000-0000-0000-0000-000000000003" のみ「Notion」に置換
+      if (lastEditedBy === '00000000-0000-0000-0000-000000000003') {
         lastEditedBy = 'Notion';
       }
       
@@ -250,8 +250,8 @@ export async function GET(request: NextRequest) {
       if (page.created_by) {
         createdBy = page.created_by.name || page.created_by.id || '';
       }
-      // UUID形式（例: 00000000-0000-0000-0000-000000000003）または数字とハイフンのみなら「Notion」に置換
-      if (/^[0-9a-f-]+$/i.test(createdBy) && createdBy.length > 20) {
+      // Notion自動化のID "00000000-0000-0000-0000-000000000003" のみ「Notion」に置換
+      if (createdBy === '00000000-0000-0000-0000-000000000003') {
         createdBy = 'Notion';
       }
 
