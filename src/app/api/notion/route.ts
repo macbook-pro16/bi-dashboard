@@ -240,8 +240,8 @@ export async function GET(request: NextRequest) {
           || page.last_edited_by.id 
           || '';
       }
-      // UUID形式（例: 00000000-0000-0000-0000-000000000003）なら「Notion」に置換
-      if (/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(lastEditedBy)) {
+      // Notionの自動化によるID（"00000000-0000-0000-0000-000000000003"）の場合は「Notion」に置換
+      if (lastEditedBy === '00000000-0000-0000-0000-000000000003') {
         lastEditedBy = 'Notion';
       }
       
@@ -249,7 +249,7 @@ export async function GET(request: NextRequest) {
       if (page.created_by) {
         createdBy = page.created_by.name || page.created_by.id || '';
       }
-      if (/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(createdBy)) {
+      if (createdBy === '00000000-0000-0000-0000-000000000003') {
         createdBy = 'Notion';
       }
 
