@@ -240,6 +240,10 @@ export async function GET(request: NextRequest) {
           || page.last_edited_by.person?.email 
           || page.last_edited_by.id 
           || '';
+        // 名前が空文字列やnullでスキップされた場合の保険
+        if (!lastEditedBy || lastEditedBy === 'null') {
+          lastEditedBy = page.last_edited_by.person?.email || page.last_edited_by.id || '';
+        }
       }
       // Notion自動化のBotの場合のみ「Notion」に置換
       if (lastEditedBy === '00000000-0000-0000-0000-000000000003') {
@@ -249,6 +253,9 @@ export async function GET(request: NextRequest) {
       let createdBy = '';
       if (page.created_by) {
         createdBy = page.created_by.name || page.created_by.id || '';
+        if (!createdBy || createdBy === 'null') {
+          createdBy = page.created_by.person?.email || page.created_by.id || '';
+        }
       }
       if (createdBy === '00000000-0000-0000-0000-000000000003') {
         createdBy = 'Notion';
