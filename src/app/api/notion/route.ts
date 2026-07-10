@@ -240,8 +240,8 @@ export async function GET(request: NextRequest) {
           || page.last_edited_by.id 
           || '';
       }
-      // UUID形式（例: 00000000-0000-0000-0000-000000000000）なら「Notion」に置換
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastEditedBy)) {
+      // UUID形式（例: 00000000-0000-0000-0000-000000000003）なら「Notion」に置換
+      if (/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(lastEditedBy)) {
         lastEditedBy = 'Notion';
       }
       
@@ -249,7 +249,7 @@ export async function GET(request: NextRequest) {
       if (page.created_by) {
         createdBy = page.created_by.name || page.created_by.id || '';
       }
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(createdBy)) {
+      if (/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(createdBy)) {
         createdBy = 'Notion';
       }
 
