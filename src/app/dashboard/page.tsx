@@ -609,46 +609,35 @@ function DashboardInner() {
       setLoadingProgress({ loaded: 0, total: DATABASE_CONFIG.length });
     }
     const nc: CacheStore = {};
-    const limit = 3; // 同時リクエスト数の上限
-    const results: { index: string; data: any[] }[] = [];
 
-    // リクエストを limit 件ずつ実行
-    for (let i = 0; i < DATABASE_CONFIG.length; i += limit) {
-      const batch = DATABASE_CONFIG.slice(i, i + limit);
-      const batchResults = await Promise.allSettled(
-        batch.map(async (c) => {
-          try {
-            const apiPath = c.index.startsWith('wp_')
-              ? `/api/wordpress?type=${c.index.replace('wp_', '')}`
-              : `/api/notion?index=${c.index}`;
-            const res = await fetch(apiPath, { credentials: 'include' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            const d = await res.json();
-            if (!d.success) throw new Error(d.error || 'unknown error');
-            return { index: c.index, data: d.data || [] };
-          } catch (e: any) {
-            console.error(`Failed to fetch ${c.index}:`, e);
-            if (!silent && addToastRef.current) {
-              addToastRef.current(`[${c.name}] 取得エラー: ${e.message || '不明なエラー'}`, 'error');
-            }
-            return { index: c.index, data: [] };
+    const results = await Promise.allSettled(
+      DATABASE_CONFIG.map(async (c) => {
+        try {
+          const apiPath = c.index.startsWith('wp_')
+            ? `/api/wordpress?type=${c.index.replace('wp_', '')}`
+            : `/api/notion?index=${c.index}`;
+          const res = await fetch(apiPath, { credentials: 'include' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          const d = await res.json();
+          if (!d.success) throw new Error(d.error || 'unknown error');
+          return { index: c.index, data: d.data || [] };
+        } catch (e: any) {
+          console.error(`Failed to fetch ${c.index}:`, e);
+          if (!silent && addToastRef.current) {
+            addToastRef.current(`[${c.name}] 取得エラー: ${e.message || '不明なエラー'}`, 'error');
           }
-        })
-      );
-
-      batchResults.forEach((result, idx) => {
-        const c = batch[idx];
-        if (result.status === 'fulfilled') {
-          nc[result.value.index] = result.value.data;
+          return { index: c.index, data: [] };
         }
-        if (!silent) setLoadingProgress(prev => ({ ...prev, loaded: prev.loaded + 1 }));
-      });
+      })
+    );
 
-      // バッチ間に少し間隔をあける（500ms）
-      if (i + limit < DATABASE_CONFIG.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+    results.forEach((result, i) => {
+      const c = DATABASE_CONFIG[i];
+      if (result.status === 'fulfilled') {
+        nc[result.value.index] = result.value.data;
       }
-    }
+      if (!silent) setLoadingProgress(prev => ({ ...prev, loaded: prev.loaded + 1 }));
+    });
 
     if (Object.keys(nc).length > 0) {
       setCacheStore(prev => ({ ...prev, ...nc }));
@@ -677,11 +666,9 @@ function DashboardInner() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      // キャッシュが存在する場合は、ローディング画面を出さずにバックグラウンド更新
-      const hasCache = Object.keys(cacheStore).length > 0;
-      fetchAllDatabases(!hasCache); // hasCache=true → silent=true
+      fetchAllDatabases(false);
     }
-  }, [status, fetchAllDatabases, cacheStore]);
+  }, [status, fetchAllDatabases]);
   useEffect(()=>{ if(refreshInterval<=0)return; const iv=setInterval(()=>fetchAllDatabases(true),refreshInterval); return()=>clearInterval(iv); },[refreshInterval,fetchAllDatabases]);
 
       const usedSources = useMemo(() =>
