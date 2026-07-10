@@ -235,24 +235,21 @@ export async function GET(request: NextRequest) {
 
       let lastEditedBy = '';
       if (page.last_edited_by) {
-        // Notionの自動化（Bot）の場合は「Notion」と表示
-        if ((page.last_edited_by as any).type === 'bot') {
+        const editor = page.last_edited_by as { type?: string; name?: string | null; person?: { email?: string }; id: string };
+        if (editor.type === 'bot') {
           lastEditedBy = 'Notion';
         } else {
-          lastEditedBy = page.last_edited_by.name 
-            || page.last_edited_by.person?.email 
-            || page.last_edited_by.id 
-            || '';
+          lastEditedBy = editor.name || editor.person?.email || editor.id || '';
         }
       }
       
       let createdBy = '';
       if (page.created_by) {
-        // Notionの自動化（Bot）の場合は「Notion」と表示
-        if ((page.created_by as any).type === 'bot') {
+        const creator = page.created_by as { type?: string; name?: string | null; id: string };
+        if (creator.type === 'bot') {
           createdBy = 'Notion';
         } else {
-          createdBy = page.created_by.name || page.created_by.id || '';
+          createdBy = creator.name || creator.id || '';
         }
       }
 
