@@ -239,23 +239,7 @@ export default function DataTable({ data, config, statusOptions = [], onStatusCh
       groups[key].push(item);
     });
 
-    const groupSortRules = config?.groupSortRules || [];
-    if (groupSortRules.length > 0) {
-      groupKeys.sort((a, b) => {
-        const aLower = a.toLowerCase();
-        const bLower = b.toLowerCase();
-        for (const rule of groupSortRules) {
-          const text = rule.text.toLowerCase();
-          const aMatch = rule.condition === 'contains' ? aLower.includes(text) : !aLower.includes(text);
-          const bMatch = rule.condition === 'contains' ? bLower.includes(text) : !bLower.includes(text);
-          if (aMatch && !bMatch) return -1;
-          if (!aMatch && bMatch) return 1;
-        }
-        return a.localeCompare(b, 'ja');
-      });
-    } else {
-      groupKeys.sort((a, b) => a.localeCompare(b, 'ja'));
-    }
+    groupKeys.sort((a, b) => a.localeCompare(b, 'ja'));
 
     return { groups, groupKeys };
   }, [filteredData, groupBy]);
