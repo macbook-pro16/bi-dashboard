@@ -1,14 +1,66 @@
 import { NextResponse, NextRequest } from 'next/server';
 
+// ★ 簡易インメモリキャッシュ (データ用とユーザー用)
+const CACHE_TTL_MS = 60_000; // 1分
+const USER_CACHE_TTL_MS = 300_000; // ユーザー情報は更新頻度が低いため5分キャッシュ
+const cache = new Map<string, { data: any; timestamp: number }>();
+
+let userCache: Record<string, string> | null = null;
+let userCacheTimestamp = 0;
+
 // ==========================================
-// ★大幅改善：Notionの複雑なプロパティから「人間が読める値」だけを的確に抽出する再帰関数
+// ★追加：Notionのユーザー一覧を取得し、UUID -> 名前のマッピングを作成する関数
 // ==========================================
-function extractNotionValue(prop: any): any {
+async function getUserMap(apiKey: string): Promise<Record<string, string>> {
+  // キャッシュが有効なら返す
+  if (userCache && Date.now() - userCacheTimestamp < USER_CACHE_TTL_MS) {
+    return userCache;
+  }
+
+  try {
+    const response = await fetch('https://api.notion.com/v1/users', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Notion-Version': '2022-06-28',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch Notion users');
+      return userCache || {}; // 失敗時は古いキャッシュか空オブジェクトを返す
+    }
+
+    const data = await response.json();
+    const map: Record<string, string> = {};
+
+    if (data.results) {
+      data.results.forEach((u: any) => {
+        // 名前 -> メールアドレス -> UUID の順で優先して設定
+        map[u.id] = u.name || u.person?.email || u.id;
+      });
+    }
+
+    // Notionの内部Bot用デフォルトID
+    map['00000000-0000-0000-0000-000000000003'] = 'Notion';
+
+    userCache = map;
+    userCacheTimestamp = Date.now();
+    return map;
+  } catch (error) {
+    console.error('User map generation error:', error);
+    return userCache || {};
+  }
+}
+
+// ==========================================
+// ★修正：第2引数に userMap を受け取り、UUIDを名前に変換できるようにする
+// ==========================================
+function extractNotionValue(prop: any, userMap: Record<string, string> = {}): any {
   if (!prop) return '';
 
-  // 配列の場合は各要素を展開してカンマ区切りで結合
+  // 配列の場合は各要素を展開してカンマ区切りで結合（再帰呼び出しにもuserMapを渡す）
   if (Array.isArray(prop)) {
-    return prop.map(extractNotionValue).filter(v => v !== '' && v !== null && v !== undefined).join(', ');
+    return prop.map((p) => extractNotionValue(p, userMap)).filter(v => v !== '' && v !== null && v !== undefined).join(', ');
   }
 
   // オブジェクト以外（既に文字列や数値）ならそのまま返す
@@ -16,10 +68,9 @@ function extractNotionValue(prop: any): any {
     return prop;
   }
 
-  // ユーザーオブジェクトの検出
+  // ユーザーオブジェクトの検出（Partial User対策）
   if (prop.object === 'user') {
-    if (prop.name) return prop.name;
-    if (prop.id) return prop.id; // フォールバックとしてUUIDを返す（後でマッピングテーブルで置換）
+    return userMap[prop.id] || prop.name || prop.id;
   }
   if (prop.id && prop.name && !prop.type) {
     return prop.name;
@@ -55,15 +106,20 @@ function extractNotionValue(prop: any): any {
       return prop.created_time || '';
     case 'last_edited_time':
       return prop.last_edited_time || '';
-    // ★追加：作成者と最終更新者のプロパティタイプ専用の抽出処理
-    case 'created_by':
-      return prop.created_by?.name || prop.created_by?.person?.email || prop.created_by?.id || '';
-    case 'last_edited_by':
-      return prop.last_edited_by?.name || prop.last_edited_by?.person?.email || prop.last_edited_by?.id || '';
+
+    // ★修正：UUIDを使って userMap から名前を取得
+    case 'created_by': {
+      const cbId = prop.created_by?.id;
+      return userMap[cbId] || prop.created_by?.name || prop.created_by?.person?.email || cbId || '';
+    }
+    case 'last_edited_by': {
+      const lebId = prop.last_edited_by?.id;
+      return userMap[lebId] || prop.last_edited_by?.name || prop.last_edited_by?.person?.email || lebId || '';
+    }
     case 'people':
-      return prop.people?.map((p: any) => extractNotionValue(p)).filter(Boolean).join(', ') || '';
+      return prop.people?.map((p: any) => extractNotionValue(p, userMap)).filter(Boolean).join(', ') || '';
+    
     case 'files': {
-      // ★★★ 修正A: 構造化されたオブジェクト配列をJSON文字列で返す ★★★
       const fileItems = prop.files?.map((f: any) => ({
         type: f.type,
         name: f.name || '',
@@ -76,7 +132,7 @@ function extractNotionValue(prop: any): any {
     }
     case 'relation': {
       if (Array.isArray(prop.relation)) {
-        return prop.relation.map((r: any) => extractNotionValue(r)).filter(Boolean).join(', ') || '';
+        return prop.relation.map((r: any) => extractNotionValue(r, userMap)).filter(Boolean).join(', ') || '';
       }
       return '';
     }
@@ -96,7 +152,7 @@ function extractNotionValue(prop: any): any {
       if (r.type === 'date') return r.date?.start || '';
       if (r.type === 'array') {
         return r.array.map((item: any) => {
-          const val = extractNotionValue(item);
+          const val = extractNotionValue(item, userMap);
           return typeof val === 'object' ? JSON.stringify(val) : String(val);
         }).filter(Boolean).join(', ');
       }
@@ -120,10 +176,6 @@ function extractNotionValue(prop: any): any {
   }
 }
 
-// ★ 簡易インメモリキャッシュ
-const CACHE_TTL_MS = 60_000; // 1分
-const cache = new Map<string, { data: any; timestamp: number }>();
-
 export async function GET(request: NextRequest) {
   try {
     const apiKey = process.env.NOTION_API_KEY;
@@ -140,7 +192,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: `環境変数 [${envKey}] が定義されていません。` }, { status: 400 });
     }
 
-    // キャッシュチェック
+    // データキャッシュチェック
     const cacheKey = `notion_${index}`;
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -152,6 +204,9 @@ export async function GET(request: NextRequest) {
         cached: true,
       });
     }
+
+    // ★追加：ユーザーマッピングの取得
+    const userMap = await getUserMap(apiKey);
 
     let allResults: any[] = [];
     let hasMore = true;
@@ -186,7 +241,6 @@ export async function GET(request: NextRequest) {
     const formattedData = allResults.map((page: any) => {
       const props = page.properties || {};
 
-      // タイトルの抽出
       let titleText = '---';
       for (const key of Object.keys(props)) {
         if (props[key]?.type === 'title') {
@@ -195,13 +249,12 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // 車体番号の抽出
       const chassisCandidates = ['車体番号', '車台番号', '管理番号', '車体NO', '品番', 'Chassis', 'chassisNumber'];
       let chassisNumber = '---';
       for (const key of chassisCandidates) {
         const prop = props[key];
         if (prop) {
-          const val = extractNotionValue(prop);
+          const val = extractNotionValue(prop, userMap); // ★ userMap を渡す
           if (val) { 
             chassisNumber = String(val); 
             break; 
@@ -209,7 +262,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // 日付の抽出
       const dateCandidates = ['成約日', '期日', '仕入日', '日付', 'Date', 'date'];
       let dateVal: string | null = null;
       for (const key of dateCandidates) {
@@ -220,13 +272,12 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // ステータスの抽出
       const statusCandidates = ['ステータス', '状況', '状態', 'Status', 'status'];
       let statusText = '---';
       for (const key of statusCandidates) {
         const prop = props[key];
         if (prop) {
-          const val = extractNotionValue(prop);
+          const val = extractNotionValue(prop, userMap); // ★ userMap を渡す
           if (val) { 
             statusText = String(val); 
             break; 
@@ -234,34 +285,26 @@ export async function GET(request: NextRequest) {
         }
       }
 
-            let lastEditedBy = '';
+      // ★修正：トップレベルのユーザー情報も userMap を使って名前を解決
+      let lastEditedBy = '';
       if (page.last_edited_by) {
-        lastEditedBy = page.last_edited_by.name 
+        lastEditedBy = userMap[page.last_edited_by.id] 
+          || page.last_edited_by.name 
           || page.last_edited_by.person?.email 
           || page.last_edited_by.id 
           || '';
-        // 名前が空文字列やnullでスキップされた場合の保険
-        if (!lastEditedBy || lastEditedBy === 'null') {
-          lastEditedBy = page.last_edited_by.person?.email || page.last_edited_by.id || '';
-        }
-      }
-      // Notion自動化のBotの場合のみ「Notion」に置換
-      if (lastEditedBy === '00000000-0000-0000-0000-000000000003') {
-        lastEditedBy = 'Notion';
       }
       
       let createdBy = '';
       if (page.created_by) {
-        createdBy = page.created_by.name || page.created_by.id || '';
-        if (!createdBy || createdBy === 'null') {
-          createdBy = page.created_by.person?.email || page.created_by.id || '';
-        }
-      }
-      if (createdBy === '00000000-0000-0000-0000-000000000003') {
-        createdBy = 'Notion';
+        createdBy = userMap[page.created_by.id] 
+          || page.created_by.name 
+          || page.created_by.person?.email 
+          || page.created_by.id 
+          || '';
       }
 
-            const baseItem: any = {
+      const baseItem: any = {
         id: page.id,
         name: titleText,
         chassisNumber,
@@ -274,13 +317,12 @@ export async function GET(request: NextRequest) {
       // その他すべてのプロパティを動的に抽出
       for (const key of Object.keys(props)) {
         if (['id', 'name', 'chassisNumber', 'date', 'status', 'last_edited_by', 'created_by'].includes(key)) continue;
-        baseItem[key] = extractNotionValue(props[key]);
+        baseItem[key] = extractNotionValue(props[key], userMap); // ★ userMap を渡す
       }
 
       return baseItem;
     });
 
-    // キャッシュに保存
     cache.set(cacheKey, { data: formattedData, timestamp: Date.now() });
 
     return NextResponse.json({
