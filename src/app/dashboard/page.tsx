@@ -259,14 +259,14 @@ function DashboardInner() {
   const { addToast } = useToast();
   const { colors } = useTheme();
 
-  const getInitialCacheStore = (): CacheStore => {
+    const getInitialCacheStore = (): CacheStore => {
     if (typeof window === 'undefined') return {};
     try {
       const raw = localStorage.getItem('bi-cache-store');
       if (raw) {
-        const parsed = JSON.parse(raw);
-        // 念のため有効なオブジェクトか確認
-        if (typeof parsed === 'object' && parsed !== null) return parsed;
+        // ★ 一時対応：キャッシュをクリアして、Notion置換後の新データを取得させる
+        localStorage.removeItem('bi-cache-store');
+        return {};
       }
     } catch {}
     return {};

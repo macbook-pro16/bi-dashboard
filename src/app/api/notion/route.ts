@@ -235,22 +235,22 @@ export async function GET(request: NextRequest) {
 
       let lastEditedBy = '';
       if (page.last_edited_by) {
-        const editor = page.last_edited_by as { type?: string; name?: string | null; person?: { email?: string }; id: string };
-        if (editor.type === 'bot') {
-          lastEditedBy = 'Notion';
-        } else {
-          lastEditedBy = editor.name || editor.person?.email || editor.id || '';
-        }
+        lastEditedBy = page.last_edited_by.name 
+          || page.last_edited_by.person?.email 
+          || page.last_edited_by.id 
+          || '';
+      }
+      // 特定のNotion自動化IDだけを「Notion」に置換
+      if (lastEditedBy === '00000000-0000-0000-0000-000000000003') {
+        lastEditedBy = 'Notion';
       }
       
       let createdBy = '';
       if (page.created_by) {
-        const creator = page.created_by as { type?: string; name?: string | null; id: string };
-        if (creator.type === 'bot') {
-          createdBy = 'Notion';
-        } else {
-          createdBy = creator.name || creator.id || '';
-        }
+        createdBy = page.created_by.name || page.created_by.id || '';
+      }
+      if (createdBy === '00000000-0000-0000-0000-000000000003') {
+        createdBy = 'Notion';
       }
 
       const baseItem: any = {
