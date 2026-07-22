@@ -603,42 +603,17 @@ function DashboardInner() {
     return()=>el.removeEventListener('wheel',wh);
   },[]);
 
-  // ★ 追加：Notionの1インデックスをページネーションで完走させるヘルパー
-const fetchNotionIndexPaginated = useCallback(async (index: string): Promise<any[]> => {
-  let all: any[] = [];
-  let cursor: string | undefined = undefined;
-  let hasMore = true;
-  let guard = 0; // 無限ループ防止（Notion側の異常対策）
+ const fetchAllDatabases = useCallback(async (silent = false) => {
+    if(!silent) {
+      setLoadingAll(true);
+      setLoadingProgress({ loaded: 0, total: DATABASE_CONFIG.length });
+    }
+    const nc: CacheStore = {};
 
-  while (hasMore && guard < 50) {
-    const url = new URL('/api/notion', window.location.origin);
-    url.searchParams.set('index', index);
-    if (cursor) url.searchParams.set('cursor', cursor);
-
-    const res = await fetch(url.toString(), { credentials: 'include' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    const d = await res.json();
-    if (!d.success) throw new Error(d.error || 'unknown error');
-
-    all = all.concat(d.data || []);
-    hasMore = !!d.hasMore;
-    cursor = d.nextCursor || undefined;
-    guard++;
-
-    // ★ 進捗をトーストではなくログ的に見たい場合はここでコールバックしてもよい
-  }
-  return all;
-}, []);
-
-const fetchAllDatabases = useCallback(async (silent = false) => {
-  if(!silent) {
-    setLoadingAll(true);
-    setLoadingProgress({ loaded: 0, total: DATABASE_CONFIG.length });
-  }
-  const nc: CacheStore = {};
-
-  const results = await Promise.allSettled(
-    DATABASE_CONFIG.map(async (c) => {
+    // ★ 修正：Vercel無料プランのタイムアウト・Notionのレートリミット対策として、
+    // Promise.allSettledでの並列取得をやめ、forループで直列（1つずつ順番に）取得します
+    for (let i = 0; i < DATABASE_CONFIG.length; i++) {
+      const c = DATABASE_CONFIG[i];
       try {
         if (c.index.startsWith('wp_')) {
           const apiPath = `/api/wordpress?type=${c.index.replace('wp_', '')}`;
@@ -646,35 +621,50 @@ const fetchAllDatabases = useCallback(async (silent = false) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
           const d = await res.json();
           if (!d.success) throw new Error(d.error || 'unknown error');
-          return { index: c.index, data: d.data || [] };
-        }
+          nc[c.index] = d.data || [];
+        } else {
+          // Notionの場合はフロントエンド側でページネーションして分割取得
+          let allData: any[] = [];
+          let hasMore = true;
+          let cursor: string | undefined = undefined;
+          let guard = 0; // 無限ループ防止
 
-        // ★ 修正：Notion系はページ分割で取得して合体する
-        const data = await fetchNotionIndexPaginated(c.index);
-        return { index: c.index, data };
+          while (hasMore && guard < 50) {
+            const url = new URL('/api/notion', window.location.origin);
+            url.searchParams.set('index', c.index);
+            if (cursor) url.searchParams.set('cursor', cursor);
+
+            const res = await fetch(url.toString(), { credentials: 'include' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            const d = await res.json();
+            if (!d.success) throw new Error(d.error || 'unknown error');
+
+            allData = allData.concat(d.data || []);
+            hasMore = !!d.hasMore;
+            cursor = d.nextCursor || undefined;
+            guard++;
+
+            // ★ Notion API制限 (3リクエスト/秒) を避けるため、次の取得までに少しだけ待機
+            if (hasMore) await new Promise(r => setTimeout(r, 350));
+          }
+          nc[c.index] = allData;
+        }
       } catch (e: any) {
         console.error(`Failed to fetch ${c.index}:`, e);
         if (!silent && addToastRef.current) {
           addToastRef.current(`[${c.name}] 取得エラー: ${e.message || '不明なエラー'}`, 'error');
         }
-        return { index: c.index, data: [] };
+        nc[c.index] = [];
       }
-    })
-  );
-
-  results.forEach((result, i) => {
-    const c = DATABASE_CONFIG[i];
-    if (result.status === 'fulfilled') {
-      nc[result.value.index] = result.value.data;
+      // 進捗バーの更新
+      if (!silent) setLoadingProgress(prev => ({ ...prev, loaded: i + 1 }));
     }
-    if (!silent) setLoadingProgress(prev => ({ ...prev, loaded: prev.loaded + 1 }));
-  });
 
-  if (Object.keys(nc).length > 0) {
-    setCacheStore(prev => ({ ...prev, ...nc }));
-  }
-  if (!silent) setLoadingAll(false);
-}, [fetchNotionIndexPaginated]);
+    if (Object.keys(nc).length > 0) {
+      setCacheStore(prev => ({ ...prev, ...nc }));
+    }
+    if (!silent) setLoadingAll(false);
+  }, []);
 
   // バックグラウンド更新（ローディング画面なし、完了時にトーストで通知）
       const refreshDataInBackground = useCallback(async () => {
