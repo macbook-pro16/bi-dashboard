@@ -259,24 +259,48 @@ function DashboardInner() {
   const { addToast } = useToast();
   const { colors } = useTheme();
 
-    const getInitialCacheStore = (): CacheStore => {
-    if (typeof window === 'undefined') return {};
-    try {
-      const raw = localStorage.getItem('bi-cache-store-v2');
-      if (raw) {
-        localStorage.removeItem('bi-cache-store'); // 古いv1キャッシュの削除は残す
-        return JSON.parse(raw); // 🟢 保存されている前回のデータを返すように変更！
-      }
-    } catch {}
-    return {};
-  };
-  const [cacheStore, setCacheStore] = useState<CacheStore>(getInitialCacheStore);
+    const [cacheStore, setCacheStore] = useState<CacheStore>({});
+  const [cacheLoaded, setCacheLoaded] = useState(false);
   const [loadingAll, setLoadingAll] = useState(true);
-    // cacheStore が更新されたら localStorage に保存（初回も含む）
+
+  // 起動時に大容量の IndexedDB から前回データを読み込む
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem('bi-cache-store-v2', JSON.stringify(cacheStore));
-    } catch {}
+      const req = indexedDB.open('BIDatabase', 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore('bi-cache-v3'); };
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction('bi-cache-v3', 'readonly');
+        const getReq = tx.objectStore('bi-cache-v3').get('cacheStore');
+        getReq.onsuccess = () => {
+          if (getReq.result && Object.keys(getReq.result).length > 0) {
+            setCacheStore(getReq.result);
+          }
+          setCacheLoaded(true);
+        };
+        getReq.onerror = () => setCacheLoaded(true);
+      };
+      req.onerror = () => setCacheLoaded(true);
+    } catch (e) {
+      setCacheLoaded(true);
+    }
+  }, []);
+
+  // データが更新されたら IndexedDB に保存する
+  useEffect(() => {
+    if (typeof window === 'undefined' || Object.keys(cacheStore).length === 0) return;
+    try {
+      const req = indexedDB.open('BIDatabase', 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore('bi-cache-v3'); };
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction('bi-cache-v3', 'readwrite');
+        tx.objectStore('bi-cache-v3').put(cacheStore, 'cacheStore');
+      };
+    } catch (e) {
+      console.error('IDB Save Error', e);
+    }
   }, [cacheStore]);
   const [loadingProgress, setLoadingProgress] = useState({ loaded: 0, total: DATABASE_CONFIG.length });
 
@@ -2418,7 +2442,7 @@ function DashboardInner() {
 
       <main className="flex-1 flex flex-col min-w-0 min-h-0 relative bg-slate-50/50">
           {/* ★ データ取得中オーバーレイ ★ */}
-          {loadingAll && dbLoaded && Object.keys(cacheStore).length === 0 && (
+          {loadingAll && dbLoaded && cacheLoaded && Object.keys(cacheStore).length === 0 && (
             <div className="absolute inset-0 z-[100] bg-white/70 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
               <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
