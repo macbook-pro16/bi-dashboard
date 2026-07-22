@@ -609,55 +609,72 @@ function DashboardInner() {
       setLoadingProgress({ loaded: 0, total: DATABASE_CONFIG.length });
     }
     const nc: CacheStore = {};
+    const chunkSize = 3; // 1秒間に処理する上限数（Notionの制限回避）
 
-    // ★ 修正：Vercel無料プランのタイムアウト・Notionのレートリミット対策として、
-    // Promise.allSettledでの並列取得をやめ、forループで直列（1つずつ順番に）取得します
-    for (let i = 0; i < DATABASE_CONFIG.length; i++) {
-      const c = DATABASE_CONFIG[i];
-      try {
-        if (c.index.startsWith('wp_')) {
-          const apiPath = `/api/wordpress?type=${c.index.replace('wp_', '')}`;
-          const res = await fetch(apiPath, { credentials: 'include' });
-          if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-          const d = await res.json();
-          if (!d.success) throw new Error(d.error || 'unknown error');
-          nc[c.index] = d.data || [];
-        } else {
-          // Notionの場合はフロントエンド側でページネーションして分割取得
-          let allData: any[] = [];
-          let hasMore = true;
-          let cursor: string | undefined = undefined;
-          let guard = 0; // 無限ループ防止
+    for (let i = 0; i < DATABASE_CONFIG.length; i += chunkSize) {
+      const chunk = DATABASE_CONFIG.slice(i, i + chunkSize);
+      
+      const chunkResults = await Promise.allSettled(
+        chunk.map(async (c) => {
+          try {
+            if (c.index.startsWith('wp_')) {
+              const apiPath = `/api/wordpress?type=${c.index.replace('wp_', '')}`;
+              const res = await fetch(apiPath, { credentials: 'include' });
+              if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+              const d = await res.json();
+              if (!d.success) throw new Error(d.error || 'unknown error');
+              return { index: c.index, data: d.data || [] };
+            } else {
+              // Notionの場合はフロントエンド側でページネーションして分割取得
+              let allData: any[] = [];
+              let hasMore = true;
+              let cursor: string | undefined = undefined;
+              let guard = 0; // 無限ループ防止
 
-          while (hasMore && guard < 50) {
-            const url = new URL('/api/notion', window.location.origin);
-            url.searchParams.set('index', c.index);
-            if (cursor) url.searchParams.set('cursor', cursor);
+              while (hasMore && guard < 50) {
+                const url = new URL('/api/notion', window.location.origin);
+                url.searchParams.set('index', c.index);
+                if (cursor) url.searchParams.set('cursor', cursor);
 
-            const res = await fetch(url.toString(), { credentials: 'include' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-            const d = await res.json();
-            if (!d.success) throw new Error(d.error || 'unknown error');
+                const res = await fetch(url.toString(), { credentials: 'include' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                const d = await res.json();
+                if (!d.success) throw new Error(d.error || 'unknown error');
 
-            allData = allData.concat(d.data || []);
-            hasMore = !!d.hasMore;
-            cursor = d.nextCursor || undefined;
-            guard++;
+                allData = allData.concat(d.data || []);
+                hasMore = !!d.hasMore;
+                cursor = d.nextCursor || undefined;
+                guard++;
 
-            // ★ Notion API制限 (3リクエスト/秒) を避けるため、次の取得までに少しだけ待機
-            if (hasMore) await new Promise(r => setTimeout(r, 350));
+                // ※ ページネーション時も念のため少し待機するが、大半は1ページで終わる想定
+                if (hasMore) await new Promise(r => setTimeout(r, 350));
+              }
+              return { index: c.index, data: allData };
+            }
+          } catch (e: any) {
+            console.error(`Failed to fetch ${c.index}:`, e);
+            if (!silent && addToastRef.current) {
+              addToastRef.current(`[${c.name}] 取得エラー: ${e.message || '不明なエラー'}`, 'error');
+            }
+            return { index: c.index, data: [] };
           }
-          nc[c.index] = allData;
+        })
+      );
+
+      // 結果をCacheStoreに格納
+      chunkResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          nc[result.value.index] = result.value.data;
         }
-      } catch (e: any) {
-        console.error(`Failed to fetch ${c.index}:`, e);
-        if (!silent && addToastRef.current) {
-          addToastRef.current(`[${c.name}] 取得エラー: ${e.message || '不明なエラー'}`, 'error');
-        }
-        nc[c.index] = [];
-      }
+      });
+
       // 進捗バーの更新
-      if (!silent) setLoadingProgress(prev => ({ ...prev, loaded: i + 1 }));
+      if (!silent) setLoadingProgress(prev => ({ ...prev, loaded: Math.min(i + chunkSize, DATABASE_CONFIG.length) }));
+
+      // 最後のグループでなければ、次の取得までに1.2秒（1200ms）待機する（Notion制限回避）
+      if (i + chunkSize < DATABASE_CONFIG.length) {
+        await new Promise(r => setTimeout(r, 1200));
+      }
     }
 
     if (Object.keys(nc).length > 0) {
