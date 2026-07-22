@@ -264,9 +264,8 @@ function DashboardInner() {
     try {
       const raw = localStorage.getItem('bi-cache-store-v2');
       if (raw) {
-        // ★ 一時対応：キャッシュをクリアして、Notion置換後の新データを取得させる
-        localStorage.removeItem('bi-cache-store');
-        return {};
+        localStorage.removeItem('bi-cache-store'); // 古いv1キャッシュの削除は残す
+        return JSON.parse(raw); // 🟢 保存されている前回のデータを返すように変更！
       }
     } catch {}
     return {};
@@ -2419,7 +2418,7 @@ function DashboardInner() {
 
       <main className="flex-1 flex flex-col min-w-0 min-h-0 relative bg-slate-50/50">
           {/* ★ データ取得中オーバーレイ ★ */}
-          {loadingAll && dbLoaded && (
+          {loadingAll && dbLoaded && Object.keys(cacheStore).length === 0 && (
             <div className="absolute inset-0 z-[100] bg-white/70 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
               <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
