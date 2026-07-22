@@ -603,47 +603,78 @@ function DashboardInner() {
     return()=>el.removeEventListener('wheel',wh);
   },[]);
 
-  const fetchAllDatabases = useCallback(async (silent = false) => {
-    if(!silent) {
-      setLoadingAll(true);
-      setLoadingProgress({ loaded: 0, total: DATABASE_CONFIG.length });
-    }
-    const nc: CacheStore = {};
+  // ★ 追加：Notionの1インデックスをページネーションで完走させるヘルパー
+const fetchNotionIndexPaginated = useCallback(async (index: string): Promise<any[]> => {
+  let all: any[] = [];
+  let cursor: string | undefined = undefined;
+  let hasMore = true;
+  let guard = 0; // 無限ループ防止（Notion側の異常対策）
 
-    const results = await Promise.allSettled(
-      DATABASE_CONFIG.map(async (c) => {
-        try {
-          const apiPath = c.index.startsWith('wp_')
-            ? `/api/wordpress?type=${c.index.replace('wp_', '')}`
-            : `/api/notion?index=${c.index}`;
+  while (hasMore && guard < 50) {
+    const url = new URL('/api/notion', window.location.origin);
+    url.searchParams.set('index', index);
+    if (cursor) url.searchParams.set('cursor', cursor);
+
+    const res = await fetch(url.toString(), { credentials: 'include' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const d = await res.json();
+    if (!d.success) throw new Error(d.error || 'unknown error');
+
+    all = all.concat(d.data || []);
+    hasMore = !!d.hasMore;
+    cursor = d.nextCursor || undefined;
+    guard++;
+
+    // ★ 進捗をトーストではなくログ的に見たい場合はここでコールバックしてもよい
+  }
+  return all;
+}, []);
+
+const fetchAllDatabases = useCallback(async (silent = false) => {
+  if(!silent) {
+    setLoadingAll(true);
+    setLoadingProgress({ loaded: 0, total: DATABASE_CONFIG.length });
+  }
+  const nc: CacheStore = {};
+
+  const results = await Promise.allSettled(
+    DATABASE_CONFIG.map(async (c) => {
+      try {
+        if (c.index.startsWith('wp_')) {
+          const apiPath = `/api/wordpress?type=${c.index.replace('wp_', '')}`;
           const res = await fetch(apiPath, { credentials: 'include' });
           if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
           const d = await res.json();
           if (!d.success) throw new Error(d.error || 'unknown error');
           return { index: c.index, data: d.data || [] };
-        } catch (e: any) {
-          console.error(`Failed to fetch ${c.index}:`, e);
-          if (!silent && addToastRef.current) {
-            addToastRef.current(`[${c.name}] 取得エラー: ${e.message || '不明なエラー'}`, 'error');
-          }
-          return { index: c.index, data: [] };
         }
-      })
-    );
 
-    results.forEach((result, i) => {
-      const c = DATABASE_CONFIG[i];
-      if (result.status === 'fulfilled') {
-        nc[result.value.index] = result.value.data;
+        // ★ 修正：Notion系はページ分割で取得して合体する
+        const data = await fetchNotionIndexPaginated(c.index);
+        return { index: c.index, data };
+      } catch (e: any) {
+        console.error(`Failed to fetch ${c.index}:`, e);
+        if (!silent && addToastRef.current) {
+          addToastRef.current(`[${c.name}] 取得エラー: ${e.message || '不明なエラー'}`, 'error');
+        }
+        return { index: c.index, data: [] };
       }
-      if (!silent) setLoadingProgress(prev => ({ ...prev, loaded: prev.loaded + 1 }));
-    });
+    })
+  );
 
-    if (Object.keys(nc).length > 0) {
-      setCacheStore(prev => ({ ...prev, ...nc }));
+  results.forEach((result, i) => {
+    const c = DATABASE_CONFIG[i];
+    if (result.status === 'fulfilled') {
+      nc[result.value.index] = result.value.data;
     }
-    if (!silent) setLoadingAll(false);
-  }, []);
+    if (!silent) setLoadingProgress(prev => ({ ...prev, loaded: prev.loaded + 1 }));
+  });
+
+  if (Object.keys(nc).length > 0) {
+    setCacheStore(prev => ({ ...prev, ...nc }));
+  }
+  if (!silent) setLoadingAll(false);
+}, [fetchNotionIndexPaginated]);
 
   // バックグラウンド更新（ローディング画面なし、完了時にトーストで通知）
       const refreshDataInBackground = useCallback(async () => {
