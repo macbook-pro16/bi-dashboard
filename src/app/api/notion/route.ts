@@ -1,12 +1,11 @@
 import { NextResponse, NextRequest } from 'next/server';
 
-// ★ 簡易インメモリキャッシュ (データ用とユーザー用)
-const CACHE_TTL_MS = 60_000; // 1分
-const USER_CACHE_TTL_MS = 300_000; // ユーザー情報は更新頻度が低いため5分キャッシュ
-const cache = new Map<string, { data: any; timestamp: number }>();
-
+// ユーザー情報は更新頻度が低くデータサイズも小さいためキャッシュする（5分）
+const USER_CACHE_TTL_MS = 300_000;
 let userCache: Record<string, string> | null = null;
 let userCacheTimestamp = 0;
+
+// ※サーバー側のデータキャッシュ (cache Map) は、メモリ不足 (OOM) を引き起こすため撤廃しました
 
 // ==========================================
 // Notionのユーザー一覧を取得し、UUID -> 名前のマッピングを作成する関数
@@ -178,26 +177,14 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const index = searchParams.get('index') || '001';
-    const cursor = searchParams.get('cursor') || undefined; // ★ 追加：どこから読むか
-    const pageSize = Math.min(Number(searchParams.get('pageSize') || '100'), 100); // ★ 追加：1回あたりの件数（Notion上限100）
+    const cursor = searchParams.get('cursor') || undefined;
+    const pageSize = Math.min(Number(searchParams.get('pageSize') || '100'), 100);
 
     const envKey = `NOTION_DB_ID_${index}`;
     const databaseId = process.env[envKey];
 
     if (!databaseId) {
       return NextResponse.json({ success: false, error: `環境変数 [${envKey}] が定義されていません。` }, { status: 400 });
-    }
-
-    // ★ 修正：キャッシュキーにカーソルを含める（ページ単位でキャッシュする）
-    const cacheKey = `notion_${index}_${cursor || 'first'}_${pageSize}`;
-    const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return NextResponse.json({
-        success: true,
-        index,
-        cached: true,
-        ...cached.data,
-      });
     }
 
     // ユーザーマッピングの取得
@@ -317,8 +304,8 @@ export async function GET(request: NextRequest) {
       nextCursor: notionData.next_cursor || null,
     };
 
-    cache.set(cacheKey, { data: payload, timestamp: Date.now() });
-
+    // ※データはフロントエンド（IndexedDB）でキャッシュするため、
+    // Renderサーバーのメモリを圧迫しないよう即座にクライアントへ返します
     return NextResponse.json({
       success: true,
       index,
