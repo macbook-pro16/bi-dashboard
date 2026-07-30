@@ -77,6 +77,13 @@ export interface DataConfig {
   textContent?: string;
   todayDiffMatchField?: string;
   todayDiffChangeField?: string;
+
+  // ★ 追加：計算モード（例：販売金額合計 ÷ 件数 = 販売単価）
+  calcMode?: boolean;
+  calcOperator?: 'divide' | 'multiply' | 'add' | 'subtract';
+  calcDenominatorField?: string;
+  calcDenominatorAggregation?: 'count' | 'sum' | 'avg' | 'max' | 'min';
+  calcDecimalPlaces?: number;
   
   titleFontSize?: number;
   titleColor?: string;

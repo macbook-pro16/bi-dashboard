@@ -57,7 +57,8 @@ import {
   extractStringValue,
   isUuid,
   isRelationField,
-  evaluateConditions
+  evaluateConditions,
+  applyCalcMode
 } from '../../utils/dashboardUtils';
 import { renderWidgetContent } from '../../components/dashboard/renderWidgetContent';
 import SignageView from '../../components/dashboard/SignageView';
@@ -1044,6 +1045,8 @@ function DashboardInner() {
                 : agg === 'min' ? Math.min(...filteredByConditions.map(i => Number(i[field]) || 0))
                 : sum;
           }
+          // ★ 追加：計算モードを適用
+          val = applyCalcMode(val ?? 0, dc, filteredByConditions);
         } else if (w.type === 'flow-node') {
           const field = dc.filterField ?? w.targetField ?? 'status';
           const value = dc.filterValue ?? w.statusTarget ?? '';
@@ -1110,6 +1113,8 @@ function DashboardInner() {
         } else {
           val = filteredByConditions.length;
         }
+        // ★ 追加：計算モード（分子÷分母など）を適用
+        val = applyCalcMode(val ?? 0, dc, filteredByConditions);
       } else if (w.type.startsWith('kpi-')) {
         const dateFilter = dc.dateFilter ?? (w.type === 'kpi-today' ? 'today' : 'range');
         const baseData =
@@ -3180,6 +3185,63 @@ function DashboardInner() {
                                     </div>
                                   );
                                 })()}
+                                {/* ★ 追加：計算モード */}
+                                <div className="pt-2 border-t border-slate-100 space-y-3">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={dc.calcMode || false}
+                                      onChange={e => updateSelectedDesign('dataConfig', { ...dc, calcMode: e.target.checked })}
+                                      className="w-4 h-4 rounded text-indigo-600"
+                                    />
+                                    <span className="text-xs font-medium text-slate-700">🧮 計算モード（上の指標を分子として計算）</span>
+                                  </label>
+                                  {dc.calcMode && (
+                                    <div className="space-y-2 pl-1">
+                                      <div>
+                                        <label className="text-xs font-medium text-slate-500 mb-1 block">演算子</label>
+                                        <select
+                                          value={dc.calcOperator || 'divide'}
+                                          onChange={e => updateSelectedDesign('dataConfig', { ...dc, calcOperator: e.target.value as any })}
+                                          className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white outline-none"
+                                        >
+                                          <option value="divide">÷（例：単価計算）</option>
+                                          <option value="multiply">×</option>
+                                          <option value="add">＋</option>
+                                          <option value="subtract">－</option>
+                                        </select>
+                                      </div>
+                                      <div>
+                                        <label className="text-xs font-medium text-slate-500 mb-1 block">分母フィールド</label>
+                                        <SelectWithSearch
+                                          options={['count', ...allFields]}
+                                          value={dc.calcDenominatorField || ''}
+                                          onChange={v => updateSelectedDesign('dataConfig', { ...dc, calcDenominatorField: v })}
+                                          placeholder="count（件数）または数値フィールド"
+                                        />
+                                      </div>
+                                      {dc.calcDenominatorField && dc.calcDenominatorField !== 'count' && (
+                                        <div>
+                                          <label className="text-xs font-medium text-slate-500 mb-1 block">分母の集計方法</label>
+                                          <select
+                                            value={dc.calcDenominatorAggregation ?? 'sum'}
+                                            onChange={e => updateSelectedDesign('dataConfig', { ...dc, calcDenominatorAggregation: e.target.value as any })}
+                                            className="w-full text-sm border border-slate-200 px-2 py-1.5 rounded-lg bg-white outline-none"
+                                          >
+                                            <option value="sum">合計</option>
+                                            <option value="avg">平均</option>
+                                            <option value="max">最大</option>
+                                            <option value="min">最小</option>
+                                            <option value="count">件数</option>
+                                          </select>
+                                        </div>
+                                      )}
+                                      <p className="text-[10px] text-slate-400">
+                                        分母には上のクロスフィルター条件・期間フィルターが同じく適用されます。
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
                                 <div className="pt-2 border-t border-slate-100">
                                   <div className="flex items-center justify-between mb-1.5">
                                     <label className="text-xs font-medium text-slate-700">📅 基準とする日付フィールド</label>

@@ -239,3 +239,43 @@ export function evaluateConditions(
   }
   return result;
 }
+
+// ★ 追加：フィールド＋集計方法から1つの数値を出す（分子・分母どちらにも使う共通処理）
+export function computeAggregatedValue(
+  items: DBItem[],
+  field?: string,
+  aggregation?: 'count' | 'sum' | 'avg' | 'max' | 'min'
+): number {
+  if (!field || field === 'count' || aggregation === 'count') {
+    return items.length;
+  }
+  const values = items.map(item => Number(item[field]) || 0).filter(v => v !== 0);
+  switch (aggregation) {
+    case 'sum': return values.reduce((a, b) => a + b, 0);
+    case 'avg': return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    case 'max': return values.length ? Math.max(...values) : 0;
+    case 'min': return values.length ? Math.min(...values) : 0;
+    default: return items.length;
+  }
+}
+
+// ★ 追加：計算モードが有効なら numerator と分母を演算子で組み合わせる
+export function applyCalcMode(
+  numeratorValue: number,
+  dc: DataConfig,
+  filteredItems: DBItem[]
+): number {
+  if (!dc.calcMode) return numeratorValue;
+  const denominator = computeAggregatedValue(
+    filteredItems,
+    dc.calcDenominatorField,
+    dc.calcDenominatorAggregation
+  );
+  switch (dc.calcOperator) {
+    case 'divide': return denominator !== 0 ? numeratorValue / denominator : 0;
+    case 'multiply': return numeratorValue * denominator;
+    case 'add': return numeratorValue + denominator;
+    case 'subtract': return numeratorValue - denominator;
+    default: return numeratorValue;
+  }
+}
